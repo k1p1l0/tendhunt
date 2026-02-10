@@ -139,62 +139,62 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | TBD | Pending |
-| AUTH-02 | TBD | Pending |
-| AUTH-03 | TBD | Pending |
-| AUTH-04 | TBD | Pending |
-| AUTH-05 | TBD | Pending |
-| AUTH-06 | TBD | Pending |
-| VIBE-01 | TBD | Pending |
-| VIBE-02 | TBD | Pending |
-| VIBE-03 | TBD | Pending |
-| VIBE-04 | TBD | Pending |
-| VIBE-05 | TBD | Pending |
-| VIBE-06 | TBD | Pending |
-| VIBE-07 | TBD | Pending |
-| VIBE-08 | TBD | Pending |
-| VIBE-09 | TBD | Pending |
-| VIBE-10 | TBD | Pending |
-| VIBE-11 | TBD | Pending |
-| DASH-01 | TBD | Pending |
-| DASH-02 | TBD | Pending |
-| DASH-03 | TBD | Pending |
-| DASH-04 | TBD | Pending |
-| DASH-05 | TBD | Pending |
-| DASH-06 | TBD | Pending |
-| SGNL-01 | TBD | Pending |
-| SGNL-02 | TBD | Pending |
-| SGNL-03 | TBD | Pending |
-| SGNL-04 | TBD | Pending |
-| SGNL-05 | TBD | Pending |
-| BUYER-01 | TBD | Pending |
-| BUYER-02 | TBD | Pending |
-| BUYER-03 | TBD | Pending |
-| BUYER-04 | TBD | Pending |
-| BUYER-05 | TBD | Pending |
-| BUYER-06 | TBD | Pending |
-| BUYER-07 | TBD | Pending |
-| CRED-01 | TBD | Pending |
-| CRED-02 | TBD | Pending |
-| CRED-03 | TBD | Pending |
-| CRED-04 | TBD | Pending |
-| CRED-05 | TBD | Pending |
-| PRICE-01 | TBD | Pending |
-| PRICE-02 | TBD | Pending |
-| PRICE-03 | TBD | Pending |
-| PRICE-04 | TBD | Pending |
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| DATA-05 | TBD | Pending |
-| DATA-06 | TBD | Pending |
+| AUTH-01 | Phase 1: Foundation | Pending |
+| AUTH-02 | Phase 3: Onboarding & Company Profile | Pending |
+| AUTH-03 | Phase 3: Onboarding & Company Profile | Pending |
+| AUTH-04 | Phase 3: Onboarding & Company Profile | Pending |
+| AUTH-05 | Phase 1: Foundation | Pending |
+| AUTH-06 | Phase 3: Onboarding & Company Profile | Pending |
+| VIBE-01 | Phase 5: Vibe Scanner | Pending |
+| VIBE-02 | Phase 5: Vibe Scanner | Pending |
+| VIBE-03 | Phase 5: Vibe Scanner | Pending |
+| VIBE-04 | Phase 5: Vibe Scanner | Pending |
+| VIBE-05 | Phase 5: Vibe Scanner | Pending |
+| VIBE-06 | Phase 5: Vibe Scanner | Pending |
+| VIBE-07 | Phase 5: Vibe Scanner | Pending |
+| VIBE-08 | Phase 5: Vibe Scanner | Pending |
+| VIBE-09 | Phase 5: Vibe Scanner | Pending |
+| VIBE-10 | Phase 5: Vibe Scanner | Pending |
+| VIBE-11 | Phase 5: Vibe Scanner | Pending |
+| DASH-01 | Phase 4: Contract Dashboard | Pending |
+| DASH-02 | Phase 4: Contract Dashboard | Pending |
+| DASH-03 | Phase 4: Contract Dashboard | Pending |
+| DASH-04 | Phase 4: Contract Dashboard | Pending |
+| DASH-05 | Phase 4: Contract Dashboard | Pending |
+| DASH-06 | Phase 4: Contract Dashboard | Pending |
+| SGNL-01 | Phase 7: Buying Signals | Pending |
+| SGNL-02 | Phase 7: Buying Signals | Pending |
+| SGNL-03 | Phase 7: Buying Signals | Pending |
+| SGNL-04 | Phase 7: Buying Signals | Pending |
+| SGNL-05 | Phase 7: Buying Signals | Pending |
+| BUYER-01 | Phase 6: Buyer Intelligence & Credits | Pending |
+| BUYER-02 | Phase 6: Buyer Intelligence & Credits | Pending |
+| BUYER-03 | Phase 6: Buyer Intelligence & Credits | Pending |
+| BUYER-04 | Phase 6: Buyer Intelligence & Credits | Pending |
+| BUYER-05 | Phase 6: Buyer Intelligence & Credits | Pending |
+| BUYER-06 | Phase 6: Buyer Intelligence & Credits | Pending |
+| BUYER-07 | Phase 6: Buyer Intelligence & Credits | Pending |
+| CRED-01 | Phase 6: Buyer Intelligence & Credits | Pending |
+| CRED-02 | Phase 6: Buyer Intelligence & Credits | Pending |
+| CRED-03 | Phase 6: Buyer Intelligence & Credits | Pending |
+| CRED-04 | Phase 6: Buyer Intelligence & Credits | Pending |
+| CRED-05 | Phase 6: Buyer Intelligence & Credits | Pending |
+| PRICE-01 | Phase 8: Landing & Pricing | Pending |
+| PRICE-02 | Phase 8: Landing & Pricing | Pending |
+| PRICE-03 | Phase 8: Landing & Pricing | Pending |
+| PRICE-04 | Phase 8: Landing & Pricing | Pending |
+| DATA-01 | Phase 2: Data Pipeline | Pending |
+| DATA-02 | Phase 2: Data Pipeline | Pending |
+| DATA-03 | Phase 1: Foundation | Pending |
+| DATA-04 | Phase 2: Data Pipeline | Pending |
+| DATA-05 | Phase 2: Data Pipeline | Pending |
+| DATA-06 | Phase 2: Data Pipeline | Pending |
 
 **Coverage:**
 - v1 requirements: 46 total
-- Mapped to phases: 0
-- Unmapped: 46
+- Mapped to phases: 46
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after Vibe Scanner addition, MongoDB switch, LinkedIn removal*
+*Last updated: 2026-02-10 -- Traceability updated after roadmap creation*
