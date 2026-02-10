@@ -12,7 +12,7 @@ TendHunt is a UK procurement intelligence platform built as a 1-week hackathon i
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Project scaffolding, Clerk auth, MongoDB schema, app shell
+- [x] **Phase 1: Foundation** - Project scaffolding, Clerk auth, MongoDB schema, app shell
 - [ ] **Phase 2: Data Pipeline** - Scrape and seed real UK procurement data into MongoDB Atlas
 - [ ] **Phase 3: Onboarding & Company Profile** - Document upload, AI profile generation, credit bonus
 - [ ] **Phase 4: Contract Dashboard** - Core product screen with search, filters, and detail view
@@ -32,11 +32,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User session persists across browser refresh without re-authentication
   3. MongoDB Atlas is connected with collections defined for contracts, buyers, signals, users, and credits
   4. App shell shows authenticated layout with sidebar/header navigation and placeholder content areas
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Next.js project setup, Tailwind 4.1, shadcn/ui, Clerk integration
-- [ ] 01-02: MongoDB Atlas connection, Mongoose schemas, app shell layout
+- [x] 01-01-PLAN.md -- Next.js 16 scaffold, Tailwind v4, shadcn/ui, Clerk auth with proxy.ts
+- [x] 01-02-PLAN.md -- MongoDB Atlas connection, 5 Mongoose schemas, Clerk webhook user sync, app shell layout
 
 ### Phase 2: Data Pipeline
 **Goal**: Real UK procurement data from Find a Tender and Contracts Finder is normalized and stored in MongoDB Atlas, alongside seeded board minutes signals and buyer contacts, so the dashboard has real data to display
@@ -216,7 +216,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/2 | Not started | - |
+| 1. Foundation | 2/2 | ✓ Complete | 2026-02-10 |
 | 2. Data Pipeline | 0/3 | Not started | - |
 | 3. Onboarding & Company Profile | 0/2 | Not started | - |
 | 4. Contract Dashboard | 0/2 | Not started | - |
