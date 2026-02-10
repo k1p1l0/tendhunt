@@ -1,0 +1,19 @@
+{
+  "mode": "yolo",
+  "depth": "comprehensive",
+  "parallelization": true,
+  "commit_docs": true,
+  "model_profile": "quality",
+  "workflow": {
+    "research": true,
+    "plan_check": true,
+    "verifier": true
+  },
+  "integrations": {
+    "linear": {
+      "team": "Hackaton MVP",
+      "team_id": "6a876c70-f9d6-4d38-a6a1-631385c2e3e3",
+      "sync_issues": true
+    }
+  }
+}
