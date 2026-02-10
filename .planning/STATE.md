@@ -11,27 +11,27 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 Phase: 1 of 8 (Foundation)
 Plan: 2 of 2 in current phase
-Status: Completed -- Plan 01 finished with human verification checkpoint approved
-Last activity: 2026-02-10 -- Plan 01 verified (Next.js 16 scaffold with Clerk auth ready for integration)
+Status: Plan 02 auto tasks complete -- awaiting human verification checkpoint (Task 3)
+Last activity: 2026-02-10 -- Plan 02 Tasks 1-2 complete (MongoDB + models + webhook + dashboard shell)
 
 Progress: [▓▓░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 2
 - Average duration: 3 min
-- Total execution time: 0.05 hours
+- Total execution time: 0.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 1/2 | 3 min | 3 min |
+| 01-foundation | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min)
-- Trend: Starting
+- Last 5 plans: 01-01 (3 min), 01-02 (3 min)
+- Trend: Consistent
 
 *Updated after each plan completion*
 
@@ -50,6 +50,10 @@ Recent decisions affecting current work:
 - [01-01]: ClerkProvider dynamic mode for build compatibility with placeholder keys
 - [01-01]: proxy.ts at src/proxy.ts (inside src-dir) for Next.js 16
 - [01-01]: Zod 4 for env validation (newer API, auto-installed)
+- [01-02]: Mongoose 9.x connect() is a no-op when already connected -- no global caching needed
+- [01-02]: All models use mongoose.models.X || mongoose.model() for hot-reload safety
+- [01-02]: verifyWebhook from @clerk/nextjs/webhooks (not svix) for webhook verification
+- [01-02]: Dashboard layout uses await auth() as required by Next.js 16
 
 ### Pending Todos
 
@@ -62,5 +66,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Plan 01-01 complete - human verification checkpoint approved
-Resume file: Ready to begin Plan 02 (01-02-PLAN.md)
+Stopped at: Plan 01-02 Tasks 1-2 complete -- awaiting human verification checkpoint (Task 3)
+Resume file: .planning/phases/01-foundation/01-02-PLAN.md (Task 3: checkpoint:human-verify)
