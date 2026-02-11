@@ -13,7 +13,7 @@ TendHunt is a UK procurement intelligence platform built as a 1-week hackathon i
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project scaffolding, Clerk auth, MongoDB schema, app shell
-- [ ] **Phase 2: Data Pipeline** - Scrape and seed real UK procurement data into MongoDB Atlas
+- [x] **Phase 2: Data Pipeline** - Scrape and seed real UK procurement data into MongoDB Atlas
 - [ ] **Phase 3: Onboarding & Company Profile** - Document upload, AI profile generation, credit bonus
 - [ ] **Phase 4: Contract Dashboard** - Core product screen with search, filters, and detail view
 - [ ] **Phase 5: Vibe Scanner** - AI-powered contract scoring using Claude Haiku
@@ -51,9 +51,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Shared ingestion lib (DB, API client, OCDS mapper) + Find a Tender OCDS API ingestion (200-500 contracts)
-- [ ] 02-02-PLAN.md -- Contracts Finder OCDS API ingestion with unified schema normalization
-- [ ] 02-03-PLAN.md -- Seed board minutes signals (75) and buyer contacts (75) from generated JSON data
+- [x] 02-01-PLAN.md -- Shared ingestion lib (DB, API client, OCDS mapper) + Find a Tender OCDS API ingestion (200-500 contracts)
+- [x] 02-02-PLAN.md -- Contracts Finder OCDS API ingestion with unified schema normalization
+- [x] 02-03-PLAN.md -- Seed board minutes signals (75) and buyer contacts (75) from generated JSON data
 
 ### Phase 3: Onboarding & Company Profile
 **Goal**: New users can upload company documents and get an AI-generated company profile that powers the Vibe Scanner, plus receive their signup credit bonus
@@ -217,7 +217,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | ✓ Complete | 2026-02-10 |
-| 2. Data Pipeline | 0/3 | Planned | - |
+| 2. Data Pipeline | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. Onboarding & Company Profile | 0/2 | Not started | - |
 | 4. Contract Dashboard | 0/2 | Not started | - |
 | 5. Vibe Scanner | 0/3 | Not started | - |
