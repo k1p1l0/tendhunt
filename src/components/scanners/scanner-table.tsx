@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ArrowUpDown } from "lucide-react";
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import type { ScannerType } from "@/models/scanner";
@@ -152,27 +152,67 @@ export function ScannerTable({
     return arr;
   }, [rows, sortColumnId, sortAsc, columns, scores, firstAiColumn]);
 
-  // Filter by threshold
-  const filteredRows = useMemo(() => {
-    if (!firstAiColumn?.aiColumnId) return sortedRows;
+  // Split rows into above and below threshold groups
+  const { aboveRows, belowRows } = useMemo(() => {
+    if (!firstAiColumn?.aiColumnId) {
+      return { aboveRows: sortedRows, belowRows: [] as Array<Record<string, unknown>> };
+    }
     const colId = firstAiColumn.aiColumnId;
 
-    if (hideBelow) {
-      return sortedRows.filter((row) => {
-        const entry = getScore(scores, colId, String(row._id));
-        if (entry?.score == null) return true; // show unscored
-        return entry.score >= threshold;
-      });
+    const above: Array<Record<string, unknown>> = [];
+    const below: Array<Record<string, unknown>> = [];
+
+    for (const row of sortedRows) {
+      const entry = getScore(scores, colId, String(row._id));
+      if (entry?.score != null && entry.score < threshold) {
+        below.push(row);
+      } else {
+        above.push(row);
+      }
     }
 
-    return sortedRows;
-  }, [sortedRows, firstAiColumn, scores, threshold, hideBelow]);
+    return { aboveRows: above, belowRows: below };
+  }, [sortedRows, firstAiColumn, scores, threshold]);
+
+  // For pagination, use above + below rows (all rows)
+  const allDisplayRows = useMemo(
+    () => [...aboveRows, ...belowRows],
+    [aboveRows, belowRows]
+  );
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(allDisplayRows.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
   const startIdx = (clampedPage - 1) * PAGE_SIZE;
-  const pageRows = filteredRows.slice(startIdx, startIdx + PAGE_SIZE);
+  const pageRows = allDisplayRows.slice(startIdx, startIdx + PAGE_SIZE);
+
+  // State for expanding collapsed below-threshold rows
+  const [belowExpanded, setBelowExpanded] = useState(false);
+
+  // Determine which rows in the current page are above/below threshold
+  const { pageAbove, pageBelow, dividerIndex } = useMemo(() => {
+    if (!firstAiColumn?.aiColumnId || belowRows.length === 0) {
+      return { pageAbove: pageRows, pageBelow: [] as Array<Record<string, unknown>>, dividerIndex: -1 };
+    }
+
+    const belowIds = new Set(belowRows.map((r) => String(r._id)));
+    const above: Array<Record<string, unknown>> = [];
+    const below: Array<Record<string, unknown>> = [];
+
+    for (const row of pageRows) {
+      if (belowIds.has(String(row._id))) {
+        below.push(row);
+      } else {
+        above.push(row);
+      }
+    }
+
+    return {
+      pageAbove: above,
+      pageBelow: below,
+      dividerIndex: above.length,
+    };
+  }, [pageRows, belowRows, firstAiColumn]);
 
   const handleSort = useCallback(
     (colId: string) => {
@@ -185,14 +225,6 @@ export function ScannerTable({
     },
     [sortColumnId]
   );
-
-  /** Check if a row should be dimmed (below threshold but not hidden) */
-  function isRowDimmed(row: Record<string, unknown>): boolean {
-    if (hideBelow || !firstAiColumn?.aiColumnId) return false;
-    const entry = getScore(scores, firstAiColumn.aiColumnId, String(row._id));
-    if (entry?.score == null) return false;
-    return entry.score < threshold;
-  }
 
   /** Render a cell based on column type */
   function renderCell(
@@ -316,32 +348,110 @@ export function ScannerTable({
                 </TableCell>
               </TableRow>
             ) : (
-              pageRows.map((row, idx) => (
-                <TableRow
-                  key={String(row._id) || idx}
-                  className={`${
-                    idx % 2 === 0 ? "bg-muted/30" : ""
-                  } ${isRowDimmed(row) ? "opacity-40" : ""}`}
-                >
-                  {columns.map((col) => (
-                    <TableCell key={col.id} className={col.width ?? ""}>
-                      {renderCell(col, row)}
+              <>
+                {/* Above-threshold rows */}
+                {pageAbove.map((row, idx) => (
+                  <TableRow
+                    key={String(row._id) || idx}
+                    className={idx % 2 === 0 ? "bg-muted/30" : ""}
+                  >
+                    {columns.map((col) => (
+                      <TableCell key={col.id} className={col.width ?? ""}>
+                        {renderCell(col, row)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+
+                {/* Threshold divider */}
+                {pageAbove.length > 0 && pageBelow.length > 0 && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="bg-muted/50 py-1 px-0"
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute inset-0 flex items-center px-4">
+                          <div className="w-full border-t border-muted-foreground/20" />
+                        </div>
+                        <span className="relative bg-muted/50 px-3 text-xs text-muted-foreground">
+                          Below threshold ({threshold.toFixed(1)})
+                        </span>
+                      </div>
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
+                  </TableRow>
+                )}
+
+                {/* Below-threshold rows */}
+                {pageBelow.length > 0 && hideBelow ? (
+                  // Collapsed summary row when hideBelow is true
+                  <>
+                    <TableRow
+                      className="hover:bg-muted/20 cursor-pointer"
+                      onClick={() => setBelowExpanded(!belowExpanded)}
+                    >
+                      <TableCell
+                        colSpan={columns.length}
+                        className="text-center text-sm text-muted-foreground py-3"
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <ChevronDown
+                            className={`h-3.5 w-3.5 transition-transform ${
+                              belowExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                          <span>
+                            {pageBelow.length} {pageBelow.length === 1 ? "row" : "rows"} below threshold
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {belowExpanded &&
+                      pageBelow.map((row, idx) => (
+                        <TableRow
+                          key={String(row._id) || `below-${idx}`}
+                          className={`opacity-40 ${
+                            idx % 2 === 0 ? "bg-muted/30" : ""
+                          }`}
+                        >
+                          {columns.map((col) => (
+                            <TableCell key={col.id} className={col.width ?? ""}>
+                              {renderCell(col, row)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                  </>
+                ) : (
+                  // Dimmed rows when hideBelow is false
+                  pageBelow.map((row, idx) => (
+                    <TableRow
+                      key={String(row._id) || `below-${idx}`}
+                      className={`opacity-40 ${
+                        idx % 2 === 0 ? "bg-muted/30" : ""
+                      }`}
+                    >
+                      {columns.map((col) => (
+                        <TableCell key={col.id} className={col.width ?? ""}>
+                          {renderCell(col, row)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </>
             )}
           </TableBody>
         </Table>
       </div>
 
       {/* Pagination */}
-      {filteredRows.length > PAGE_SIZE && (
+      {allDisplayRows.length > PAGE_SIZE && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
             Showing {startIdx + 1}-
-            {Math.min(startIdx + PAGE_SIZE, filteredRows.length)} of{" "}
-            {filteredRows.length}
+            {Math.min(startIdx + PAGE_SIZE, allDisplayRows.length)} of{" "}
+            {allDisplayRows.length}
           </span>
           <div className="flex items-center gap-2">
             <Button
