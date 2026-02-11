@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 3 COMPLETE -- ready for Phase 4: Contract Dashboard
+**Current focus:** Phase 3 COMPLETE (all 3 plans) -- ready for Phase 4: Contract Dashboard
 
 ## Current Position
 
 Phase: 3 of 8 (Onboarding & Company Profile) -- COMPLETE
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 3 complete -- full onboarding wizard with AI profile generation, credit bonus, and Clerk metadata
-Last activity: 2026-02-11 -- AI profile generation + review/edit + onboarding completion
+Plan: 3 of 3 in current phase (COMPLETE)
+Status: Phase 3 fully complete -- onboarding wizard with company info fields, web content enrichment, AI profile generation, credit bonus, and Clerk metadata
+Last activity: 2026-02-11 -- Company info form + web content fetching/extraction + enriched AI generation
 
 Progress: [▓▓▓▓▓▓▓░░░] 58%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 5 min
-- Total execution time: 0.6 hours
+- Total execution time: 0.7 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [▓▓▓▓▓▓▓░░░] 58%
 |-------|-------|-------|----------|
 | 01-foundation | 2/2 | 6 min | 3 min |
 | 02-data-pipeline | 3/3 | 17 min | 5.7 min |
-| 03-onboarding | 2/2 | 8 min | 4 min |
+| 03-onboarding | 3/3 | 12 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (7 min), 02-02 (2 min), 02-03 (8 min), 03-01 (4 min), 03-02 (4 min)
-- Trend: Consistent ~4-5 min per plan
+- Last 5 plans: 02-02 (2 min), 02-03 (8 min), 03-01 (4 min), 03-02 (4 min), 03-03 (4 min)
+- Trend: Consistent ~4 min per plan
 
 *Updated after each plan completion*
 
@@ -78,10 +78,14 @@ Recent decisions affecting current work:
 - [03-02]: window.location.href over router.push for post-onboarding redirect -- forces Clerk session token refresh
 - [03-02]: Idempotent credit creation -- check for existing CreditAccount before creating signup bonus
 - [03-02]: Tag-style inputs for array fields (sectors, capabilities, keywords, certifications, regions)
+- [03-03]: Web content fetcher returns null on any failure for resilience (social media login walls expected)
+- [03-03]: Claude extraction returns plain text (not JSON) to feed as additional context into profile prompt
+- [03-03]: Promise.allSettled for parallel web fetching -- individual failures don't block others
+- [03-03]: Relaxed API validation: require either documents OR company info (not both)
 
 ### Pending Todos
 
-1. **Add company info fields to onboarding step 1** (ui) -- Company name, website, address, social links alongside document upload for richer AI profile generation
+None.
 
 ### Blockers/Concerns
 
@@ -90,5 +94,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-02-PLAN.md (AI profile generation + review/edit + credit bonus + onboarding completion)
-Next plan: Phase 4 (Contract Dashboard) -- Phase 3 complete
+Stopped at: Completed 03-03-PLAN.md (Company info form + web content enrichment + enriched AI generation)
+Next plan: Phase 4 (Contract Dashboard) -- Phase 3 fully complete
