@@ -272,7 +272,9 @@ Plans:
 
 **Goal:** Replace the Settings placeholder page with a full company profile editor showing all AI-generated profile data for review/editing, and restructure the sidebar to show the user's company logo/name at the top with TendHunt branding moved to the footer
 **Depends on:** Phase 3, Phase 9
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — API infrastructure: profile GET/PATCH, logo upload/re-extract, document delete, sonner toasts
+- [ ] 12-02-PLAN.md — Settings page: auto-save form with 3 sections (Company Info, AI Profile, Documents), TagInput extraction, logo upload component
+- [ ] 12-03-PLAN.md — Sidebar restructure: company header with logo/name at top, TendHunt branding in footer, event-driven logo refresh
