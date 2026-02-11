@@ -13,10 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Sparkles } from "lucide-react";
+import { X, Plus, Sparkles } from "lucide-react";
 
 export interface ProfileData {
   companyName: string;
+  website: string;
+  address: string;
+  socialLinks: Array<{ platform: string; url: string }>;
   summary: string;
   sectors: string[];
   capabilities: string[];
@@ -35,6 +38,16 @@ interface ProfileReviewProps {
 }
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
+
+const PLATFORM_OPTIONS = [
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "twitter", label: "X / Twitter" },
+  { value: "facebook", label: "Facebook" },
+  { value: "instagram", label: "Instagram" },
+  { value: "other", label: "Other" },
+] as const;
+
+const MAX_SOCIAL_LINKS = 5;
 
 /** Reusable tag input for array fields */
 function TagInput({
@@ -129,6 +142,32 @@ export function ProfileReview({
     []
   );
 
+  const addSocialLink = useCallback(() => {
+    if (profile.socialLinks.length >= MAX_SOCIAL_LINKS) return;
+    setProfile((prev) => ({
+      ...prev,
+      socialLinks: [...prev.socialLinks, { platform: "linkedin", url: "" }],
+    }));
+  }, [profile.socialLinks.length]);
+
+  const removeSocialLink = useCallback((index: number) => {
+    setProfile((prev) => ({
+      ...prev,
+      socialLinks: prev.socialLinks.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const updateSocialLink = useCallback(
+    (index: number, field: "platform" | "url", val: string) => {
+      setProfile((prev) => {
+        const updated = [...prev.socialLinks];
+        updated[index] = { ...updated[index], [field]: val };
+        return { ...prev, socialLinks: updated };
+      });
+    },
+    []
+  );
+
   return (
     <div className="space-y-6">
       {isAIGenerated && (
@@ -149,6 +188,90 @@ export function ProfileReview({
           }
           placeholder="Your company name"
         />
+      </div>
+
+      {/* Website URL */}
+      <div className="space-y-2">
+        <Label htmlFor="pr-website">Website URL</Label>
+        <Input
+          id="pr-website"
+          type="url"
+          value={profile.website}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            updateField("website", e.target.value)
+          }
+          placeholder="https://yourcompany.com"
+        />
+      </div>
+
+      {/* Address */}
+      <div className="space-y-2">
+        <Label htmlFor="pr-address">Address</Label>
+        <Input
+          id="pr-address"
+          value={profile.address}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            updateField("address", e.target.value)
+          }
+          placeholder="Company address"
+        />
+      </div>
+
+      {/* Social Links */}
+      <div className="space-y-2">
+        <Label>Social Links</Label>
+        {profile.socialLinks.map((link, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-1/3">
+              <Select
+                value={link.platform}
+                onValueChange={(v) => updateSocialLink(i, "platform", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Input
+                type="url"
+                value={link.url}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  updateSocialLink(i, "url", e.target.value)
+                }
+                placeholder="https://..."
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => removeSocialLink(i)}
+              className="size-9 shrink-0"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        ))}
+        {profile.socialLinks.length < MAX_SOCIAL_LINKS && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addSocialLink}
+            className="mt-1"
+          >
+            <Plus className="mr-1 size-4" />
+            Add social link
+          </Button>
+        )}
       </div>
 
       {/* Summary */}

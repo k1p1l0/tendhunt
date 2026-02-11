@@ -3,8 +3,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { DocumentDropzone } from "./document-dropzone";
 import { ProfileReview, type ProfileData } from "./profile-review";
+import {
+  CompanyInfoForm,
+  type CompanyInfo,
+} from "./company-info-form";
 import { completeOnboarding } from "@/app/onboarding/_actions";
 import { Loader2, AlertTriangle, Check } from "lucide-react";
 
@@ -16,6 +21,9 @@ const STEPS = [
 
 const EMPTY_PROFILE: ProfileData = {
   companyName: "",
+  website: "",
+  address: "",
+  socialLinks: [],
   summary: "",
   sectors: [],
   capabilities: [],
@@ -29,6 +37,12 @@ const EMPTY_PROFILE: ProfileData = {
 export function OnboardingWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [documentKeys, setDocumentKeys] = useState<string[]>([]);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
+    companyName: "",
+    website: "",
+    address: "",
+    socialLinks: [],
+  });
 
   // AI generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,9 +61,22 @@ export function OnboardingWizard() {
     setDocumentKeys(keys);
   }, []);
 
-  // Trigger AI generation when entering step 2 with documents
+  // Continue button: enabled if documentKeys or companyInfo has content
+  const canContinue =
+    documentKeys.length > 0 ||
+    companyInfo.companyName.trim().length > 0 ||
+    companyInfo.website.trim().length > 0;
+
+  // Check if company info has content for AI generation
+  const hasCompanyInfoContent =
+    companyInfo.companyName.trim().length > 0 ||
+    companyInfo.website.trim().length > 0;
+
+  // Trigger AI generation when entering step 2 with documents or company info
   useEffect(() => {
-    if (step !== 2 || documentKeys.length === 0 || isGenerating) return;
+    if (step !== 2) return;
+    if (documentKeys.length === 0 && !hasCompanyInfoContent) return;
+    if (isGenerating) return;
 
     let cancelled = false;
 
@@ -62,7 +89,17 @@ export function OnboardingWizard() {
         const res = await fetch("/api/profile/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentKeys }),
+          body: JSON.stringify({
+            documentKeys: documentKeys.length > 0 ? documentKeys : undefined,
+            companyInfo: {
+              companyName: companyInfo.companyName,
+              website: companyInfo.website,
+              address: companyInfo.address,
+              socialLinks: companyInfo.socialLinks.filter(
+                (sl) => sl.url.trim()
+              ),
+            },
+          }),
         });
 
         if (cancelled) return;
@@ -80,7 +117,16 @@ export function OnboardingWizard() {
 
         if (data.profile) {
           setProfileData({
-            companyName: data.profile.companyName || "",
+            companyName:
+              data.profile.companyName || companyInfo.companyName || "",
+            website:
+              data.profile.website || companyInfo.website || "",
+            address:
+              data.profile.address || companyInfo.address || "",
+            socialLinks:
+              data.profile.socialLinks ||
+              companyInfo.socialLinks.filter((sl) => sl.url.trim()) ||
+              [],
             summary: data.profile.summary || "",
             sectors: data.profile.sectors || [],
             capabilities: data.profile.capabilities || [],
@@ -97,7 +143,7 @@ export function OnboardingWizard() {
           // No profile generated (e.g., scanned docs)
           setGenerationWarning(
             data.warning ||
-              "Could not extract text from your documents. You can fill in your profile manually."
+              "Could not extract enough information. You can fill in your profile manually."
           );
         }
       } catch (err) {
@@ -204,18 +250,30 @@ export function OnboardingWizard() {
 
       {/* Step content */}
       <Card>
-        {/* Step 1: Upload Documents */}
+        {/* Step 1: Company Info + Upload Documents */}
         {step === 1 && (
           <>
             <CardHeader>
-              <CardTitle>Upload Company Documents</CardTitle>
+              <CardTitle>Tell Us About Your Company</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Upload your company documents (past bids, capability statements,
-                certifications) so our AI can build your profile. This helps us
-                match you with relevant contracts.
+                Provide your company details and optionally upload documents
+                (past bids, capability statements, certifications) so our AI can
+                build a richer profile for contract matching.
               </p>
             </CardHeader>
             <CardContent>
+              <CompanyInfoForm value={companyInfo} onChange={setCompanyInfo} />
+
+              <div className="relative my-6">
+                <Separator />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
+                  Optional
+                </span>
+              </div>
+
+              <p className="mb-3 text-sm text-muted-foreground">
+                Upload documents for additional AI analysis (optional)
+              </p>
               <DocumentDropzone onFilesChange={handleFilesChange} />
 
               <div className="mt-6 flex items-center justify-between">
@@ -224,7 +282,7 @@ export function OnboardingWizard() {
                 </Button>
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={documentKeys.length === 0}
+                  disabled={!canContinue}
                 >
                   Continue
                 </Button>
@@ -245,11 +303,13 @@ export function OnboardingWizard() {
                   <Loader2 className="size-10 animate-spin text-primary" />
                   <div className="text-center">
                     <p className="font-medium">
-                      Analyzing your documents...
+                      {documentKeys.length > 0
+                        ? "Analyzing your documents and company information..."
+                        : "Analyzing your company information..."}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Our AI is extracting your company profile from the
-                      uploaded documents. This usually takes 10-20 seconds.
+                      Our AI is building your company profile. This usually
+                      takes 10-20 seconds.
                     </p>
                   </div>
                 </div>
