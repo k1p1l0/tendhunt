@@ -1,0 +1,15 @@
+name = "tendhunt-enrichment"
+main = "src/index.ts"
+compatibility_date = "2025-03-20"
+compatibility_flags = ["nodejs_compat_v2"]
+
+[triggers]
+crons = ["0 2 * * *"]  # Daily at 2 AM UTC
+
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "tendhunt-enrichment-docs"
+
+# Secrets: MONGODB_URI, ANTHROPIC_API_KEY
+# Set via: wrangler secret put MONGODB_URI
+#          wrangler secret put ANTHROPIC_API_KEY
