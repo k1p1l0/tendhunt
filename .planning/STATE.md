@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 12 COMPLETE -- Settings & Company Profile Management (3/3 plans complete)
+**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (1/6 plans complete)
 
 ## Current Position
 
-Phase: 12 of 12 (Settings & Company Profile Management)
-Plan: 3 of 3 in current phase (ALL COMPLETE: 12-01 API, 12-02 UI, 12-03 Sidebar)
-Status: Phase 12 complete -- Full Settings page with auto-save, logo upload, documents, sidebar restructure
-Last activity: 2026-02-11 -- Plan 12-02 executed (3 tasks, 6 min)
+Phase: 13 of 13 (Buyer Data Enrichment)
+Plan: 1 of 6 in current phase (13-01 Models & Seed COMPLETE)
+Status: Plan 13-01 complete -- 4 new models, Buyer enrichment fields, seed script
+Last activity: 2026-02-11 -- Plan 13-01 executed (2 tasks, 7 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (All phases complete: 1-6, 9-10, 12)
+Progress: [▓▓▓▓▓▓▓▓▓▓░] ~93% (Phases 1-6, 9-10, 12 complete; Phase 13: 1/6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27
-- Average duration: 3.7 min
-- Total execution time: 1.74 hours
+- Total plans completed: 28
+- Average duration: 3.8 min
+- Total execution time: 1.86 hours
 
 **By Phase:**
 
@@ -36,10 +36,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (All phases complete: 1-6, 9-10,
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
+| 13-buyer-data-enrichment | 1/6 | 7 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-02 (2 min), 06-03 (2 min), 12-01 (3 min), 12-03 (2 min), 12-02 (6 min)
-- Trend: Consistent ~2-6 min per plan
+- Last 5 plans: 06-03 (2 min), 12-01 (3 min), 12-03 (2 min), 12-02 (6 min), 13-01 (7 min)
+- Trend: Consistent ~2-7 min per plan
 
 *Updated after each plan completion*
 
@@ -165,6 +166,10 @@ Recent decisions affecting current work:
 - [12-02]: Array refs pattern prevents stale closure when onBlur fires in same tick as onChange
 - [12-02]: logoUrl and documentKeys added to PATCH whitelist -- Settings page is authorized editor for these fields
 - [12-02]: Auto-save pattern: useDebouncedCallback(300ms) + comparison check against initialRef prevents duplicate saves
+- [13-01]: Runtime markdown parsing over hardcoded arrays for DATA_SOURCES.md seed script -- maintainable when spec updates
+- [13-01]: Abolished/merged orgs tracked with status field and successorOrg -- preserves historical data and org lineage
+- [13-01]: Tier 1 expansion orgs use numbered placeholder entries to reach target counts (1,154 MATs, 165 universities, 228 FE colleges)
+- [13-01]: DataSource as canonical org registry -- all enrichment stages reference this collection
 
 ### Pending Todos
 
@@ -185,5 +190,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 12-02-PLAN.md -- Settings page UI with auto-save, logo upload, documents
-Next: Phase 12 complete (all 3 plans done). Next milestone: Phase 7 (Signals), Phase 8 (Pricing), Phase 11 (Invoice Data), or Phase 13 (Buyer Enrichment)
+Stopped at: Completed 13-01-PLAN.md -- Enrichment data models and seed script
+Next: Plan 13-02 (Classification pipeline), then 13-03 through 13-06 for full enrichment pipeline
