@@ -82,16 +82,25 @@ function formatCompanyProfile(
   if (company.industry) lines.push(`Industry: ${company.industry}`);
   if (company.employeeCount)
     lines.push(`Employees: ${company.employeeCount}`);
-  if (company.foundedYear) lines.push(`Founded: ${company.foundedYear}`);
-  if (company.headquartersLocation)
-    lines.push(`HQ: ${company.headquartersLocation}`);
+  // foundedOn is an object { year, month, day }
+  const foundedOn = company.foundedOn as Record<string, unknown> | undefined;
+  if (foundedOn?.year) lines.push(`Founded: ${foundedOn.year}`);
+  // headquarter is an object { city, country, geographicArea, ... }
+  const hq = company.headquarter as Record<string, unknown> | undefined;
+  if (hq?.city) {
+    const hqParts = [hq.city, hq.geographicArea, hq.country].filter(Boolean);
+    lines.push(`HQ: ${hqParts.join(", ")}`);
+  }
   if (company.followerCount)
     lines.push(`Followers: ${company.followerCount}`);
-  if (company.website) lines.push(`Website: ${company.website}`);
+  // websiteUrl (not website) is the actual field name
+  if (company.websiteUrl || company.website)
+    lines.push(`Website: ${company.websiteUrl || company.website}`);
   if (company.specialities)
     lines.push(
       `Specialties: ${Array.isArray(company.specialities) ? company.specialities.join(", ") : company.specialities}`
     );
+  if (company.tagline) lines.push(`Tagline: ${company.tagline}`);
   if (company.description) lines.push(`Description: ${company.description}`);
 
   return lines.length > 0 ? lines.join("\n") : null;
@@ -119,10 +128,24 @@ function formatRecentPosts(
 
     if (!content.trim()) continue;
 
-    const date = post.postedAt || post.publishedAt || post.date || "Unknown";
-    const likes = post.likes ?? post.numLikes ?? post.likeCount ?? 0;
+    // postedAt can be an object { date, timestamp } or a string
+    const postedAtRaw = post.postedAt;
+    const date =
+      (typeof postedAtRaw === "object" && postedAtRaw !== null
+        ? (postedAtRaw as Record<string, unknown>).date
+        : postedAtRaw) ||
+      post.publishedAt ||
+      post.date ||
+      "Unknown";
+    // engagement is an object { likes, comments, shares }
+    const engagement = post.engagement as Record<string, unknown> | undefined;
+    const likes =
+      engagement?.likes ?? post.likes ?? post.numLikes ?? post.likeCount ?? 0;
     const comments =
-      post.comments ?? post.numComments ?? post.commentCount ?? 0;
+      engagement?.comments ??
+      post.numComments ??
+      post.commentCount ??
+      0;
 
     postLines.push(
       `\nPost ${i + 1} (${date}): ${content} [Likes: ${likes}, Comments: ${comments}]`
