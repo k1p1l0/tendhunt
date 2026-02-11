@@ -80,11 +80,11 @@ Plans:
   3. User can filter contracts by sector, value range, and region, with filters combinable
   4. User can click a contract card to view full details (title, buyer, value, dates, CPV codes, description, source URL)
   5. Dashboard displays total contract count and filtered result count
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Contract feed page with cards, search, and filter UI
-- [ ] 04-02: Contract detail view and count displays
+- [ ] 04-01-PLAN.md -- Data access layer, contract feed with cards, keyword search, sector/region/value filters, pagination, count display
+- [ ] 04-02-PLAN.md -- Contract detail page, dashboard real stats + recent contracts, score badge placeholder
 
 ### Phase 5: Vibe Scanner
 **Goal**: Users can create an AI-powered scoring engine from their company profile that batch-scores all contracts and buyer organizations using Claude Haiku, with interactive threshold controls to surface the best opportunities
@@ -219,7 +219,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 1. Foundation | 2/2 | ✓ Complete | 2026-02-10 |
 | 2. Data Pipeline | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. Onboarding & Company Profile | 2/2 | ✓ Complete | 2026-02-11 |
-| 4. Contract Dashboard | 0/2 | Not started | - |
+| 4. Contract Dashboard | 0/2 | Planning complete | - |
 | 5. Vibe Scanner | 0/3 | Not started | - |
 | 6. Buyer Intelligence & Credits | 0/3 | Not started | - |
 | 7. Buying Signals | 0/1 | Not started | - |
