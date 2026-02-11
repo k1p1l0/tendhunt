@@ -96,12 +96,12 @@ Plans:
   3. AI batch-scores contracts using Claude Haiku, with a visible progress bar during scoring
   4. Each contract card shows an AI score (1-10) with color-coded badge (green/yellow/red) and reasoning text
   5. User can adjust a score threshold slider (1-10, 0.1 increments) and contracts below threshold appear with reduced opacity or are hidden, with a visual divider separating above/below threshold
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Vibe Scanner creation, prompt generation from profile, prompt editor
-- [ ] 05-02: Claude Haiku batch scoring API, progress bar, score display on contracts
-- [ ] 05-03: Threshold slider, opacity/hide toggle, score divider, re-score flow, buyer org scoring
+- [ ] 05-01-PLAN.md -- VibeScanner model, scoring prompt generation from CompanyProfile, scanner creation/retrieval APIs, prompt editor page
+- [ ] 05-02-PLAN.md -- Zustand store, Claude Haiku batch scoring SSE endpoint with prompt caching, progress bar, scored contract feed, re-score flow
+- [ ] 05-03-PLAN.md -- Threshold slider (0.1 step), hide/dim toggle, score divider, buyer organization scoring
 
 ### Phase 6: Buyer Intelligence & Credits
 **Goal**: Users can explore buyer organization profiles with AI relevance scores and reveal locked contacts by spending credits, demonstrating the monetization model to investors
@@ -220,7 +220,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 2. Data Pipeline | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. Onboarding & Company Profile | 2/2 | ✓ Complete | 2026-02-11 |
 | 4. Contract Dashboard | 2/2 | ✓ Complete | 2026-02-11 |
-| 5. Vibe Scanner | 0/3 | Not started | - |
+| 5. Vibe Scanner | 0/3 | Planned | - |
 | 6. Buyer Intelligence & Credits | 0/3 | Not started | - |
 | 7. Buying Signals | 0/1 | Not started | - |
 | 8. Landing & Pricing | 0/2 | Not started | - |
