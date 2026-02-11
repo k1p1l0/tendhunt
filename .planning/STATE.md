@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 6 IN PROGRESS -- Buyer Intelligence & Credits (Plan 1/3 complete)
+**Current focus:** Phase 6 COMPLETE -- Buyer Intelligence & Credits (3/3 plans complete)
 
 ## Current Position
 
 Phase: 6 of 10 (Buyer Intelligence & Credits)
-Plan: 1 of 3 in current phase (06-01 complete)
-Status: Plan 06-01 complete -- Backend APIs, credit store, sidebar balance
-Last activity: 2026-02-11 -- Plan 06-01 executed (2 tasks, 4 min)
+Plan: 3 of 3 in current phase (06-03 complete -- PHASE COMPLETE)
+Status: Phase 6 complete -- Buyer list, profile, contact reveal flow all operational
+Last activity: 2026-02-11 -- Plan 06-03 executed (2 tasks, 2 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (Phases 1-5, 9-10 complete) + Phase 6: 1/3 plans
+Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (Phases 1-6, 9-10 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
-- Average duration: 3.9 min
-- Total execution time: 1.49 hours
+- Total plans completed: 24
+- Average duration: 3.8 min
+- Total execution time: 1.56 hours
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (Phases 1-5, 9-10 complete) + Ph
 | 04-contract-dashboard | 2/2 | 7 min | 3.5 min |
 | 05-vibe-scanner | 6/6 | 19 min | 3.2 min |
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
-| 06-buyer-intelligence | 1/3 | 4 min | 4 min |
+| 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-06 (4 min), 10-01 (4 min), 10-02 (2 min), 06-01 (4 min)
-- Trend: Consistent ~2-5 min per plan
+- Last 5 plans: 10-01 (4 min), 10-02 (2 min), 06-01 (4 min), 06-02 (2 min), 06-03 (2 min)
+- Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
 
@@ -146,6 +146,10 @@ Recent decisions affecting current work:
 - [06-01]: estimatedDocumentCount for total buyers count matching contracts.ts pattern
 - [06-01]: .npmrc with legacy-peer-deps to resolve marked peer conflict with glide-data-grid
 - [06-01]: Excluded workers/ from tsconfig.json to fix pre-existing build error
+- [06-03]: Atomic findOneAndUpdate with $gte:1 filter for credit deduction -- single operation prevents double-spend
+- [06-03]: Server balance as source of truth -- setBalance(data.balance) from API response, not local decrement
+- [06-03]: BuyerDetailClient wraps server component page for local isUnlocked state management
+- [06-03]: Contract card buyer name links to buyer profile for cross-entity navigation
 
 ### Pending Todos
 
@@ -165,5 +169,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 06-01-PLAN.md -- buyer APIs, credit APIs, credit store, sidebar balance
-Next: Phase 6 Plan 02 (Buyer Profile UI) then Plan 03 (Contact Reveal Flow).
+Stopped at: Completed 06-03-PLAN.md -- contact reveal flow with atomic credit deduction
+Next: Phase 7 (Buying Signals) or Phase 8 (Monetization & Pricing).
