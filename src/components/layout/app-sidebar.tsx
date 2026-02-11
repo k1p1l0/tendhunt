@@ -23,6 +23,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import type { NavItem } from "@/types";
+import { CreditBalance } from "@/components/credits/credit-balance";
 
 const navItems: NavItem[] = [
   {
@@ -88,7 +89,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        {/* Credit balance will be added here in Phase 6 */}
+        <CreditBalance />
       </SidebarFooter>
     </Sidebar>
   );
