@@ -1,0 +1,187 @@
+---
+const roles = [
+  'Business Development',
+  'Sales',
+  'Bid Manager',
+  'Director/C-Suite',
+  'Procurement',
+  'Other',
+];
+---
+
+<div class="max-w-md mx-auto">
+  <form id="waitlist-form" class="flex flex-col gap-5" novalidate>
+    <div class="flex flex-col gap-1.5">
+      <label for="waitlist-email" class="text-sm font-medium text-text-secondary">
+        Email address <span class="text-accent" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
+      </label>
+      <input
+        id="waitlist-email"
+        name="email"
+        type="email"
+        required
+        autocomplete="email"
+        placeholder="you@company.co.uk"
+        class="bg-bg-tertiary border border-border rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label for="waitlist-company" class="text-sm font-medium text-text-secondary">
+        Company name <span class="text-accent" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
+      </label>
+      <input
+        id="waitlist-company"
+        name="company"
+        type="text"
+        required
+        autocomplete="organization"
+        placeholder="Your company"
+        class="bg-bg-tertiary border border-border rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label for="waitlist-role" class="text-sm font-medium text-text-secondary">
+        Your role <span class="text-accent" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
+      </label>
+      <div class="relative">
+        <select
+          id="waitlist-role"
+          name="role"
+          required
+          class="w-full appearance-none bg-bg-tertiary border border-border rounded-lg px-4 py-3 text-text-primary text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors cursor-pointer"
+        >
+          <option value="" disabled selected>Select your role</option>
+          {roles.map((role) => (
+            <option value={role}>{role}</option>
+          ))}
+        </select>
+        <svg
+          class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- TODO: Replace PLACEHOLDER-SITE-KEY with your actual Cloudflare Turnstile site key -->
+    <div class="cf-turnstile [&_iframe]:max-w-full" data-sitekey="PLACEHOLDER-SITE-KEY" data-theme="dark" style="max-width:100%;overflow:hidden"></div>
+
+    <button
+      id="waitlist-submit"
+      type="submit"
+      class="inline-flex items-center justify-center font-heading font-bold transition-colors cursor-pointer bg-accent text-bg-primary rounded-lg hover:bg-accent-hover px-5 py-3 text-sm w-full disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Join Waitlist
+    </button>
+
+    <div
+      id="waitlist-error"
+      class="hidden text-sm text-red-400 text-center"
+      role="alert"
+      aria-live="polite"
+    ></div>
+  </form>
+</div>
+
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<script>
+  const form = document.getElementById('waitlist-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('waitlist-submit') as HTMLButtonElement;
+  const errorEl = document.getElementById('waitlist-error') as HTMLDivElement;
+
+  form.addEventListener('submit', async (e: Event) => {
+    e.preventDefault();
+
+    // Reset error state
+    errorEl.classList.add('hidden');
+    errorEl.textContent = '';
+
+    // Native validation check
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const formData = new FormData(form);
+    const email = formData.get('email') as string;
+    const company = formData.get('company') as string;
+    const role = formData.get('role') as string;
+    const turnstileToken = formData.get('cf-turnstile-response') as string;
+
+    if (!email || !company || !role) {
+      showError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!turnstileToken) {
+      showError('Please complete the verification challenge.');
+      return;
+    }
+
+    // Set loading state
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          company,
+          role,
+          'cf-turnstile-response': turnstileToken,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Replace form with success message
+        const container = form.parentElement as HTMLDivElement;
+        container.innerHTML = `
+          <div class="text-center py-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-6">
+              <svg class="w-8 h-8 text-accent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 class="font-heading text-xl font-bold text-text-primary mb-2">You're on the list!</h3>
+            <p class="text-text-secondary">We'll email you when TendHunt launches. Thank you for your interest.</p>
+          </div>
+        `;
+      } else {
+        showError(result.error || 'Something went wrong. Please try again.');
+        // Reset Turnstile widget so user can retry
+        if (typeof window.turnstile !== 'undefined') {
+          window.turnstile.reset();
+        }
+      }
+    } catch {
+      showError('Network error. Please check your connection and try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  });
+
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+  }
+</script>
