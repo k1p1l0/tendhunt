@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Onboarding & Company Profile** - Document upload, AI profile generation, credit bonus
 - [x] **Phase 4: Contract Dashboard** - Core product screen with search, filters, and detail view
 - [ ] **Phase 5: Vibe Scanner** - AI-powered contract scoring using Claude Haiku
-- [ ] **Phase 6: Buyer Intelligence & Credits** - Buyer profiles, contact reveal, credit system
+- [x] **Phase 6: Buyer Intelligence & Credits** - Buyer profiles, contact reveal, credit system
 - [ ] **Phase 7: Buying Signals** - Board minutes pre-tender signals display
 - [ ] **Phase 8: Landing & Pricing** - Marketing page and pricing tiers
 
@@ -123,9 +123,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- ContactReveal model, buyer APIs (list+detail), credit APIs (balance+history), Zustand credit store, sidebar credit balance with popover
-- [ ] 06-02-PLAN.md -- Buyers list table page, buyer profile page with header and 4 tabs (Contracts, Contacts, Signals, Attributes), contact cards with blur effect
-- [ ] 06-03-PLAN.md -- Contact reveal API (atomic credit deduction), unlock button, blur-to-reveal animation, credit store integration, zero-balance prompt
+- [x] 06-01-PLAN.md -- ContactReveal model, buyer APIs (list+detail), credit APIs (balance+history), Zustand credit store, sidebar credit balance with popover
+- [x] 06-02-PLAN.md -- Buyers list table page, buyer profile page with header and 4 tabs (Contracts, Contacts, Signals, Attributes), contact cards with blur effect
+- [x] 06-03-PLAN.md -- Contact reveal API (atomic credit deduction), unlock button, blur-to-reveal animation, credit store integration, zero-balance prompt
 
 ### Phase 7: Buying Signals
 **Goal**: Users can browse and filter pre-tender buying signals extracted from board minutes, displayed alongside contracts or in a dedicated tab
@@ -226,7 +226,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 3. Onboarding & Company Profile | 2/2 | ✓ Complete | 2026-02-11 |
 | 4. Contract Dashboard | 2/2 | ✓ Complete | 2026-02-11 |
 | 5. Vibe Scanner | 6/6 | ✓ Complete | 2026-02-11 |
-| 6. Buyer Intelligence & Credits | 0/3 | Not started | - |
+| 6. Buyer Intelligence & Credits | 3/3 | ✓ Complete | 2026-02-11 |
 | 7. Buying Signals | 0/1 | Not started | - |
 | 8. Landing & Pricing | 0/2 | Not started | - |
 
