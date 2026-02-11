@@ -1,0 +1,14 @@
+name = "tendhunt-blog-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-02-11"
+
+# Route configuration — update zone_id after `wrangler zones list`
+# routes = [
+#   { pattern = "tendhunt.com/blog*", zone_id = "<ZONE_ID>" }
+# ]
+
+# Environment variables
+[vars]
+GHOST_SUBDOMAIN = "ghost-admin.tendhunt.com"
+PUBLIC_DOMAIN = "tendhunt.com"
+BLOG_PATH = "/blog"
