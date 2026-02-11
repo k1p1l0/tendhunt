@@ -64,11 +64,11 @@ Plans:
   2. AI analyzes uploaded documents and generates a structured company profile (sectors, capabilities, keywords, ideal contract description)
   3. User can review and edit the AI-generated company profile before saving
   4. New user receives 10 free credits on signup, visible in their account
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Document upload UI and storage
-- [ ] 03-02: AI profile generation from documents, profile review/edit, signup credit bonus
+- [ ] 03-01-PLAN.md -- R2 presigned URL upload, onboarding gate middleware, document dropzone, CompanyProfile model, onboarding wizard shell
+- [ ] 03-02-PLAN.md -- Text extraction, Claude Haiku AI profile generation, profile review/edit form, credit bonus, onboarding completion flow
 
 ### Phase 4: Contract Dashboard
 **Goal**: Users see a searchable, filterable feed of real UK procurement contracts as the core product experience
