@@ -7,7 +7,6 @@ import {
   FileText,
   Building2,
   Settings,
-  Crosshair,
   Radar,
 } from "lucide-react";
 import {
@@ -23,7 +22,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import type { NavItem } from "@/types";
-import { CreditBalance } from "@/components/credits/credit-balance";
+import { SidebarCompanyHeader } from "./sidebar-company-header";
+import { SidebarFooterContent } from "./sidebar-footer";
 
 const navItems: NavItem[] = [
   {
@@ -58,11 +58,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Crosshair className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">TendHunt</span>
-        </Link>
+      <SidebarHeader className="p-3">
+        <SidebarCompanyHeader />
       </SidebarHeader>
 
       <SidebarContent>
@@ -89,7 +86,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <CreditBalance />
+        <SidebarFooterContent />
       </SidebarFooter>
     </Sidebar>
   );
