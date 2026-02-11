@@ -5,6 +5,11 @@
   "engines": {
     "ghost": ">=5.0.0"
   },
+  "author": {
+    "name": "TendHunt",
+    "email": "hello@tendhunt.com",
+    "url": "https://tendhunt.com"
+  },
   "scripts": {
     "dev": "npx tailwindcss -i ./assets/css/index.css -o ./assets/built/index.css --watch",
     "build": "npx tailwindcss -i ./assets/css/index.css -o ./assets/built/index.css --minify",
@@ -17,6 +22,7 @@
     "bestzip": "^2.2.1"
   },
   "config": {
-    "posts_per_page": 12
+    "posts_per_page": 12,
+    "card_assets": true
   }
 }

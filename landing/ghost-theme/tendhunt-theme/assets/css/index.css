@@ -60,6 +60,27 @@
   @apply text-text-body bg-transparent p-0;
 }
 
+/* Ghost Koenig editor width classes (required by theme validator) */
+.kg-width-wide {
+  @apply relative mx-auto;
+  width: 85vw;
+  max-width: 1200px;
+  margin-left: calc(50% - 42.5vw);
+  margin-right: calc(50% - 42.5vw);
+}
+
+.kg-width-full {
+  @apply relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.kg-width-wide img,
+.kg-width-full img {
+  @apply w-full;
+}
+
 /* Ghost Bookmark Card */
 .kg-bookmark-card {
   @apply border border-border rounded-lg overflow-hidden bg-bg-secondary;
@@ -104,4 +125,48 @@
 
 .kg-gallery-image img {
   @apply rounded-lg;
+}
+
+/* Ghost Image Card */
+.kg-image-card {
+  @apply my-8;
+}
+
+.kg-image-card img {
+  @apply rounded-lg mx-auto;
+}
+
+.kg-image-card figcaption {
+  @apply text-center text-sm text-text-muted mt-2;
+}
+
+/* Ghost Toggle Card */
+.kg-toggle-card {
+  @apply bg-bg-secondary border border-border rounded-lg p-4;
+}
+
+.kg-toggle-heading-text {
+  @apply text-text-primary font-heading font-semibold;
+}
+
+.kg-toggle-content {
+  @apply text-text-body mt-2;
+}
+
+/* Ghost Callout Card */
+.kg-callout-card {
+  @apply flex gap-4 p-4 rounded-lg border border-border bg-bg-secondary;
+}
+
+.kg-callout-text {
+  @apply text-text-body;
+}
+
+/* Ghost Button Card */
+.kg-button-card {
+  @apply text-center my-8;
+}
+
+.kg-btn {
+  @apply inline-block px-6 py-3 bg-accent text-text-dark font-medium rounded-full hover:bg-accent-hover transition-colors;
 }

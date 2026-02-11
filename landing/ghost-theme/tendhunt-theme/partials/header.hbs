@@ -1,0 +1,59 @@
+<header class="sticky top-0 z-50 border-b border-border bg-bg-primary/90 backdrop-blur-lg">
+  <nav class="mx-auto max-w-7xl px-6 py-4">
+    <div class="flex items-center justify-between">
+      <!-- Logo -->
+      <a href="/" class="text-2xl font-heading font-bold text-text-primary hover:text-accent transition-colors">
+        TendHunt
+      </a>
+
+      <!-- Desktop nav -->
+      <ul class="hidden md:flex items-center gap-8 text-sm text-text-secondary">
+        <li><a href="/#how-it-works" class="hover:text-text-primary transition-colors">How It Works</a></li>
+        <li><a href="/#features" class="hover:text-text-primary transition-colors">Features</a></li>
+        <li><a href="/#pricing" class="hover:text-text-primary transition-colors">Pricing</a></li>
+        <li><a href="/blog" class="text-accent font-medium">Blog</a></li>
+        <li><a href="https://app.tendhunt.com/sign-in" class="hover:text-text-primary transition-colors">Log In</a></li>
+      </ul>
+
+      <!-- CTA button -->
+      <a href="/#waitlist" class="hidden sm:block bg-accent text-text-dark px-6 py-2 rounded-full font-medium hover:bg-accent-hover transition-colors text-sm">
+        Get Early Access
+      </a>
+
+      <!-- Mobile hamburger -->
+      <button id="mobile-menu-btn" class="md:hidden text-text-primary" aria-label="Toggle menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4 border-t border-border pt-4">
+      <ul class="flex flex-col gap-4 text-sm text-text-secondary">
+        <li><a href="/#how-it-works" class="hover:text-text-primary transition-colors">How It Works</a></li>
+        <li><a href="/#features" class="hover:text-text-primary transition-colors">Features</a></li>
+        <li><a href="/#pricing" class="hover:text-text-primary transition-colors">Pricing</a></li>
+        <li><a href="/blog" class="text-accent font-medium">Blog</a></li>
+        <li><a href="https://app.tendhunt.com/sign-in" class="hover:text-text-primary transition-colors">Log In</a></li>
+      </ul>
+      <a href="/#waitlist" class="mt-4 inline-block bg-accent text-text-dark px-6 py-2 rounded-full font-medium hover:bg-accent-hover transition-colors text-sm">
+        Get Early Access
+      </a>
+    </div>
+  </nav>
+</header>
+
+<script>
+  (function() {
+    var btn = document.getElementById("mobile-menu-btn");
+    var menu = document.getElementById("mobile-menu");
+    if (btn && menu) {
+      btn.addEventListener("click", function() {
+        menu.classList.toggle("hidden");
+      });
+    }
+  })();
+</script>
