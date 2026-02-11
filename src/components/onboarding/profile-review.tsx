@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
+import { useState, useCallback, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -13,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { TagInput } from "@/components/ui/tag-input";
 
 export interface ProfileData {
   companyName: string;
@@ -39,84 +39,6 @@ interface ProfileReviewProps {
 }
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
-
-/** Reusable tag input for array fields */
-function TagInput({
-  label,
-  tags,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  tags: string[];
-  onChange: (tags: string[]) => void;
-  placeholder?: string;
-}) {
-  const [inputValue, setInputValue] = useState("");
-
-  const addTag = useCallback(
-    (value: string) => {
-      const trimmed = value.trim();
-      if (trimmed && !tags.includes(trimmed)) {
-        onChange([...tags, trimmed]);
-      }
-      setInputValue("");
-    },
-    [tags, onChange]
-  );
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" || e.key === ",") {
-        e.preventDefault();
-        addTag(inputValue);
-      }
-      if (e.key === "Backspace" && inputValue === "" && tags.length > 0) {
-        onChange(tags.slice(0, -1));
-      }
-    },
-    [inputValue, tags, onChange, addTag]
-  );
-
-  const removeTag = useCallback(
-    (index: number) => {
-      onChange(tags.filter((_, i) => i !== index));
-    },
-    [tags, onChange]
-  );
-
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-md border p-2">
-        {tags.map((tag, i) => (
-          <Badge key={`${tag}-${i}`} variant="secondary" className="gap-1 py-1">
-            {tag}
-            <button
-              type="button"
-              onClick={() => removeTag(i)}
-              className="ml-0.5 rounded-full hover:bg-muted"
-            >
-              <X className="size-3" />
-            </button>
-          </Badge>
-        ))}
-        <Input
-          value={inputValue}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setInputValue(e.target.value)
-          }
-          onKeyDown={handleKeyDown}
-          onBlur={() => {
-            if (inputValue.trim()) addTag(inputValue);
-          }}
-          placeholder={tags.length === 0 ? placeholder : "Add more..."}
-          className="h-7 min-w-[120px] flex-1 border-0 p-0 shadow-none focus-visible:ring-0"
-        />
-      </div>
-    </div>
-  );
-}
 
 export function ProfileReview({
   initialProfile,

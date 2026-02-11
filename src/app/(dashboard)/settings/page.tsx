@@ -1,35 +1,42 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { dbConnect } from "@/lib/mongodb";
+import CompanyProfile from "@/models/company-profile";
+import { SettingsForm } from "./settings-form";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  await dbConnect();
+  const profile = await CompanyProfile.findOne({ userId }).lean();
+
+  // Serialize Mongoose document to plain object for client component
+  const initialProfile = profile
+    ? {
+        companyName: profile.companyName ?? "",
+        website: profile.website ?? "",
+        address: profile.address ?? "",
+        linkedinUrl: profile.linkedinUrl ?? "",
+        summary: profile.summary ?? "",
+        sectors: (profile.sectors as string[]) ?? [],
+        capabilities: (profile.capabilities as string[]) ?? [],
+        keywords: (profile.keywords as string[]) ?? [],
+        certifications: (profile.certifications as string[]) ?? [],
+        idealContractDescription: profile.idealContractDescription ?? "",
+        companySize: profile.companySize ?? "",
+        regions: (profile.regions as string[]) ?? [],
+        logoUrl: profile.logoUrl ?? "",
+        documentKeys: (profile.documentKeys as string[]) ?? [],
+        lastEditedAt: profile.lastEditedAt
+          ? new Date(profile.lastEditedAt).toISOString()
+          : null,
+      }
+    : null;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Account settings and company profile. Coming in Phase 3.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Account settings</CardTitle>
-          <CardDescription>
-            Configure your company profile, sector preferences, notification
-            settings, and API keys here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-10">
-          <p className="text-sm text-muted-foreground">
-            Onboarding wizard and profile setup will be added in Phase 3.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <SettingsForm initialProfile={initialProfile} />
     </div>
   );
 }
