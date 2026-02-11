@@ -85,7 +85,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None.
+1. **Use Apify LinkedIn actor for onboarding social enrichment** (api) -- Replace fetchWebContent for LinkedIn with Apify `harvestapi/linkedin-company-posts`, simplify social links to LinkedIn-only
 
 ### Blockers/Concerns
 
