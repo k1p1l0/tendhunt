@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 04 of 6 complete)
+**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 05 of 6 complete)
 
 ## Current Position
 
 Phase: 5 of 9 (Vibe Scanner)
-Plan: 4 of 6 in current phase
-Status: Plan 04 complete -- Batch scoring SSE engine with Claude Haiku prompt caching
-Last activity: 2026-02-11 -- Scoring engine library and SSE endpoint for multi-type batch scoring
+Plan: 5 of 6 in current phase
+Status: Plan 05 complete -- Custom AI columns with SSE scoring integration
+Last activity: 2026-02-11 -- Add Column modal, Score All SSE wiring, single-column scoring endpoint
 
-Progress: [▓▓▓▓▓▓▓▓▓░] 88%
+Progress: [▓▓▓▓▓▓▓▓▓░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
-- Average duration: 4.1 min
-- Total execution time: 1.2 hours
+- Total plans completed: 18
+- Average duration: 4.0 min
+- Total execution time: 1.25 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 88%
 | 03-onboarding | 4/4 | 16 min | 4 min |
 | 09-enhance-onboarding | 2/2 | 6 min | 3 min |
 | 04-contract-dashboard | 2/2 | 7 min | 3.5 min |
-| 05-vibe-scanner | 4/6 | 12 min | 3 min |
+| 05-vibe-scanner | 5/6 | 15 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (3 min), 05-01 (5 min), 05-02 (5 min), 05-03 (3 min), 05-04 (2 min)
+- Last 5 plans: 05-01 (5 min), 05-02 (5 min), 05-03 (3 min), 05-04 (2 min), 05-05 (3 min)
 - Trend: Consistent ~2-5 min per plan
 
 *Updated after each plan completion*
@@ -121,6 +121,9 @@ Recent decisions affecting current work:
 - [05-04]: Signals model skipped for vibeScore source document updates -- model lacks vibeScore/vibeReasoning fields
 - [05-04]: Score field uses type union ['number', 'null'] in JSON schema for text-only AI columns
 - [05-04]: Promise.all collects concurrent results then yields sequentially for consistent event ordering per column
+- [05-05]: Inline column creation (nanoid + $push) instead of separate lib/scanners.ts -- plan referenced non-existent file
+- [05-05]: readSSEStream extracted as reusable helper for both Score All and single-column scoring flows
+- [05-05]: $pull then $push for single-column score persistence -- idempotent re-scoring by column
 
 ### Pending Todos
 
@@ -138,5 +141,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-04-PLAN.md (Batch scoring SSE engine with Claude Haiku prompt caching)
-Next plan: 05-05-PLAN.md (Custom AI columns)
+Stopped at: Completed 05-05-PLAN.md (Custom AI columns with SSE scoring integration)
+Next plan: 05-06-PLAN.md (Side drawer and re-scoring)
