@@ -6,16 +6,16 @@ See: landing/.planning/PROJECT.md (updated 2026-02-10)
 See: landing/.planning/ROADMAP.md (created 2026-02-11)
 
 **Core value:** Marketing site at tendhunt.com converting visitors into waitlist signups + Ghost blog driving organic SEO traffic for UK procurement keywords.
-**Current focus:** Phase 3 COMPLETE -- Ghost blog fully deployed with reverse proxy at tendhunt.com/blog
+**Current focus:** Phase 4 IN PROGRESS -- Content pipeline scripts created, awaiting ANTHROPIC_API_KEY
 
 ## Current Position
 
-Phase: 3 of 5 (Ghost Blog) -- COMPLETE
-Plan: 3 of 3 in current phase -- all plans executed
-Status: Phase 3 complete -- Ghost VPS (01), custom theme (02), Cloudflare Worker proxy (03) all done
-Last activity: 2026-02-11 -- Phase 3 plan 03 executed (Cloudflare Worker blog reverse proxy)
+Phase: 4 of 5 (Content Pipeline) -- IN PROGRESS
+Plan: 1 of 2 in current phase -- Task 1 complete, checkpoint at Task 2 (ANTHROPIC_API_KEY needed)
+Status: Pipeline scripts created, Ghost API integration configured, awaiting Anthropic API key
+Last activity: 2026-02-11 -- Phase 4 plan 01 Task 1 executed (pipeline scripts with Claude API)
 
-Progress: [########░░] 80%
+Progress: [########░░] 85%
 
 ## Linear Sync
 
@@ -25,9 +25,9 @@ Progress: [########░░] 80%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 7 min
-- Total execution time: 48 min
+- Total execution time: 53 min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -38,6 +38,7 @@ Progress: [########░░] 80%
 | 03 | 01 | 10min | 3 | 8 |
 | 03 | 02 | 10min | 3 | 12 |
 | 03 | 03 | 8min | 3 | 6 |
+| 04 | 01 | 5min | 1 | 9 |
 
 ## Accumulated Context
 
@@ -88,6 +89,11 @@ Progress: [########░░] 80%
 - [03-03]: Protocol-relative URL rewriting (//ghost-admin.tendhunt.com) -- Ghost sitemap XSL uses protocol-relative URLs
 - [03-03]: Explicit --config wrangler.toml flag -- wrangler 3.x mistakenly detects Pages project without it
 - [03-03]: Admin route /blog/ghost returns 403 with message pointing to ghost-admin.tendhunt.com/ghost
+- [04-01]: Anthropic Claude Sonnet 4.5 for article generation (user override from plan's OpenAI GPT-4o)
+- [04-01]: Python 3.11 venv required (system 3.9.6 too old for anthropic SDK >=0.43)
+- [04-01]: Variable TTF fonts from google/fonts GitHub raw content (Google Fonts download URL returns HTML)
+- [04-01]: Ghost Admin API integration created programmatically via session auth REST API
+- [04-01]: Ghost admin key format -- secret field already contains id:hexsecret, no need to concatenate
 
 ### Pending Todos
 
@@ -104,5 +110,5 @@ Progress: [########░░] 80%
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-03-PLAN.md (Cloudflare Worker blog reverse proxy -- Phase 3 COMPLETE)
-Next action: Phase 4 (Content Pipeline) or Phase 5 (Analytics/Monitoring)
+Stopped at: Phase 4 plan 01 Task 1 complete -- checkpoint at Task 2 (ANTHROPIC_API_KEY needed)
+Next action: User provides ANTHROPIC_API_KEY, then verify pipeline end-to-end, then execute plan 04-02 (batch article generation)
