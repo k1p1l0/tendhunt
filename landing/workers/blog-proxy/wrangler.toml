@@ -2,10 +2,10 @@ name = "tendhunt-blog-proxy"
 main = "src/index.ts"
 compatibility_date = "2026-02-11"
 
-# Route configuration — update zone_id after `wrangler zones list`
-# routes = [
-#   { pattern = "tendhunt.com/blog*", zone_id = "<ZONE_ID>" }
-# ]
+# Route configuration
+routes = [
+  { pattern = "tendhunt.com/blog*", zone_id = "9501d7508cd63083330e194178f04649" }
+]
 
 # Environment variables
 [vars]
