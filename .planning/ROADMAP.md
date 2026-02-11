@@ -254,5 +254,5 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md -- Worker scaffold, TypeScript types, native MongoDB driver, OCDS mapper port, DB operations (contracts/buyers/sync-jobs), core sync engine with resumable chunked backfill
-- [ ] 10-02-PLAN.md -- Rate limiter, FaT + CF API clients with pagination, Worker scheduled handler wiring both sources, hourly cron trigger
+- [x] 10-01-PLAN.md -- Worker scaffold, TypeScript types, native MongoDB driver, OCDS mapper port, DB operations (contracts/buyers/sync-jobs), core sync engine with resumable chunked backfill
+- [x] 10-02-PLAN.md -- Rate limiter, FaT + CF API clients with pagination, Worker scheduled handler wiring both sources, hourly cron trigger
