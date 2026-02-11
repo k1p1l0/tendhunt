@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 3 COMPLETE (all 3 plans) -- ready for Phase 4: Contract Dashboard
+**Current focus:** Phase 3 COMPLETE (all 4 plans) -- ready for Phase 4: Contract Dashboard
 
 ## Current Position
 
 Phase: 3 of 8 (Onboarding & Company Profile) -- COMPLETE
-Plan: 3 of 3 in current phase (COMPLETE)
-Status: Phase 3 fully complete -- onboarding wizard with company info fields, web content enrichment, AI profile generation, credit bonus, and Clerk metadata
-Last activity: 2026-02-11 -- Company info form + web content fetching/extraction + enriched AI generation
+Plan: 4 of 4 in current phase (COMPLETE)
+Status: Phase 3 fully complete -- onboarding wizard with LinkedIn scraping via Apify, AI profile generation, credit bonus, and Clerk metadata
+Last activity: 2026-02-11 -- LinkedIn scraper via Apify actors, simplified onboarding UI to LinkedIn-only
 
-Progress: [▓▓▓▓▓▓▓░░░] 58%
+Progress: [▓▓▓▓▓▓▓░░░] 62%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 5 min
-- Total execution time: 0.7 hours
+- Total execution time: 0.8 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [▓▓▓▓▓▓▓░░░] 58%
 |-------|-------|-------|----------|
 | 01-foundation | 2/2 | 6 min | 3 min |
 | 02-data-pipeline | 3/3 | 17 min | 5.7 min |
-| 03-onboarding | 3/3 | 12 min | 4 min |
+| 03-onboarding | 4/4 | 16 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (2 min), 02-03 (8 min), 03-01 (4 min), 03-02 (4 min), 03-03 (4 min)
+- Last 5 plans: 02-03 (8 min), 03-01 (4 min), 03-02 (4 min), 03-03 (4 min), 03-04 (4 min)
 - Trend: Consistent ~4 min per plan
 
 *Updated after each plan completion*
@@ -82,10 +82,14 @@ Recent decisions affecting current work:
 - [03-03]: Claude extraction returns plain text (not JSON) to feed as additional context into profile prompt
 - [03-03]: Promise.allSettled for parallel web fetching -- individual failures don't block others
 - [03-03]: Relaxed API validation: require either documents OR company info (not both)
+- [03-04]: Apify HTTP API with query param token auth (not Bearer header) per Apify's API design
+- [03-04]: APIFY_API_TOKEN optional in env validation -- graceful degradation when not configured
+- [03-04]: Promise.allSettled for parallel Apify actor calls -- company profile and posts fetched independently
+- [03-04]: socialLinks replaced with linkedinUrl string field across entire stack (model, API, UI)
 
 ### Pending Todos
 
-1. **Use Apify LinkedIn actor for onboarding social enrichment** (api) -- Replace fetchWebContent for LinkedIn with Apify `harvestapi/linkedin-company-posts`, simplify social links to LinkedIn-only
+None.
 
 ### Blockers/Concerns
 
@@ -94,5 +98,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-03-PLAN.md (Company info form + web content enrichment + enriched AI generation)
-Next plan: Phase 4 (Contract Dashboard) -- Phase 3 fully complete
+Stopped at: Completed 03-04-PLAN.md (LinkedIn scraper via Apify actors + simplified onboarding UI)
+Next plan: Phase 4 (Contract Dashboard) -- Phase 3 fully complete (all 4 plans)
