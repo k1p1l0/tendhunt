@@ -256,3 +256,14 @@ Plans:
 Plans:
 - [x] 10-01-PLAN.md -- Worker scaffold, TypeScript types, native MongoDB driver, OCDS mapper port, DB operations (contracts/buyers/sync-jobs), core sync engine with resumable chunked backfill
 - [x] 10-02-PLAN.md -- Rate limiter, FaT + CF API clients with pagination, Worker scheduled handler wiring both sources, hourly cron trigger
+
+### Phase 11: Invoice & Spend Data Intelligence
+
+**Goal:** Ingest local authority transparency spending data (over £500 CSV reports) to identify which buyers are SME-friendly, show spend patterns on buyer profiles, and surface procurement opportunities from historical invoice data
+**Depends on:** Phase 6
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 11 to break down)
+
+**Reference specs:** `/Users/kirillkozak/projects/board-minutes-intelligence/specs/DATA_SOURCES.md`

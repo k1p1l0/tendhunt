@@ -151,6 +151,7 @@ Recent decisions affecting current work:
 ### Roadmap Evolution
 
 - Phase 9 added: Enhance Onboarding: Company Photo Upload + AI Analysis Animations
+- Phase 11 added: Invoice & Spend Data Intelligence (local authority transparency spending CSV data, SME-friendliness scoring)
 
 ### Blockers/Concerns
 

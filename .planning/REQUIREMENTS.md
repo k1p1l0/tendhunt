@@ -123,7 +123,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | AI bid/proposal writer | Sweetspot and Stotles own this space. Not our differentiator |
 | LinkedIn scraping | Legally fragile (Proxycurl shutdown Jan 2026, UK GDPR). Use public data sources only |
 | CRM integration (Salesforce/HubSpot) | Requires weeks of development. CSV export as placeholder |
-| Spend analytics / invoice data | Tussell has 10+ years of data. Cannot compete on historical depth |
+| ~~Spend analytics / invoice data~~ | ~~Tussell has 10+ years of data~~ — **MOVED TO Phase 11**: Local authority transparency CSV data for SME-friendliness scoring |
 | Live board minutes scraping | Multi-week infrastructure project. Use pre-processed seed data |
 | FOI request automation | Full product in itself. Manual FOI is future premium feature |
 | Framework matching (CCS/YPO/ESPO) | Deep domain knowledge needed. Show framework names as metadata only |
