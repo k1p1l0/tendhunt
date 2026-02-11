@@ -1,0 +1,9 @@
+name = "tendhunt-data-sync"
+main = "src/index.ts"
+compatibility_date = "2025-03-20"
+compatibility_flags = ["nodejs_compat_v2"]
+
+[triggers]
+crons = ["0 * * * *"]
+
+# MONGODB_URI stored as secret: wrangler secret put MONGODB_URI
