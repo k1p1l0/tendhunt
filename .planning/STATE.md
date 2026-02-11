@@ -170,6 +170,10 @@ Recent decisions affecting current work:
 - [13-01]: Abolished/merged orgs tracked with status field and successorOrg -- preserves historical data and org lineage
 - [13-01]: Tier 1 expansion orgs use numbered placeholder entries to reach target counts (1,154 MATs, 165 universities, 228 FE colleges)
 - [13-01]: DataSource as canonical org registry -- all enrichment stages reference this collection
+- [13-02]: Name normalization strips 16 institutional patterns before fuzzy matching for robust UK org matching
+- [13-02]: Fuse.js threshold 0.3 with ignoreLocation for strict-but-flexible fuzzy matching
+- [13-02]: Unimplemented stages gracefully log and auto-complete so pipeline can always progress
+- [13-02]: Per-domain rate limiter tracks last request time per hostname within single Worker invocation
 - [13-06]: SVG circle with stroke-dasharray for enrichment score (no third-party lib)
 - [13-06]: Green/yellow/red thresholds at 70/40 for enrichment badge and confidence bars
 - [13-06]: Tabs additive only: Board Documents and Key Personnel inserted after Signals, before Attributes
@@ -194,5 +198,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 13-06-PLAN.md -- Buyer profile enrichment UI (badge, tabs, header)
-Next: Plans 13-02 through 13-05 for enrichment pipeline (classification, scraping, extraction, Worker)
+Stopped at: Completed 13-02-PLAN.md -- Enrichment Worker scaffold + Stage 1 Fuse.js classification
+Next: Plans 13-03 through 13-05 for enrichment pipeline (governance URLs, ModernGov SOAP, scraping, personnel, scoring)
