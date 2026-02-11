@@ -6,16 +6,16 @@ See: landing/.planning/PROJECT.md (updated 2026-02-10)
 See: landing/.planning/ROADMAP.md (created 2026-02-11)
 
 **Core value:** Marketing site at tendhunt.com converting visitors into waitlist signups + Ghost blog driving organic SEO traffic for UK procurement keywords.
-**Current focus:** Phase 4 IN PROGRESS -- Content pipeline scripts created, awaiting ANTHROPIC_API_KEY
+**Current focus:** Phase 4 COMPLETE -- 10 SEO articles published live at tendhunt.com/blog/
 
 ## Current Position
 
-Phase: 4 of 5 (Content Pipeline) -- IN PROGRESS
-Plan: 1 of 2 in current phase -- Task 1 complete, checkpoint at Task 2 (ANTHROPIC_API_KEY needed)
-Status: Pipeline scripts created, Ghost API integration configured, awaiting Anthropic API key
-Last activity: 2026-02-11 -- Phase 4 plan 01 Task 1 executed (pipeline scripts with Claude API)
+Phase: 4 of 5 (Content Pipeline) -- COMPLETE
+Plan: 2 of 2 in current phase -- ALL TASKS COMPLETE
+Status: 10 SEO articles generated, branded thumbnails created, internal links added, all published live
+Last activity: 2026-02-11 -- Phase 4 plan 02 executed (article generation, linking, publishing)
 
-Progress: [########░░] 85%
+Progress: [#########░] 90%
 
 ## Linear Sync
 
@@ -25,9 +25,9 @@ Progress: [########░░] 85%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 7 min
-- Total execution time: 53 min
+- Total plans completed: 9
+- Average duration: 8 min
+- Total execution time: 68 min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -39,6 +39,7 @@ Progress: [########░░] 85%
 | 03 | 02 | 10min | 3 | 12 |
 | 03 | 03 | 8min | 3 | 6 |
 | 04 | 01 | 5min | 1 | 9 |
+| 04 | 02 | 15min | 3 | 3 |
 
 ## Accumulated Context
 
@@ -94,6 +95,10 @@ Progress: [########░░] 85%
 - [04-01]: Variable TTF fonts from google/fonts GitHub raw content (Google Fonts download URL returns HTML)
 - [04-01]: Ghost Admin API integration created programmatically via session auth REST API
 - [04-01]: Ghost admin key format -- secret field already contains id:hexsecret, no need to concatenate
+- [04-02]: Published directly as published (not draft) per user request for hackathon demo speed
+- [04-02]: Ghost PUT update requires GET updated_at first for collision detection
+- [04-02]: Tag-based related article matching with max 3 related + 2 inline links per article
+- [04-02]: Idempotent link injection -- strips existing Related Articles and CTA before re-adding
 
 ### Pending Todos
 
@@ -110,5 +115,5 @@ Progress: [########░░] 85%
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Phase 4 plan 01 Task 1 complete -- checkpoint at Task 2 (ANTHROPIC_API_KEY needed)
-Next action: User provides ANTHROPIC_API_KEY, then verify pipeline end-to-end, then execute plan 04-02 (batch article generation)
+Stopped at: Completed 04-02-PLAN.md -- Phase 4 Content Pipeline fully complete
+Next action: Phase 5 (SEO/Performance Optimization) or other remaining work
