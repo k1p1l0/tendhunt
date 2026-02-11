@@ -11,6 +11,7 @@ interface ContractCardData {
   _id: string;
   title: string;
   buyerName: string;
+  buyerId?: string;
   valueMin?: number | null;
   valueMax?: number | null;
   publishedDate?: string | Date | null;
@@ -75,9 +76,19 @@ export function ContractCard({ contract }: { contract: ContractCardData }) {
           <CardTitle className="line-clamp-2 text-base">
             {contract.title}
           </CardTitle>
-          <p className="text-sm text-muted-foreground truncate">
-            {contract.buyerName}
-          </p>
+          {contract.buyerId ? (
+            <Link
+              href={`/buyers/${contract.buyerId}`}
+              className="text-sm text-primary hover:underline truncate block"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {contract.buyerName}
+            </Link>
+          ) : (
+            <p className="text-sm text-muted-foreground truncate">
+              {contract.buyerName}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
           {value && (

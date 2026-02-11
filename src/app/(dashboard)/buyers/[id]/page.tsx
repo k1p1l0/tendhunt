@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { fetchBuyerById } from "@/lib/buyers";
-import { BuyerHeader } from "@/components/buyers/buyer-header";
-import { BuyerTabs } from "@/components/buyers/buyer-tabs";
+import { BuyerDetailClient } from "@/components/buyers/buyer-detail-client";
 import { BuyerBreadcrumb } from "./breadcrumb";
 
 export default async function BuyerDetailPage({
@@ -56,34 +55,23 @@ export default async function BuyerDetailPage({
     linkedIn: c.linkedIn ?? undefined,
   }));
 
-  const buyerObj = {
-    _id: buyerId,
-    name: buyerName,
-    contractCount: buyer.contractCount ?? 0,
-    sector: buyer.sector ?? undefined,
-  };
-
   return (
     <div className="space-y-6">
       <BuyerBreadcrumb name={buyerName} />
-      <BuyerHeader
+      <BuyerDetailClient
         buyer={{
+          _id: buyerId,
           name: buyerName,
           sector: buyer.sector ?? undefined,
           region: buyer.region ?? undefined,
           contractCount: buyer.contractCount ?? 0,
           website: buyer.website ?? undefined,
+          description: buyer.description ?? undefined,
           isUnlocked: buyer.isUnlocked,
+          contacts,
+          contracts,
+          signals,
         }}
-      />
-      <BuyerTabs
-        contracts={contracts}
-        signals={signals}
-        contacts={contacts}
-        isUnlocked={buyer.isUnlocked}
-        buyerId={buyerId}
-        buyerName={buyerName}
-        buyer={buyerObj}
       />
     </div>
   );
