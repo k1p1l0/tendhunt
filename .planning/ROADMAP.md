@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project scaffolding, Clerk auth, MongoDB schema, app shell
 - [x] **Phase 2: Data Pipeline** - Scrape and seed real UK procurement data into MongoDB Atlas
-- [ ] **Phase 3: Onboarding & Company Profile** - Document upload, AI profile generation, credit bonus
+- [x] **Phase 3: Onboarding & Company Profile** - Document upload, AI profile generation, credit bonus
 - [ ] **Phase 4: Contract Dashboard** - Core product screen with search, filters, and detail view
 - [ ] **Phase 5: Vibe Scanner** - AI-powered contract scoring using Claude Haiku
 - [ ] **Phase 6: Buyer Intelligence & Credits** - Buyer profiles, contact reveal, credit system
@@ -67,8 +67,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- R2 presigned URL upload, onboarding gate middleware, document dropzone, CompanyProfile model, onboarding wizard shell
-- [ ] 03-02-PLAN.md -- Text extraction, Claude Haiku AI profile generation, profile review/edit form, credit bonus, onboarding completion flow
+- [x] 03-01-PLAN.md -- R2 presigned URL upload, onboarding gate middleware, document dropzone, CompanyProfile model, onboarding wizard shell
+- [x] 03-02-PLAN.md -- Text extraction, Claude Haiku AI profile generation, profile review/edit form, credit bonus, onboarding completion flow
 
 ### Phase 4: Contract Dashboard
 **Goal**: Users see a searchable, filterable feed of real UK procurement contracts as the core product experience
@@ -218,7 +218,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | ✓ Complete | 2026-02-10 |
 | 2. Data Pipeline | 3/3 | ✓ Complete | 2026-02-11 |
-| 3. Onboarding & Company Profile | 0/2 | Not started | - |
+| 3. Onboarding & Company Profile | 2/2 | ✓ Complete | 2026-02-11 |
 | 4. Contract Dashboard | 0/2 | Not started | - |
 | 5. Vibe Scanner | 0/3 | Not started | - |
 | 6. Buyer Intelligence & Credits | 0/3 | Not started | - |

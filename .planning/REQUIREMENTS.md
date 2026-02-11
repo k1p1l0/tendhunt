@@ -10,11 +10,11 @@ Requirements for hackathon investor demo. Each maps to roadmap phases.
 ### Authentication & Onboarding
 
 - [ ] **AUTH-01**: User can sign up and sign in via Clerk (email/password + social)
-- [ ] **AUTH-02**: User can upload company documents during onboarding (past bids, capability statements, certifications, specifications — drag & drop)
-- [ ] **AUTH-03**: AI analyzes uploaded documents and generates a company profile (sectors, capabilities, keywords, ideal contract description)
-- [ ] **AUTH-04**: User can review and edit the AI-generated company profile
+- [x] **AUTH-02**: User can upload company documents during onboarding (past bids, capability statements, certifications, specifications — drag & drop)
+- [x] **AUTH-03**: AI analyzes uploaded documents and generates a company profile (sectors, capabilities, keywords, ideal contract description)
+- [x] **AUTH-04**: User can review and edit the AI-generated company profile
 - [ ] **AUTH-05**: User session persists across browser refresh
-- [ ] **AUTH-06**: New user receives 10 free credits on signup (signup bonus)
+- [x] **AUTH-06**: New user receives 10 free credits on signup (signup bonus)
 
 ### Vibe Scanner (AI Contract Scoring)
 
@@ -140,11 +140,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | AUTH-01 | Phase 1: Foundation | Pending |
-| AUTH-02 | Phase 3: Onboarding & Company Profile | Pending |
-| AUTH-03 | Phase 3: Onboarding & Company Profile | Pending |
-| AUTH-04 | Phase 3: Onboarding & Company Profile | Pending |
+| AUTH-02 | Phase 3: Onboarding & Company Profile | Done |
+| AUTH-03 | Phase 3: Onboarding & Company Profile | Done |
+| AUTH-04 | Phase 3: Onboarding & Company Profile | Done |
 | AUTH-05 | Phase 1: Foundation | Pending |
-| AUTH-06 | Phase 3: Onboarding & Company Profile | Pending |
+| AUTH-06 | Phase 3: Onboarding & Company Profile | Done |
 | VIBE-01 | Phase 5: Vibe Scanner | Pending |
 | VIBE-02 | Phase 5: Vibe Scanner | Pending |
 | VIBE-03 | Phase 5: Vibe Scanner | Pending |
