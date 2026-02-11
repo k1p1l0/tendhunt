@@ -1,10 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { MoreHorizontal, Sparkles, Trash2, Pencil } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import {
+  MoreHorizontal,
+  Sparkles,
+  Trash2,
+  Pencil,
+  ArrowUpDown,
+  Search,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ScannerType } from "@/models/scanner";
 
-interface ScannerRow {
+export interface ScannerRow {
   _id: string;
   name: string;
   type: ScannerType;
@@ -22,6 +36,8 @@ interface ScannerRow {
   createdAt: string;
   updatedAt: string;
   aiColumns: Array<{ columnId: string; name: string }>;
+  totalEntries?: number;
+  creditsUsed?: number;
 }
 
 interface ScannerListProps {
@@ -30,19 +46,32 @@ interface ScannerListProps {
   onDeleteScanner: (id: string) => void;
 }
 
-const TYPE_COLORS: Record<ScannerType, string> = {
-  rfps: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  meetings:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  buyers:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+const TYPE_CONFIG: Record<
+  ScannerType,
+  { label: string; emoji: string; badgeClass: string }
+> = {
+  rfps: {
+    label: "RFPs",
+    emoji: "📄",
+    badgeClass:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  meetings: {
+    label: "Meetings",
+    emoji: "🗓",
+    badgeClass:
+      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  },
+  buyers: {
+    label: "Buyers",
+    emoji: "👤",
+    badgeClass:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  },
 };
 
-const TYPE_LABELS: Record<ScannerType, string> = {
-  rfps: "RFPs",
-  meetings: "Board Meetings",
-  buyers: "Buyers",
-};
+type SortField = "name" | "type" | "updatedAt" | "createdAt" | "creditsUsed" | "totalEntries";
+type SortDir = "asc" | "desc";
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -53,9 +82,9 @@ function formatRelativeTime(dateStr: string): string {
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 30) return `${diffDays}d ago`;
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays < 30) return `${diffDays} days ago`;
   return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -63,12 +92,18 @@ function formatRelativeTime(dateStr: string): string {
   });
 }
 
+function formatShortDate(dateStr: string): string {
+  return formatRelativeTime(dateStr);
+}
+
 export function ScannerList({
   scanners,
   onScannerClick,
   onDeleteScanner,
 }: ScannerListProps) {
-  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [sortField, setSortField] = useState<SortField>("updatedAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   if (scanners.length === 0) {
     return (
@@ -86,91 +121,177 @@ export function ScannerList({
     );
   }
 
-  return (
-    <div className="space-y-3">
-      {scanners.map((scanner) => (
-        <Card
-          key={scanner._id}
-          className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/50 cursor-pointer"
-          onClick={() => onScannerClick(scanner._id)}
-        >
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-base font-medium">
-                {scanner.name}
-              </span>
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[scanner.type]}`}
-              >
-                {TYPE_LABELS[scanner.type]}
-              </span>
-            </div>
-            {scanner.description && (
-              <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                {scanner.description}
-              </p>
-            )}
-            <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>Updated {formatRelativeTime(scanner.updatedAt)}</span>
-              <span>
-                Created{" "}
-                {new Date(scanner.createdAt).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                })}
-              </span>
-              {scanner.aiColumns?.length > 0 && (
-                <span>
-                  {scanner.aiColumns.length} AI column
-                  {scanner.aiColumns.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-          </div>
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir(field === "name" || field === "type" ? "asc" : "desc");
+    }
+  }
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/scanners/${scanner._id}`);
-              }}
-            >
-              Open
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => e.stopPropagation()}
+  const filtered = scanners.filter((s) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.type.toLowerCase().includes(q) ||
+      (s.description?.toLowerCase().includes(q) ?? false)
+    );
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    switch (sortField) {
+      case "name":
+        return dir * a.name.localeCompare(b.name);
+      case "type":
+        return dir * a.type.localeCompare(b.type);
+      case "updatedAt":
+        return dir * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+      case "createdAt":
+        return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case "creditsUsed":
+        return dir * ((a.creditsUsed ?? 0) - (b.creditsUsed ?? 0));
+      case "totalEntries":
+        return dir * ((a.totalEntries ?? 0) - (b.totalEntries ?? 0));
+      default:
+        return 0;
+    }
+  });
+
+  function SortableHead({
+    field,
+    children,
+    className,
+  }: {
+    field: SortField;
+    children: React.ReactNode;
+    className?: string;
+  }) {
+    return (
+      <TableHead className={className}>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          onClick={() => toggleSort(field)}
+        >
+          {children}
+          <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
+        </button>
+      </TableHead>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Search bar + count */}
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, type or description..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <span className="text-sm text-muted-foreground">
+          {filtered.length} scanner{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <SortableHead field="name" className="min-w-[280px]">
+                Name
+              </SortableHead>
+              <SortableHead field="type">Type</SortableHead>
+              <SortableHead field="updatedAt">Last Modified</SortableHead>
+              <SortableHead field="createdAt">Created</SortableHead>
+              <SortableHead field="creditsUsed">Credits Used</SortableHead>
+              <SortableHead field="totalEntries">Total Entries</SortableHead>
+              <TableHead className="w-[50px]" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.map((scanner, idx) => {
+              const config = TYPE_CONFIG[scanner.type];
+              return (
+                <TableRow
+                  key={scanner._id}
+                  className="cursor-pointer"
+                  onClick={() => onScannerClick(scanner._id)}
                 >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Scanner actions</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit Scanner
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteScanner(scanner._id);
-                  }}
+                  <TableCell className="font-medium">
+                    {idx + 1}. {scanner.name}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.badgeClass}`}
+                    >
+                      <span>{config.emoji}</span>
+                      {config.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatRelativeTime(scanner.updatedAt)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatShortDate(scanner.createdAt)}
+                  </TableCell>
+                  <TableCell>{scanner.creditsUsed ?? 0}</TableCell>
+                  <TableCell>{scanner.totalEntries ?? 0}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Scanner actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem disabled>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Scanner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteScanner(scanner._id);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Scanner
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {sorted.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="h-24 text-center text-muted-foreground"
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Scanner
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </Card>
-      ))}
+                  No scanners match your search.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

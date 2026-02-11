@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { useScannerStore, getScore } from "@/stores/scanner-store";
+import { useScannerStore } from "@/stores/scanner-store";
 
 interface ThresholdControlsProps {
   /** The AI column ID to use for threshold calculations */
@@ -26,7 +25,6 @@ export function ThresholdControls({ primaryColumnId }: ThresholdControlsProps) {
     let total = 0;
 
     for (const [key, entry] of Object.entries(scores)) {
-      // Only count entries for the primary column
       if (!key.startsWith(`${primaryColumnId}:`)) continue;
       if (entry.score == null) continue;
       total++;
@@ -40,44 +38,25 @@ export function ThresholdControls({ primaryColumnId }: ThresholdControlsProps) {
   if (totalScored === 0) return null;
 
   return (
-    <Card>
-      <CardContent className="py-3 px-4">
-        <div className="flex flex-wrap items-center gap-6">
-          {/* Slider section */}
-          <div className="flex-1 min-w-[200px] space-y-1">
-            <label className="text-sm font-medium">
-              Threshold: {threshold.toFixed(1)}
-            </label>
-            <Slider
-              value={[threshold]}
-              onValueChange={([v]) => setThreshold(v)}
-              min={1}
-              max={10}
-              step={0.1}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>1</span>
-              <span>10</span>
-            </div>
-          </div>
-
-          {/* Toggle section */}
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={hideBelow}
-              onCheckedChange={setHideBelow}
-            />
-            <label className="text-sm">
-              {hideBelow ? "Hide" : "Dim"}
-            </label>
-          </div>
-
-          {/* Stats section */}
-          <div className="text-right text-sm text-muted-foreground">
-            {aboveCount}/{totalScored} above
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-4">
+      <label className="text-sm font-medium whitespace-nowrap">
+        Threshold: {threshold.toFixed(1)}
+      </label>
+      <Slider
+        value={[threshold]}
+        onValueChange={([v]) => setThreshold(v)}
+        min={1}
+        max={10}
+        step={0.1}
+        className="w-[200px]"
+      />
+      <div className="flex items-center gap-2">
+        <Switch checked={hideBelow} onCheckedChange={setHideBelow} />
+        <label className="text-sm">{hideBelow ? "Hide" : "Dim"}</label>
+      </div>
+      <span className="text-sm text-muted-foreground whitespace-nowrap">
+        {aboveCount}/{totalScored} above
+      </span>
+    </div>
   );
 }

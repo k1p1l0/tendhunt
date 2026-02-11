@@ -1,0 +1,155 @@
+---
+// HowItWorksSection.astro
+// 3-step horizontal flow with large numbered steps,
+// arrow separators on desktop, and responsive layout.
+---
+
+<section id="how-it-works" class="bg-bg-secondary">
+  <div class="mx-auto max-w-[80rem] px-6 py-24">
+    <!-- Section heading -->
+    <div class="mb-16 text-center max-w-2xl mx-auto">
+      <h2 class="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-text-primary leading-tight tracking-tight">
+        How It Works
+      </h2>
+      <p class="mt-4 text-text-secondary text-lg leading-relaxed">
+        From signup to winning contracts in three simple steps.
+      </p>
+    </div>
+
+    <!-- Steps grid -->
+    <div class="hiw-steps">
+      <!-- Step 1 -->
+      <div class="hiw-step">
+        <span class="hiw-step__number" aria-hidden="true">01</span>
+        <h3 class="hiw-step__title">Sign Up Free</h3>
+        <p class="hiw-step__desc">
+          Create your account in 60 seconds. Upload your company profile or connect your LinkedIn. Get 10 free credits to start.
+        </p>
+      </div>
+
+      <!-- Arrow 1 (desktop only) -->
+      <div class="hiw-arrow" aria-hidden="true">
+        <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 12h32M28 6l6 6-6 6" stroke="#E5FF00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+        </svg>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="hiw-step">
+        <span class="hiw-step__number" aria-hidden="true">02</span>
+        <h3 class="hiw-step__title">Search & Filter</h3>
+        <p class="hiw-step__desc">
+          Browse 200,000+ UK government contracts. Filter by sector, value, region. Let AI score opportunities based on your company fit.
+        </p>
+      </div>
+
+      <!-- Arrow 2 (desktop only) -->
+      <div class="hiw-arrow" aria-hidden="true">
+        <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 12h32M28 6l6 6-6 6" stroke="#E5FF00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+        </svg>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="hiw-step">
+        <span class="hiw-step__number" aria-hidden="true">03</span>
+        <h3 class="hiw-step__title">Reveal & Win</h3>
+        <p class="hiw-step__desc">
+          Spend 1 credit to reveal buyer contact details. Reach decision-makers directly. Win more contracts with less guesswork.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Steps layout */
+  .hiw-steps {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    .hiw-steps {
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+  }
+
+  /* Arrow separators */
+  .hiw-arrow {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .hiw-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 3rem;
+    }
+  }
+
+  /* Individual step */
+  .hiw-step {
+    text-align: center;
+  }
+
+  @media (min-width: 768px) {
+    .hiw-step {
+      text-align: left;
+    }
+  }
+
+  /* Large step number */
+  .hiw-step__number {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--color-accent);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+  }
+
+  @media (min-width: 768px) {
+    .hiw-step__number {
+      font-size: 4.5rem;
+    }
+  }
+
+  /* Step title */
+  .hiw-step__title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 0.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .hiw-step__title {
+      font-size: 1.375rem;
+    }
+  }
+
+  /* Step description */
+  .hiw-step__desc {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 768px) {
+    .hiw-step__desc {
+      margin: 0;
+    }
+  }
+</style>

@@ -63,7 +63,32 @@ export async function GET() {
       .sort({ updatedAt: -1 })
       .lean();
 
-    return Response.json({ scanners });
+    // Compute summary stats for list view (avoid sending full scores array)
+    const rows = scanners.map((s) => {
+      const scores = s.scores ?? [];
+      const uniqueEntities = new Set(
+        scores.map((sc: { entityId: unknown }) => String(sc.entityId))
+      );
+      return {
+        _id: s._id,
+        name: s.name,
+        type: s.type,
+        description: s.description,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        lastScoredAt: s.lastScoredAt,
+        aiColumns: (s.aiColumns ?? []).map(
+          (c: { columnId: string; name: string }) => ({
+            columnId: c.columnId,
+            name: c.name,
+          })
+        ),
+        totalEntries: uniqueEntities.size,
+        creditsUsed: scores.length,
+      };
+    });
+
+    return Response.json({ scanners: rows });
   } catch (error) {
     console.error("Scanner list error:", error);
     return Response.json(

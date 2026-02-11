@@ -7,6 +7,40 @@ const aiColumnSchema = new Schema(
     columnId: { type: String, required: true },
     name: { type: String, required: true },
     prompt: { type: String, required: true },
+    useCase: {
+      type: String,
+      enum: ["score", "research", "decision-makers", "bid-recommendation", "find-contacts"],
+      default: "score",
+    },
+    model: {
+      type: String,
+      enum: ["haiku", "sonnet", "opus"],
+      default: "haiku",
+    },
+  },
+  { _id: false }
+);
+
+const customColumnSchema = new Schema(
+  {
+    columnId: { type: String, required: true },
+    name: { type: String, required: true },
+    accessor: { type: String, required: true },
+    dataType: {
+      type: String,
+      enum: [
+        "text",
+        "number",
+        "date",
+        "currency",
+        "badge",
+        "url",
+        "email",
+        "checkbox",
+        "paragraph",
+      ],
+      required: true,
+    },
   },
   { _id: false }
 );
@@ -44,7 +78,11 @@ const scannerSchema = new Schema(
       dateTo: { type: Date },
     },
     aiColumns: [aiColumnSchema],
+    customColumns: [customColumnSchema],
     scores: [scoreEntrySchema],
+    columnRenames: { type: Map, of: String, default: new Map() },
+    columnFilters: { type: Map, of: [String], default: new Map() },
+    autoRun: { type: Boolean, default: false },
     lastScoredAt: { type: Date },
   },
   { timestamps: true }
@@ -56,7 +94,11 @@ scannerSchema.index({ userId: 1, updatedAt: -1 });
 
 export type IScanner = InferSchemaType<typeof scannerSchema>;
 
-const Scanner =
-  mongoose.models.Scanner || mongoose.model("Scanner", scannerSchema);
+// Delete cached model so HMR picks up schema changes (e.g. new customColumns field)
+if (mongoose.models.Scanner) {
+  mongoose.deleteModel("Scanner");
+}
+
+const Scanner = mongoose.model("Scanner", scannerSchema);
 
 export default Scanner;

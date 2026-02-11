@@ -13,7 +13,79 @@
     "linear": {
       "team": "Hackaton MVP",
       "team_id": "6a876c70-f9d6-4d38-a6a1-631385c2e3e3",
-      "sync_issues": true
+      "sync_issues": true,
+      "statuses": {
+        "backlog": "Backlog",
+        "todo": "Todo",
+        "in_progress": "In Progress",
+        "done": "Done",
+        "canceled": "Canceled"
+      },
+      "projects": {
+        "phase_1": {
+          "name": "Authentication & Onboarding",
+          "id": "ff473edb-ec9b-4bed-9f0e-7843f545e276",
+          "requirements": ["AUTH-01", "AUTH-05", "DATA-03"]
+        },
+        "phase_2": {
+          "name": "Data Pipeline",
+          "id": "b19535f7-5053-494d-84d6-6cce0af67ab6",
+          "requirements": ["DATA-01", "DATA-02", "DATA-04", "DATA-05", "DATA-06"]
+        },
+        "phase_3": {
+          "name": "Authentication & Onboarding",
+          "id": "ff473edb-ec9b-4bed-9f0e-7843f545e276",
+          "requirements": ["AUTH-02", "AUTH-03", "AUTH-04", "AUTH-06"]
+        },
+        "phase_4": {
+          "name": "Contract Dashboard",
+          "id": "df9b71b9-2d42-424a-912e-759838dee319",
+          "requirements": ["DASH-01", "DASH-02", "DASH-03", "DASH-04", "DASH-05", "DASH-06"]
+        },
+        "phase_5": {
+          "name": "Vibe Scanner",
+          "id": "5314baca-f886-4516-8851-e99ac9be3419",
+          "requirements": ["VIBE-01", "VIBE-02", "VIBE-03", "VIBE-04", "VIBE-05", "VIBE-06", "VIBE-07", "VIBE-08", "VIBE-09", "VIBE-10", "VIBE-11"]
+        },
+        "phase_6": {
+          "name_primary": "Buyer Intelligence",
+          "id_primary": "6ae37199-0634-479b-89f9-15ac21c239e0",
+          "name_secondary": "Credit System",
+          "id_secondary": "fc24c693-ec00-45f2-9cf8-f5c56c411173",
+          "requirements": ["BUYER-01", "BUYER-02", "BUYER-03", "BUYER-04", "BUYER-05", "BUYER-06", "BUYER-07", "CRED-01", "CRED-02", "CRED-03", "CRED-04", "CRED-05"]
+        },
+        "phase_7": {
+          "name": "Buying Signals",
+          "id": "0e1029ef-48ce-4598-a6bb-d793e9753f46",
+          "requirements": ["SGNL-01", "SGNL-02", "SGNL-03", "SGNL-04", "SGNL-05"]
+        },
+        "phase_8": {
+          "name": "Monetization & Pricing",
+          "id": "3a533fd4-09db-4f76-a85b-037733b616b9",
+          "requirements": ["PRICE-01", "PRICE-02", "PRICE-03", "PRICE-04"]
+        }
+      },
+      "issue_map": {
+        "AUTH-01": "HAC-1", "AUTH-02": "HAC-2", "AUTH-03": "HAC-3",
+        "AUTH-04": "HAC-4", "AUTH-05": "HAC-5", "AUTH-06": "HAC-6",
+        "VIBE-01": "HAC-7", "VIBE-02": "HAC-8", "VIBE-03": "HAC-9",
+        "VIBE-04": "HAC-10", "VIBE-05": "HAC-11", "VIBE-06": "HAC-12",
+        "VIBE-07": "HAC-13", "VIBE-08": "HAC-14", "VIBE-09": "HAC-15",
+        "VIBE-10": "HAC-16", "VIBE-11": "HAC-17",
+        "DASH-01": "HAC-18", "DASH-02": "HAC-19", "DASH-03": "HAC-20",
+        "DASH-04": "HAC-21", "DASH-05": "HAC-22", "DASH-06": "HAC-23",
+        "SGNL-01": "HAC-24", "SGNL-02": "HAC-25", "SGNL-03": "HAC-26",
+        "SGNL-04": "HAC-27", "SGNL-05": "HAC-28",
+        "BUYER-01": "HAC-29", "BUYER-02": "HAC-30", "BUYER-03": "HAC-31",
+        "BUYER-04": "HAC-32", "BUYER-05": "HAC-33", "BUYER-06": "HAC-34",
+        "BUYER-07": "HAC-35",
+        "CRED-01": "HAC-36", "CRED-02": "HAC-37", "CRED-03": "HAC-38",
+        "CRED-04": "HAC-39", "CRED-05": "HAC-40",
+        "PRICE-01": "HAC-41", "PRICE-02": "HAC-42", "PRICE-03": "HAC-43",
+        "PRICE-04": "HAC-44",
+        "DATA-01": "HAC-45", "DATA-02": "HAC-46", "DATA-03": "HAC-47",
+        "DATA-04": "HAC-48", "DATA-05": "HAC-49", "DATA-06": "HAC-50"
+      }
     }
   }
 }

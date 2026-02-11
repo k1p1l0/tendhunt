@@ -1,11 +1,12 @@
 import pLimit from "p-limit";
 import { anthropic } from "@/lib/anthropic";
 import type { ScannerType } from "@/models/scanner";
+import { resolveModelId, resolveMaxTokens, isTextUseCase, type AIModel } from "@/lib/ai-column-config";
 
 /**
  * Scoring engine for batch AI scoring of scanner entities.
  *
- * Uses Claude Haiku 4.5 with prompt caching on the system prompt (>4096 tokens).
+ * Uses configurable Claude models with prompt caching on the system prompt (>4096 tokens).
  * Async generator pattern yields structured events for SSE streaming.
  */
 
@@ -34,6 +35,8 @@ interface AIColumn {
   columnId: string;
   name: string;
   prompt: string;
+  model?: string;
+  useCase?: string;
 }
 
 interface ScannerLike {
@@ -54,8 +57,25 @@ interface ScannerLike {
  */
 export function buildScoringSystemPrompt(
   baseScoringPrompt: string,
-  columnPrompt: string
+  columnPrompt: string,
+  useCase?: string
 ): string {
+  const jsonInstruction = isTextUseCase(useCase)
+    ? `Respond with valid JSON:
+{
+  "response": "<your full analysis text>"
+}
+
+Provide a thorough, detailed analysis in the "response" field.`
+    : `Respond with valid JSON:
+{
+  "score": <number 1.0-10.0 or null if not applicable>,
+  "reasoning": "<1-2 sentence explanation>",
+  "response": "<full analysis text>"
+}
+
+The "score" field should be a number between 1.0 and 10.0 for relevance/scoring columns. Set it to null for columns that produce text responses (like identifying key contacts). The "response" field contains the full analysis text.`;
+
   return `${baseScoringPrompt}
 
 ---
@@ -64,14 +84,7 @@ export function buildScoringSystemPrompt(
 
 ${columnPrompt}
 
-Respond with valid JSON:
-{
-  "score": <number 1.0-10.0 or null if not applicable>,
-  "reasoning": "<1-2 sentence explanation>",
-  "response": "<full analysis text>"
-}
-
-The "score" field should be a number between 1.0 and 10.0 for relevance/scoring columns. Set it to null for columns that produce text responses (like identifying key contacts). The "response" field contains the full analysis text.`;
+${jsonInstruction}`;
 }
 
 /**
@@ -132,7 +145,7 @@ ${queryContext}`;
 // ---------------------------------------------------------------------------
 
 /**
- * Scores a single entity against a specific AI column using Claude Haiku 4.5.
+ * Scores a single entity against a specific AI column using the configured Claude model.
  *
  * Uses cache_control on the system prompt for prompt caching (>4096 tokens).
  */
@@ -140,70 +153,135 @@ export async function scoreOneEntity(
   entity: Record<string, unknown>,
   scannerType: ScannerType,
   systemPrompt: string,
-  searchQuery?: string
+  searchQuery?: string,
+  model: AIModel = "haiku",
+  useCase?: string
 ): Promise<{ score: number | null; reasoning: string; response: string }> {
   const userMessage = buildEntityUserPrompt(entity, scannerType, searchQuery);
+  const maxRetries = 4;
+  const textMode = isTextUseCase(useCase);
 
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 300,
-    system: [
-      {
-        type: "text",
-        text: systemPrompt,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: userMessage,
-      },
-    ],
-    output_config: {
-      format: {
-        type: "json_schema" as const,
-        schema: {
-          type: "object" as const,
-          properties: {
-            score: {
-              type: ["number", "null"] as unknown as "number",
-              description: "Score from 1.0-10.0 or null for text-only columns",
-            },
-            reasoning: {
-              type: "string" as const,
-              description: "1-2 sentence explanation of the score",
-            },
-            response: {
-              type: "string" as const,
-              description: "Full analysis text",
-            },
+  const jsonSchema = textMode
+    ? {
+        type: "object" as const,
+        properties: {
+          response: {
+            type: "string" as const,
+            description: "Full analysis text",
           },
-          required: ["score", "reasoning", "response"] as const,
-          additionalProperties: false,
         },
-      },
-    },
-  });
+        required: ["response"] as const,
+        additionalProperties: false,
+      }
+    : {
+        type: "object" as const,
+        properties: {
+          score: {
+            type: ["number", "null"] as unknown as "number",
+            description:
+              "Score from 1.0-10.0 or null for text-only columns",
+          },
+          reasoning: {
+            type: "string" as const,
+            description: "1-2 sentence explanation of the score",
+          },
+          response: {
+            type: "string" as const,
+            description: "Full analysis text",
+          },
+        },
+        required: ["score", "reasoning", "response"] as const,
+        additionalProperties: false,
+      };
 
-  const content = response.content[0];
-  if (content.type === "text") {
-    const parsed = JSON.parse(content.text) as {
-      score: number | null;
-      reasoning: string;
-      response: string;
-    };
-    return {
-      score:
-        typeof parsed.score === "number"
-          ? Math.round(parsed.score * 10) / 10
-          : null,
-      reasoning: parsed.reasoning || "",
-      response: parsed.response || "",
-    };
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await anthropic.messages.create({
+        model: resolveModelId(model),
+        max_tokens: resolveMaxTokens(model),
+        system: [
+          {
+            type: "text",
+            text: systemPrompt,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        messages: [
+          {
+            role: "user",
+            content: userMessage,
+          },
+        ],
+        output_config: {
+          format: {
+            type: "json_schema" as const,
+            schema: jsonSchema,
+          },
+        },
+      });
+
+      const content = response.content[0];
+      if (content.type === "text") {
+        let parsed: { score?: number | null; reasoning?: string; response: string };
+        try {
+          parsed = JSON.parse(content.text) as typeof parsed;
+        } catch {
+          // Truncated JSON (max_tokens hit) — attempt to salvage
+          const text = content.text;
+          const scoreMatch = text.match(/"score"\s*:\s*([\d.]+|null)/);
+          const reasoningMatch = text.match(/"reasoning"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          parsed = {
+            score: scoreMatch
+              ? scoreMatch[1] === "null" ? null : parseFloat(scoreMatch[1])
+              : null,
+            reasoning: reasoningMatch ? reasoningMatch[1] : "Response truncated",
+            response: "(truncated)",
+          };
+        }
+
+        if (textMode) {
+          return { score: null, reasoning: "", response: parsed.response || "" };
+        }
+
+        return {
+          score:
+            typeof parsed.score === "number"
+              ? Math.round(parsed.score * 10) / 10
+              : null,
+          reasoning: parsed.reasoning || "",
+          response: parsed.response || "",
+        };
+      }
+
+      return {
+        score: null,
+        reasoning: "Failed to parse response",
+        response: "",
+      };
+    } catch (err: unknown) {
+      const apiErr = err as { status?: number; headers?: Record<string, string> };
+
+      // Retry on 429 (rate limit) and 529 (overloaded) with exponential backoff
+      if (
+        (apiErr.status === 429 || apiErr.status === 529) &&
+        attempt < maxRetries
+      ) {
+        // Use retry-after header if available, otherwise exponential backoff
+        const retryAfterHeader =
+          apiErr.headers?.["retry-after"] ?? String(2 ** attempt * 2);
+        const waitSec = Math.min(parseFloat(retryAfterHeader) || 2 ** attempt * 2, 60);
+        console.log(
+          `[scoring-engine] Rate limited (${apiErr.status}), retrying in ${waitSec}s (attempt ${attempt + 1}/${maxRetries})`
+        );
+        await new Promise((r) => setTimeout(r, waitSec * 1000));
+        continue;
+      }
+
+      throw err;
+    }
   }
 
-  return { score: null, reasoning: "Failed to parse response", response: "" };
+  return { score: null, reasoning: "Max retries exceeded", response: "" };
 }
 
 // ---------------------------------------------------------------------------
@@ -223,7 +301,7 @@ export async function* scoreEntities(
   entities: Array<Record<string, unknown>>,
   baseScoringPrompt: string
 ): AsyncGenerator<ScoringEvent> {
-  const limit = pLimit(5);
+  const limit = pLimit(2);
 
   for (const column of scanner.aiColumns) {
     // Notify: column starting
@@ -237,7 +315,8 @@ export async function* scoreEntities(
     // Build the system prompt for this column (cached across entities)
     const systemPrompt = buildScoringSystemPrompt(
       baseScoringPrompt,
-      column.prompt
+      column.prompt,
+      column.useCase
     );
 
     let scored = 0;
@@ -254,7 +333,9 @@ export async function* scoreEntities(
             entity,
             scanner.type,
             systemPrompt,
-            scanner.searchQuery
+            scanner.searchQuery,
+            (column.model as AIModel) || "haiku",
+            column.useCase
           );
 
           scored++;

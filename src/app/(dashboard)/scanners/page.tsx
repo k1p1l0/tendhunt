@@ -17,6 +17,8 @@ interface ScannerRow {
   createdAt: string;
   updatedAt: string;
   aiColumns: Array<{ columnId: string; name: string }>;
+  totalEntries?: number;
+  creditsUsed?: number;
 }
 
 export default function ScannersPage() {

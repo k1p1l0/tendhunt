@@ -12,7 +12,7 @@ TendHunt's marketing site at `tendhunt.com` — a high-converting landing page a
 
 - [x] **Phase 1: Foundation** - Astro project scaffold, Tailwind v4, base layout, Cloudflare Pages deploy
 - [ ] **Phase 2: Content** - Figma template → landing page sections with TendHunt content
-- [ ] **Phase 3: Ghost Blog Setup** - Ghost instance, Cloudflare Worker proxy, /blog routing
+- [x] **Phase 3: Ghost Blog Setup** - Ghost instance, Cloudflare Worker proxy, /blog routing
 - [ ] **Phase 4: Content Pipeline** - AI article generation, Lexical conversion, thumbnail generation, publish
 - [ ] **Phase 5: SEO & Polish** - Meta tags, structured data, performance audit, responsive QA
 
@@ -63,9 +63,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — VPS Setup + Ghost Installation (Ubuntu 24.04, Node.js 22, MySQL, NGINX, SSL)
-- [ ] 03-02-PLAN.md — Custom Ghost Theme (Tailwind CSS, TendHunt design system, header/footer matching landing)
-- [ ] 03-03-PLAN.md — Cloudflare Worker Proxy + Verification (HTMLRewriter, sitemap/RSS rewriting, end-to-end tests)
+- [x] 03-01-PLAN.md — VPS Setup + Ghost Installation (Ubuntu 24.04, Node.js 22, MySQL, NGINX, SSL)
+- [x] 03-02-PLAN.md — Custom Ghost Theme (Tailwind CSS, TendHunt design system, header/footer matching landing)
+- [x] 03-03-PLAN.md — Cloudflare Worker Proxy + Verification (HTMLRewriter, sitemap/RSS rewriting, end-to-end tests)
 
 ### Phase 4: Content Pipeline
 **Goal**: Automated pipeline generates AI-drafted articles with thumbnails, converts to Lexical format, and publishes via Ghost Admin API — with 5-10 SEO articles live
@@ -77,11 +77,11 @@ Plans:
   3. 5-10 SEO articles published targeting UK procurement keywords
   4. Each article has featured image, meta description, tags, and internal links
   5. Articles accessible at tendhunt.com/blog/{slug}
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Article generation pipeline, Lexical converter, thumbnail generator
-- [ ] 04-02-PLAN.md -- Generate, review, and publish 5-10 SEO launch articles
+- [ ] 04-01-PLAN.md — Python content pipeline: article generator (GPT-4o), thumbnail generator (Pillow), Ghost publisher (Admin API + JWT)
+- [ ] 04-02-PLAN.md — Generate 10 SEO articles, add internal links, publish to Ghost
 
 ### Phase 5: SEO & Polish
 **Goal**: Landing page and blog pass SEO audits, Lighthouse 95+, and responsive QA across all breakpoints
@@ -93,10 +93,11 @@ Plans:
   3. All sections responsive and functional on mobile (375px+), tablet, desktop
   4. FAQ structured data passes Google Rich Results Test
   5. Sitemap and robots.txt configured
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- SEO meta, structured data, performance optimization, responsive QA
+- [ ] 05-01-PLAN.md — SEO meta tags, OG/Twitter cards, JSON-LD structured data, OG image, font preloads
+- [ ] 05-02-PLAN.md — Responsive design audit/fixes + Lighthouse performance verification
 
 ## Coverage Matrix
 
@@ -135,6 +136,6 @@ Note: Phase 2 (Content) and Phase 3 (Ghost Blog) can run in parallel since they 
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-02-11 |
 | 2. Content | 0/2 | Not started | - |
-| 3. Ghost Blog Setup | 0/3 | Ready to execute | - |
-| 4. Content Pipeline | 0/2 | Not started | - |
-| 5. SEO & Polish | 0/1 | Not started | - |
+| 3. Ghost Blog Setup | 3/3 | Complete | 2026-02-11 |
+| 4. Content Pipeline | 0/2 | Ready to execute | - |
+| 5. SEO & Polish | 0/2 | Ready to execute | - |

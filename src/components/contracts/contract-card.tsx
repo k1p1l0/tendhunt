@@ -18,6 +18,7 @@ interface ContractCardData {
   source: "FIND_A_TENDER" | "CONTRACTS_FINDER";
   sector?: string | null;
   vibeScore?: number | null;
+  vibeReasoning?: string | null;
 }
 
 const currencyFormatter = new Intl.NumberFormat("en-GB", {
@@ -99,6 +100,12 @@ export function ContractCard({ contract }: { contract: ContractCardData }) {
               <ScoreBadge score={contract.vibeScore} />
             )}
           </div>
+
+          {contract.vibeScore != null && contract.vibeReasoning && (
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {contract.vibeReasoning}
+            </p>
+          )}
         </CardContent>
       </Card>
     </Link>

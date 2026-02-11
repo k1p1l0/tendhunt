@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ScannerType } from "@/models/scanner";
+import { isTextUseCase } from "@/lib/ai-column-config";
 
 interface AiCellDrawerProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface AiCellDrawerProps {
   columnName: string;
   entityName: string;
   scannerType: ScannerType;
+  useCase?: string;
 }
 
 const TYPE_LABELS: Record<ScannerType, string> = {
@@ -59,7 +61,9 @@ export function AiCellDrawer({
   columnName,
   entityName,
   scannerType,
+  useCase,
 }: AiCellDrawerProps) {
+  const textMode = isTextUseCase(useCase);
   const scores = useScannerStore((s) => s.scores);
 
   // Get the score entry
@@ -85,16 +89,16 @@ export function AiCellDrawer({
             </div>
           ) : (
             <>
-              {/* Score display */}
-              {entry.score != null && (
+              {/* Score display — hidden for text-mode columns */}
+              {!textMode && entry.score != null && (
                 <>
                   <ScoreCircle score={entry.score} />
                   <Separator />
                 </>
               )}
 
-              {/* Reasoning section */}
-              {entry.reasoning && (
+              {/* Reasoning section — hidden for text-mode columns */}
+              {!textMode && entry.reasoning && (
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Reasoning</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -103,13 +107,15 @@ export function AiCellDrawer({
                 </div>
               )}
 
-              {/* Full Response section (only if different from reasoning) */}
+              {/* Full Response section */}
               {entry.response &&
-                entry.response !== entry.reasoning && (
+                (textMode || entry.response !== entry.reasoning) && (
                   <>
-                    <Separator />
+                    {!textMode && <Separator />}
                     <div className="space-y-2">
-                      <h3 className="text-sm font-medium">Full Response</h3>
+                      <h3 className="text-sm font-medium">
+                        {textMode ? "Analysis" : "Full Response"}
+                      </h3>
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">
                         {entry.response}
                       </p>

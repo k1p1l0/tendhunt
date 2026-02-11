@@ -26,24 +26,22 @@ export function ScoreProgressBar({ columnNames }: ScoreProgressBarProps) {
     columnId && columnNames ? columnNames[columnId] : undefined;
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        {isComplete ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-        ) : (
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        )}
-        <span className="text-sm font-medium">
-          {isComplete
-            ? `Scoring complete! ${scored} items scored.`
-            : columnName
-              ? `Scoring ${columnName}... ${scored}/${total}`
-              : `Scoring... ${scored}/${total}`}
-        </span>
-      </div>
+    <div className="flex items-center gap-3">
+      {isComplete ? (
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+      ) : (
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+      )}
+      <span className="text-sm font-medium whitespace-nowrap">
+        {isComplete
+          ? `Done! ${scored} scored`
+          : columnName
+            ? `${columnName}... ${scored}/${total}`
+            : `Scoring... ${scored}/${total}`}
+      </span>
       <Progress
         value={percentage}
-        className="h-2 transition-all duration-300"
+        className="h-1.5 w-[200px] transition-all duration-300"
       />
     </div>
   );

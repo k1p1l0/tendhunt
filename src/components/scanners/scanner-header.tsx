@@ -1,9 +1,17 @@
 "use client";
 
-import { Sparkles, Plus, Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, RefreshCw, ChevronDown, Columns3, Rows3, Filter, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ScannerType } from "@/models/scanner";
 
 interface ScannerHeaderProps {
@@ -11,13 +19,16 @@ interface ScannerHeaderProps {
     name: string;
     type: ScannerType;
     description?: string;
-    aiColumns: Array<{ columnId: string; name: string }>;
+    autoRun?: boolean;
   };
   rowCount: number;
-  onAddColumn: () => void;
-  onEditScanner: () => void;
-  onScore: () => void;
+  columnCount: number;
+  activeFilterCount: number;
   isScoring: boolean;
+  onToggleAutoRun: (enabled: boolean) => void;
+  onRunNow: () => void;
+  onCancelScoring: () => void;
+  onEditScanner: () => void;
 }
 
 const TYPE_BADGE_STYLES: Record<ScannerType, string> = {
@@ -37,11 +48,16 @@ const TYPE_LABELS: Record<ScannerType, string> = {
 export function ScannerHeader({
   scanner,
   rowCount,
-  onAddColumn,
-  onEditScanner,
-  onScore,
+  columnCount,
+  activeFilterCount,
   isScoring,
+  onToggleAutoRun,
+  onRunNow,
+  onCancelScoring,
+  onEditScanner,
 }: ScannerHeaderProps) {
+  const autoRun = scanner.autoRun ?? false;
+
   return (
     <div className="space-y-3">
       {/* Name + type badge */}
@@ -64,35 +80,76 @@ export function ScannerHeader({
 
       {/* Toolbar */}
       <div className="flex items-center gap-2">
-        <Button onClick={onScore} disabled={isScoring} size="sm">
-          {isScoring ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {isScoring ? "Scoring..." : "Score All"}
-        </Button>
+        {/* Auto-run dropdown button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant={autoRun ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+            >
+              {isScoring ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              Auto-run
+              <ChevronDown className="h-3 w-3 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {/* Auto-update toggle */}
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <span className="text-sm font-medium">Auto-update</span>
+              <Switch
+                checked={autoRun}
+                onCheckedChange={onToggleAutoRun}
+              />
+            </div>
+            <p className="px-2 pb-2 text-xs text-muted-foreground">
+              Run AI scoring when new data arrives
+            </p>
+            <DropdownMenuSeparator />
+            {/* Manual trigger / Stop */}
+            {isScoring ? (
+              <DropdownMenuItem onClick={onCancelScoring}>
+                <Square className="h-3.5 w-3.5 mr-2 text-destructive" />
+                <span className="text-destructive">Stop scoring</span>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={onRunNow}>
+                <Play className="h-3.5 w-3.5 mr-2" />
+                Run now
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        <Button variant="outline" size="sm" onClick={onAddColumn}>
-          <Plus className="h-4 w-4" />
-          Add Column
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onEditScanner}
-          disabled
-        >
-          <Pencil className="h-4 w-4" />
+        {/* Edit */}
+        <Button variant="ghost" size="sm" onClick={onEditScanner}>
+          <Pencil className="h-3.5 w-3.5" />
           Edit
         </Button>
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-5" />
 
-        <span className="text-sm text-muted-foreground">
-          {rowCount} {rowCount === 1 ? "row" : "rows"}
-        </span>
+        {/* Stats bar */}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Columns3 className="h-3.5 w-3.5" />
+            {columnCount} {columnCount === 1 ? "column" : "columns"}
+          </span>
+          <span className="flex items-center gap-1">
+            <Rows3 className="h-3.5 w-3.5" />
+            {rowCount} {rowCount === 1 ? "row" : "rows"}
+          </span>
+          {activeFilterCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Filter className="h-3.5 w-3.5" />
+              {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

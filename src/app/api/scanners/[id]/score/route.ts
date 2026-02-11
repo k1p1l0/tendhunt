@@ -129,6 +129,8 @@ export async function POST(
                 columnId: string;
                 name: string;
                 prompt: string;
+                model?: string;
+                useCase?: string;
               }>,
               searchQuery: scanner.searchQuery || "",
               type: scanner.type,

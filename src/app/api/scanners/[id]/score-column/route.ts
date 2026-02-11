@@ -10,6 +10,7 @@ import {
   scoreOneEntity,
   buildScoringSystemPrompt,
 } from "@/lib/scoring-engine";
+import type { AIModel } from "@/lib/ai-column-config";
 import mongoose from "mongoose";
 import pLimit from "p-limit";
 
@@ -39,7 +40,12 @@ export async function POST(
       );
     }
 
-    const body = (await request.json()) as { columnId?: string };
+    const body = (await request.json()) as {
+      columnId?: string;
+      limit?: number;
+      force?: boolean;
+      entityIds?: string[];
+    };
 
     if (!body.columnId || typeof body.columnId !== "string") {
       return Response.json(
@@ -47,6 +53,12 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const rowLimit = typeof body.limit === "number" && body.limit > 0 ? body.limit : 0;
+    const forceRescore = body.force === true;
+    const scopedEntityIds = Array.isArray(body.entityIds) && body.entityIds.length > 0
+      ? body.entityIds
+      : null;
 
     await dbConnect();
 
@@ -65,6 +77,8 @@ export async function POST(
         columnId: string;
         name: string;
         prompt: string;
+        model?: string;
+        useCase?: string;
       }>
     ).find((c) => c.columnId === body.columnId);
 
@@ -87,11 +101,15 @@ export async function POST(
     const baseScoringPrompt = generateScoringPrompt(profile);
 
     // Load entities based on scanner type
+    // When entityIds are provided (filtered view), only load those specific entities
+    const entityFilter = scopedEntityIds
+      ? { _id: { $in: scopedEntityIds.map((eid) => new mongoose.Types.ObjectId(eid)) } }
+      : {};
     let entities: Array<Record<string, unknown>>;
 
     switch (scanner.type) {
       case "rfps":
-        entities = (await Contract.find({})
+        entities = (await Contract.find(entityFilter)
           .select(
             "title description buyerName sector valueMin valueMax buyerRegion cpvCodes deadlineDate"
           )
@@ -99,7 +117,7 @@ export async function POST(
         break;
 
       case "meetings":
-        entities = (await Signal.find({})
+        entities = (await Signal.find(entityFilter)
           .select(
             "organizationName signalType title insight sector sourceDate"
           )
@@ -107,7 +125,7 @@ export async function POST(
         break;
 
       case "buyers":
-        entities = (await Buyer.find({})
+        entities = (await Buyer.find(entityFilter)
           .select(
             "name sector region description contractCount website contacts"
           )
@@ -128,21 +146,78 @@ export async function POST(
       );
     }
 
-    // Remove existing scores for this column only
-    await Scanner.updateOne(
-      { _id: scanner._id },
-      { $pull: { scores: { columnId: body.columnId } } }
+    // Collect existing score entity IDs for this column
+    const existingScoreIds = new Set(
+      ((scanner.scores as unknown as Array<{ columnId: string; entityId: string }>) || [])
+        .filter((s) => s.columnId === body.columnId)
+        .map((s) => String(s.entityId))
     );
+
+    if (forceRescore) {
+      // Force: remove all existing scores for this column
+      await Scanner.updateOne(
+        { _id: scanner._id },
+        { $pull: { scores: { columnId: body.columnId } } }
+      );
+    }
+
+    // Filter entities: skip already-scored unless force
+    let entitiesToScore = forceRescore
+      ? entities
+      : entities.filter((e) => !existingScoreIds.has(String(e._id || e.id || "")));
+
+    // Apply row limit if specified
+    if (rowLimit > 0 && entitiesToScore.length > rowLimit) {
+      entitiesToScore = entitiesToScore.slice(0, rowLimit);
+    }
+
+    if (entitiesToScore.length === 0) {
+      // All rows already scored, nothing to do — return immediate complete
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "complete" })}\n\n`)
+          );
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
+    // If force, already cleared above. If not force, only remove scores
+    // for entities we're about to re-score (for incremental runs, none).
+    if (!forceRescore && entitiesToScore.length > 0) {
+      const entityIds = entitiesToScore.map((e) => String(e._id || e.id || ""));
+      await Scanner.updateOne(
+        { _id: scanner._id },
+        {
+          $pull: {
+            scores: {
+              columnId: body.columnId,
+              entityId: { $in: entityIds },
+            },
+          },
+        }
+      );
+    }
 
     // Build system prompt for this column
     const systemPrompt = buildScoringSystemPrompt(
       baseScoringPrompt,
-      column.prompt
+      column.prompt,
+      column.useCase
     );
 
     // SSE stream
     const encoder = new TextEncoder();
-    const limit = pLimit(5);
+    const limit = pLimit(2);
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -162,15 +237,16 @@ export async function POST(
                 type: "column_start",
                 columnId: column.columnId,
                 columnName: column.name,
-                total: entities.length,
+                total: entitiesToScore.length,
               })}\n\n`
             )
           );
 
           let scored = 0;
 
-          // Score all entities for this column with p-limit(5)
-          const promises = entities.map((entity) =>
+          // Score entities for this column with p-limit(5)
+          // Stream each result immediately as it completes (no batching)
+          const promises = entitiesToScore.map((entity) =>
             limit(async () => {
               const entityId = String(entity._id || entity.id || "unknown");
 
@@ -179,21 +255,12 @@ export async function POST(
                   entity,
                   scanner.type,
                   systemPrompt,
-                  scanner.searchQuery || ""
+                  scanner.searchQuery || "",
+                  (column.model as AIModel) || "haiku",
+                  column.useCase
                 );
 
                 scored++;
-
-                const event = {
-                  type: "progress",
-                  columnId: column.columnId,
-                  entityId,
-                  score: result.score,
-                  reasoning: result.reasoning,
-                  response: result.response,
-                  scored,
-                  total: entities.length,
-                };
 
                 columnScores.push({
                   columnId: column.columnId,
@@ -203,33 +270,57 @@ export async function POST(
                   reasoning: result.reasoning,
                 });
 
-                return event;
+                // Stream progress event immediately
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: "progress",
+                      columnId: column.columnId,
+                      entityId,
+                      score: result.score,
+                      reasoning: result.reasoning,
+                      response: result.response,
+                      scored,
+                      total: entitiesToScore.length,
+                    })}\n\n`
+                  )
+                );
               } catch (err) {
+                const errMsg = err instanceof Error ? err.message : String(err);
                 console.error(
                   `Scoring error [${column.columnId}] entity ${entityId}:`,
-                  err
+                  errMsg
                 );
+
+                // Detect fatal errors that affect all entities (billing, auth)
+                const isFatal =
+                  errMsg.includes("credit balance is too low") ||
+                  errMsg.includes("invalid x-api-key") ||
+                  errMsg.includes("authentication") ||
+                  errMsg.includes("permission");
 
                 scored++;
 
-                return {
-                  type: "error",
-                  columnId: column.columnId,
-                  entityId,
-                  scored,
-                  total: entities.length,
-                };
+                // Stream error event with message for UI display
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: "error",
+                      columnId: column.columnId,
+                      entityId,
+                      message: errMsg,
+                      fatal: isFatal,
+                      scored,
+                      total: entitiesToScore.length,
+                    })}\n\n`
+                  )
+                );
               }
             })
           );
 
-          // Wait for all and yield sequentially
-          const results = await Promise.all(promises);
-          for (const event of results) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
-            );
-          }
+          // Wait for all concurrent tasks to finish
+          await Promise.all(promises);
 
           // Column complete
           controller.enqueue(
@@ -260,7 +351,7 @@ export async function POST(
             )
           );
         } catch (err) {
-          console.error("Single-column scoring error:", err);
+          console.error("Single-column scoring error:", err instanceof Error ? err.message : err);
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({

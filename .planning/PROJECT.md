@@ -52,7 +52,8 @@ Suppliers can discover relevant UK government contracts and instantly reveal the
 - **Data sources (v1)**: Find a Tender (API), Contracts Finder (API), G-Cloud Digital Marketplace (API/scrape)
 - **Contact data**: LinkedIn API/scraping for real procurement contacts
 - **Database**: PostgreSQL (+ vector DB for search if time allows)
-- **Infrastructure**: AWS (team expertise)
+- **Infrastructure**: Cloudflare (Pages, Workers, R2, D1 as needed)
+- **Domain**: tendhunt.com = landing page, app.tendhunt.com = authenticated app
 - **Demo quality**: Investor-grade — real data, polished UI, working credit system
 
 ## Key Decisions
@@ -65,6 +66,8 @@ Suppliers can discover relevant UK government contracts and instantly reveal the
 | 3 data sources only | Find a Tender + Contracts Finder + G-Cloud cover core use case without scope creep | — Pending |
 | LinkedIn for contacts | Real buyer data makes demo compelling vs mock data | — Pending |
 | Next.js + Python split | TypeScript for product speed, Python for scraper ecosystem (Scrapy, Playwright) | — Pending |
+| Cloudflare infrastructure | Pages for hosting, Workers for scrapers/cron, R2 for storage. Replaces AWS | Confirmed |
+| Domain split | tendhunt.com = marketing/landing, app.tendhunt.com = authenticated app | Confirmed |
 
 ---
 *Last updated: 2026-02-10 after initialization*
