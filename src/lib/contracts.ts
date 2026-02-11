@@ -1,5 +1,8 @@
+import mongoose from "mongoose";
 import { dbConnect } from "@/lib/mongodb";
 import Contract from "@/models/contract";
+import Buyer from "@/models/buyer";
+import Signal from "@/models/signal";
 
 export interface ContractFilters {
   query?: string;
@@ -71,4 +74,27 @@ export async function fetchContracts(filters: ContractFilters) {
   ]);
 
   return { contracts, filteredCount, totalCount };
+}
+
+export async function fetchContractById(id: string) {
+  await dbConnect();
+
+  if (!mongoose.isValidObjectId(id)) {
+    return null;
+  }
+
+  const contract = await Contract.findById(id).select("-rawData").lean();
+  return contract;
+}
+
+export async function getContractStats() {
+  await dbConnect();
+
+  const [contractCount, buyerCount, signalCount] = await Promise.all([
+    Contract.estimatedDocumentCount(),
+    Buyer.estimatedDocumentCount(),
+    Signal.estimatedDocumentCount(),
+  ]);
+
+  return { contractCount, buyerCount, signalCount };
 }
