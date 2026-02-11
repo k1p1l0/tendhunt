@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Self-hosted fonts via Fontsource (variable = all weights in one file) */
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/inter";
+
+@theme {
+  /* ========== Typography ========== */
+  --font-heading: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* ========== Colors: Dark Theme ========== */
+  --color-bg-primary: #0A0A0A;
+  --color-bg-secondary: #111111;
+  --color-bg-tertiary: #1A1A1A;
+  --color-bg-card: #161616;
+  --color-bg-light: #F5F5F5;
+  --color-bg-light-secondary: #EBEBEB;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A1A1A1;
+  --color-text-body: #D4D4D4;
+  --color-text-muted: #737373;
+  --color-text-dark: #171717;
+
+  --color-accent: #E5FF00;
+  --color-accent-hover: #D4EE00;
+  --color-accent-muted: #E5FF0033;
+
+  --color-border: #2A2A2A;
+  --color-border-light: #E5E5E5;
+
+  /* ========== Layout ========== */
+  --container-content: 80rem;
+
+  /* ========== Spacing (section-level) ========== */
+  --spacing-section: 6rem;
+  --spacing-section-sm: 4rem;
+  --spacing-section-lg: 8rem;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
