@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, use } from "react";
+import { useCallback, useEffect, useState, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannerHeader } from "@/components/scanners/scanner-header";
 import { ScannerTable } from "@/components/scanners/scanner-table";
+import { AddColumnModal } from "@/components/scanners/add-column-modal";
 import { getColumnsForType } from "@/components/scanners/table-columns";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import { useScannerStore } from "@/stores/scanner-store";
@@ -29,6 +30,19 @@ interface ScannerData {
   lastScoredAt?: string;
 }
 
+interface SSEEvent {
+  type: string;
+  columnId?: string;
+  columnName?: string;
+  entityId?: string;
+  score?: number | null;
+  reasoning?: string;
+  response?: string;
+  scored?: number;
+  total?: number;
+  message?: string;
+}
+
 const DATA_ENDPOINTS: Record<ScannerType, string> = {
   rfps: "/api/contracts",
   meetings: "/api/signals",
@@ -40,6 +54,37 @@ const DATA_KEYS: Record<ScannerType, string> = {
   meetings: "signals",
   buyers: "buyers",
 };
+
+/**
+ * Reads an SSE stream and calls onEvent for each parsed event.
+ * Handles buffering for partial messages.
+ */
+async function readSSEStream(
+  response: Response,
+  onEvent: (event: SSEEvent) => void
+) {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const event = JSON.parse(line.slice(6)) as SSEEvent;
+          onEvent(event);
+        } catch {
+          // skip malformed events
+        }
+      }
+    }
+  }
+}
 
 export default function ScannerDetailPage({
   params,
@@ -54,9 +99,20 @@ export default function ScannerDetailPage({
   const [columns, setColumns] = useState<ColumnDef[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addColumnOpen, setAddColumnOpen] = useState(false);
+
+  // Store refs for SSE callbacks (avoid stale closures)
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const scannerRef = useRef(scanner);
+  scannerRef.current = scanner;
 
   const setActiveScanner = useScannerStore((s) => s.setActiveScanner);
   const loadScores = useScannerStore((s) => s.loadScores);
+  const setScore = useScannerStore((s) => s.setScore);
+  const setIsScoring = useScannerStore((s) => s.setIsScoring);
+  const setScoringProgress = useScannerStore((s) => s.setScoringProgress);
+  const clearScores = useScannerStore((s) => s.clearScores);
   const isScoring = useScannerStore((s) => s.isScoring);
 
   const loadData = useCallback(async () => {
@@ -123,15 +179,163 @@ export default function ScannerDetailPage({
     loadData();
   }, [loadData]);
 
-  function handleScore() {
-    // Scoring will be implemented in Plan 04
-    // For now, just a placeholder
-    console.log("Score All clicked -- scoring will be wired in Plan 04");
+  /**
+   * Helper: set all AI cells to loading state before scoring starts.
+   */
+  function setAllCellsLoading(
+    aiColumns: Array<{ columnId: string }>,
+    entityRows: Array<Record<string, unknown>>
+  ) {
+    for (const column of aiColumns) {
+      for (const row of entityRows) {
+        setScore(column.columnId, String(row._id), {
+          isLoading: true,
+          response: "",
+          reasoning: "",
+        });
+      }
+    }
+  }
+
+  /**
+   * Score All: full batch scoring of all AI columns.
+   */
+  async function handleScore() {
+    const currentScanner = scannerRef.current;
+    const currentRows = rowsRef.current;
+
+    if (!currentScanner || currentRows.length === 0) return;
+
+    setIsScoring(true);
+    clearScores();
+    setAllCellsLoading(currentScanner.aiColumns, currentRows);
+
+    try {
+      const response = await fetch(`/api/scanners/${id}/score`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error("Score All error:", data.error);
+        setIsScoring(false);
+        return;
+      }
+
+      await readSSEStream(response, (event) => {
+        if (event.type === "column_start") {
+          setScoringProgress(0, event.total ?? 0, event.columnId);
+        }
+        if (event.type === "progress" && event.columnId && event.entityId) {
+          setScoringProgress(
+            event.scored ?? 0,
+            event.total ?? 0,
+            event.columnId
+          );
+          setScore(event.columnId, event.entityId, {
+            score: event.score ?? undefined,
+            response: event.response ?? "",
+            reasoning: event.reasoning ?? "",
+          });
+        }
+        if (event.type === "complete") {
+          setIsScoring(false);
+        }
+      });
+
+      // Ensure scoring ends even if complete event was missed
+      setIsScoring(false);
+    } catch (err) {
+      console.error("Score All stream error:", err);
+      setIsScoring(false);
+    }
+  }
+
+  /**
+   * Score a single column for all entities (used after adding a new column).
+   */
+  async function scoreSingleColumn(columnId: string) {
+    const currentRows = rowsRef.current;
+
+    // Set loading state for just this column
+    for (const row of currentRows) {
+      setScore(columnId, String(row._id), {
+        isLoading: true,
+        response: "",
+        reasoning: "",
+      });
+    }
+
+    setIsScoring(true);
+
+    try {
+      const response = await fetch(`/api/scanners/${id}/score-column`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columnId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error("Score column error:", data.error);
+        setIsScoring(false);
+        return;
+      }
+
+      await readSSEStream(response, (event) => {
+        if (event.type === "column_start") {
+          setScoringProgress(0, event.total ?? 0, event.columnId);
+        }
+        if (event.type === "progress" && event.columnId && event.entityId) {
+          setScoringProgress(
+            event.scored ?? 0,
+            event.total ?? 0,
+            event.columnId
+          );
+          setScore(event.columnId, event.entityId, {
+            score: event.score ?? undefined,
+            response: event.response ?? "",
+            reasoning: event.reasoning ?? "",
+          });
+        }
+        if (event.type === "complete") {
+          setIsScoring(false);
+        }
+      });
+
+      setIsScoring(false);
+    } catch (err) {
+      console.error("Score column stream error:", err);
+      setIsScoring(false);
+    }
+  }
+
+  /**
+   * Handle a new column being added from the modal.
+   * Updates local state and triggers single-column scoring.
+   */
+  async function handleColumnAdded(column: {
+    columnId: string;
+    name: string;
+    prompt: string;
+  }) {
+    if (!scanner) return;
+
+    // Update local scanner data with new column
+    const updatedAiColumns = [...scanner.aiColumns, column];
+    const updatedScanner = { ...scanner, aiColumns: updatedAiColumns };
+    setScanner(updatedScanner);
+
+    // Regenerate column definitions with the new AI column
+    const cols = getColumnsForType(updatedScanner.type, updatedAiColumns);
+    setColumns(cols);
+
+    // Trigger scoring for the new column only
+    await scoreSingleColumn(column.columnId);
   }
 
   function handleAddColumn() {
-    // Add Column modal will be implemented in Plan 05
-    console.log("Add Column clicked -- will be wired in Plan 05");
+    setAddColumnOpen(true);
   }
 
   function handleEditScanner() {
@@ -140,8 +344,21 @@ export default function ScannerDetailPage({
   }
 
   function handleAiCellClick(columnId: string, entityId: string) {
-    // Side drawer will be wired in Plan 05
-    console.log("AI cell clicked:", columnId, entityId);
+    // For now, show the reasoning in a temporary alert-like UX.
+    // Plan 06 will add the full side drawer.
+    const scores = useScannerStore.getState().scores;
+    const key = `${columnId}:${entityId}`;
+    const entry = scores[key];
+
+    if (entry) {
+      console.log("AI cell details:", {
+        columnId,
+        entityId,
+        score: entry.score,
+        reasoning: entry.reasoning,
+        response: entry.response,
+      });
+    }
   }
 
   // Loading state
@@ -217,6 +434,14 @@ export default function ScannerDetailPage({
         rows={rows}
         scannerType={scanner.type}
         onAiCellClick={handleAiCellClick}
+      />
+
+      {/* Add Column Modal */}
+      <AddColumnModal
+        open={addColumnOpen}
+        onOpenChange={setAddColumnOpen}
+        scannerId={id}
+        onColumnAdded={handleColumnAdded}
       />
     </div>
   );
