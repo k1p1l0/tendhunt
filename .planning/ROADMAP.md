@@ -120,12 +120,12 @@ Plans:
   5. Previously revealed contacts remain visible without additional credit spend across sessions
   6. Credit balance is visible in the header, decreases atomically on reveal, and shows an upgrade prompt at zero balance
   7. User can view credit transaction history
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Buyer organization profiles with signals and AI scores
-- [ ] 06-02: Credit system (balance display, atomic deduction, transaction history, upgrade prompt)
-- [ ] 06-03: Contact reveal flow (blur-to-reveal, credit spend, persistence)
+- [ ] 06-01-PLAN.md -- ContactReveal model, buyer APIs (list+detail), credit APIs (balance+history), Zustand credit store, sidebar credit balance with popover
+- [ ] 06-02-PLAN.md -- Buyers list table page, buyer profile page with header and 4 tabs (Contracts, Contacts, Signals, Attributes), contact cards with blur effect
+- [ ] 06-03-PLAN.md -- Contact reveal API (atomic credit deduction), unlock button, blur-to-reveal animation, credit store integration, zero-balance prompt
 
 ### Phase 7: Buying Signals
 **Goal**: Users can browse and filter pre-tender buying signals extracted from board minutes, displayed alongside contracts or in a dedicated tab
