@@ -242,6 +242,7 @@ Extract the following information:
                     url: { type: "string" as const },
                   },
                   required: ["platform", "url"] as const,
+                  additionalProperties: false,
                 },
               },
               summary: { type: "string" as const },
