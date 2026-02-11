@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 10 -- Live Data Pipeline (Plan 01 complete, infrastructure scaffolded)
+**Current focus:** Phase 10 -- Live Data Pipeline (Plan 02 complete, Worker fully wired and deployable)
 
 ## Current Position
 
 Phase: 10 (Live Data Pipeline)
-Plan: 1 of N in current phase (01 complete)
-Status: Plan 10-01 complete -- Worker infrastructure scaffolded, sync engine ready
-Last activity: 2026-02-11 -- Data sync Worker scaffolding, OCDS mapper, sync engine
+Plan: 2 of 2 in current phase (01-02 complete)
+Status: Phase 10 complete -- Worker fully wired with API clients and deployable
+Last activity: 2026-02-11 -- API clients (FaT + CF), rate limiter, scheduled handler wiring
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] (Phases 1-5 complete, Phase 10 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
-- Average duration: 4.0 min
-- Total execution time: 1.39 hours
+- Total plans completed: 21
+- Average duration: 3.9 min
+- Total execution time: 1.42 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] (Phases 1-5 complete, Phase 10 in pro
 | 09-enhance-onboarding | 2/2 | 6 min | 3 min |
 | 04-contract-dashboard | 2/2 | 7 min | 3.5 min |
 | 05-vibe-scanner | 6/6 | 19 min | 3.2 min |
-| 10-live-data-pipeline | 1/? | 4 min | 4 min |
+| 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-04 (2 min), 05-05 (3 min), 05-06 (4 min), 10-01 (4 min)
+- Last 5 plans: 05-05 (3 min), 05-06 (4 min), 10-01 (4 min), 10-02 (2 min)
 - Trend: Consistent ~2-5 min per plan
 
 *Updated after each plan completion*
@@ -133,6 +133,10 @@ Recent decisions affecting current work:
 - [10-01]: @types/node added alongside @cloudflare/workers-types for mongodb driver type resolution
 - [10-01]: valueMin uses minValue.amount falling back to value.amount for accurate OCDS range mapping
 - [10-01]: buyerOrg extracted from OCDS party.id and buyer.id fields for Buyer schema mapping
+- [10-02]: FaT dual-stage via closure variable and synthetic STAGE:award cursor -- clean FetchPageFn interface
+- [10-02]: 60/40 budget split: FaT 5400 items (higher value) vs CF 3600 items per hourly invocation
+- [10-02]: Sequential source processing (not parallel) to respect combined API rate limits
+- [10-02]: BACKFILL_START_DATE env var overrides both default start dates for storage-constrained deployments
 
 ### Pending Todos
 
@@ -151,5 +155,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 10-01-PLAN.md (Data sync Worker scaffolding, OCDS mapper, sync engine)
-Next plan: 10-02-PLAN.md (API clients, rate limiter, scheduled handler wiring)
+Stopped at: Completed 10-02-PLAN.md (API clients, rate limiter, scheduled handler wiring)
+Next: Phase 10 complete -- Worker ready for deployment with `wrangler deploy`
