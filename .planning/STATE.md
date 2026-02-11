@@ -81,7 +81,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+1. **Add company info fields to onboarding step 1** (ui) -- Company name, website, address, social links alongside document upload for richer AI profile generation
 
 ### Blockers/Concerns
 
