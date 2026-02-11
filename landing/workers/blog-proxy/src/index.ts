@@ -101,13 +101,8 @@ export default {
     ) {
       let xml = await ghostResponse.text();
       // Replace all ghost subdomain references with public domain + blog path
-      xml = xml.replace(
-        new RegExp(
-          `https?://${escapeRegex(GHOST_SUBDOMAIN)}`,
-          "g"
-        ),
-        `https://${PUBLIC_DOMAIN}${BLOG_PATH}`
-      );
+      // Handles https://, http://, and protocol-relative //
+      xml = rewriteAllUrls(xml, GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH);
       return new Response(xml, {
         status: ghostResponse.status,
         headers: {
@@ -117,64 +112,46 @@ export default {
       });
     }
 
-    // Rewrite HTML content using HTMLRewriter
+    // Rewrite HTML content — full text replacement for absolute URLs,
+    // then HTMLRewriter for root-relative asset/post paths
     if (contentType.includes("text/html")) {
+      // Step 1: Read full HTML and do global text replacement for subdomain URLs.
+      // This catches everything: JSON-LD, data-ghost attrs, data-api attrs, inline scripts.
+      let html = await ghostResponse.text();
+      // Handles https://, http://, and protocol-relative //
+      html = rewriteAllUrls(html, GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH);
+
+      // Step 2: Create a new Response from the rewritten HTML
+      const rewrittenResponse = new Response(html, {
+        status: ghostResponse.status,
+        headers: ghostResponse.headers,
+      });
+
+      // Step 3: Use HTMLRewriter for root-relative URL prefixing only.
+      // Absolute URLs are already handled by text replacement above.
       const rewriter = new HTMLRewriter()
-        // Rewrite link URLs (navigation, post links)
         .on(
           "a[href]",
-          new AttributeRewriter("href", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
+          new RootRelativeRewriter("href", BLOG_PATH)
         )
-        // Rewrite stylesheet links
         .on(
           "link[href]",
-          new AttributeRewriter("href", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
+          new RootRelativeRewriter("href", BLOG_PATH)
         )
-        // Rewrite image sources
         .on(
           "img[src]",
-          new AttributeRewriter("src", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
+          new RootRelativeRewriter("src", BLOG_PATH)
         )
         .on(
           "img[srcset]",
-          new AttributeRewriter("srcset", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
+          new RootRelativeRewriter("srcset", BLOG_PATH)
         )
-        // Rewrite script sources
         .on(
           "script[src]",
-          new AttributeRewriter("src", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        // Rewrite SEO meta tags
-        .on(
-          'meta[property="og:url"]',
-          new AttributeRewriter("content", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        .on(
-          'meta[property="og:image"]',
-          new AttributeRewriter("content", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        .on(
-          'meta[name="twitter:image"]',
-          new AttributeRewriter("content", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        .on(
-          'meta[name="twitter:url"]',
-          new AttributeRewriter("content", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        // Rewrite canonical URL
-        .on(
-          'link[rel="canonical"]',
-          new AttributeRewriter("href", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        // Rewrite alternate links (RSS)
-        .on(
-          'link[rel="alternate"]',
-          new AttributeRewriter("href", GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH)
-        )
-        // Rewrite JSON-LD structured data inline
-        .on("script[type='application/ld+json']", new JsonLdRewriter(GHOST_SUBDOMAIN, PUBLIC_DOMAIN, BLOG_PATH));
+          new RootRelativeRewriter("src", BLOG_PATH)
+        );
 
-      return rewriter.transform(ghostResponse);
+      return rewriter.transform(rewrittenResponse);
     }
 
     // Default: return response as-is
@@ -183,7 +160,7 @@ export default {
 };
 
 /**
- * Rewrite a URL string, replacing ghost subdomain with public domain + blog path.
+ * Rewrite a single URL string, replacing ghost subdomain with public domain + blog path.
  */
 function rewriteUrl(
   urlStr: string,
@@ -191,11 +168,31 @@ function rewriteUrl(
   publicDomain: string,
   blogPath: string
 ): string {
-  return urlStr
-    .replace(
-      new RegExp(`https?://${escapeRegex(ghostSubdomain)}`, "g"),
-      `https://${publicDomain}${blogPath}`
-    );
+  return rewriteAllUrls(urlStr, ghostSubdomain, publicDomain, blogPath);
+}
+
+/**
+ * Replace all ghost subdomain references in text.
+ * Handles https://, http://, and protocol-relative // URLs.
+ */
+function rewriteAllUrls(
+  text: string,
+  ghostSubdomain: string,
+  publicDomain: string,
+  blogPath: string
+): string {
+  const escaped = escapeRegex(ghostSubdomain);
+  // Replace https:// and http:// URLs
+  text = text.replace(
+    new RegExp(`https?://${escaped}`, "g"),
+    `https://${publicDomain}${blogPath}`
+  );
+  // Replace protocol-relative // URLs
+  text = text.replace(
+    new RegExp(`//${escaped}`, "g"),
+    `//tendhunt.com${blogPath}`
+  );
+  return text;
 }
 
 /**
@@ -218,23 +215,16 @@ const GHOST_ASSET_PREFIXES = [
 ];
 
 /**
- * HTMLRewriter handler that rewrites URL attributes on elements.
+ * HTMLRewriter handler that prefixes root-relative URLs with /blog.
+ * Only handles paths starting with "/" that are Ghost assets or post slugs.
+ * Absolute URLs (https://ghost-admin...) are already rewritten by text replacement.
  */
-class AttributeRewriter {
+class RootRelativeRewriter {
   private attribute: string;
-  private ghostSubdomain: string;
-  private publicDomain: string;
   private blogPath: string;
 
-  constructor(
-    attribute: string,
-    ghostSubdomain: string,
-    publicDomain: string,
-    blogPath: string
-  ) {
+  constructor(attribute: string, blogPath: string) {
     this.attribute = attribute;
-    this.ghostSubdomain = ghostSubdomain;
-    this.publicDomain = publicDomain;
     this.blogPath = blogPath;
   }
 
@@ -242,19 +232,7 @@ class AttributeRewriter {
     const value = element.getAttribute(this.attribute);
     if (!value) return;
 
-    // Rewrite absolute URLs pointing to ghost subdomain
-    if (value.includes(this.ghostSubdomain)) {
-      const rewritten = rewriteUrl(
-        value,
-        this.ghostSubdomain,
-        this.publicDomain,
-        this.blogPath
-      );
-      element.setAttribute(this.attribute, rewritten);
-      return;
-    }
-
-    // Rewrite root-relative URLs for Ghost assets and post slugs
+    // Only handle root-relative URLs not already prefixed with /blog
     if (value.startsWith("/") && !value.startsWith(this.blogPath)) {
       // Check if it's a known Ghost asset path
       const isGhostAsset = GHOST_ASSET_PREFIXES.some((prefix) =>
@@ -270,42 +248,6 @@ class AttributeRewriter {
       if (isGhostAsset || isPostSlug) {
         element.setAttribute(this.attribute, `${this.blogPath}${value}`);
       }
-    }
-  }
-}
-
-/**
- * HTMLRewriter handler that rewrites JSON-LD structured data.
- * Ghost injects <script type="application/ld+json"> with URLs pointing to the subdomain.
- */
-class JsonLdRewriter {
-  private ghostSubdomain: string;
-  private publicDomain: string;
-  private blogPath: string;
-  private chunks: string[];
-
-  constructor(ghostSubdomain: string, publicDomain: string, blogPath: string) {
-    this.ghostSubdomain = ghostSubdomain;
-    this.publicDomain = publicDomain;
-    this.blogPath = blogPath;
-    this.chunks = [];
-  }
-
-  text(text: Text) {
-    this.chunks.push(text.text);
-    if (text.lastInTextNode) {
-      const fullText = this.chunks.join("");
-      if (fullText.includes(this.ghostSubdomain)) {
-        const rewritten = fullText.replace(
-          new RegExp(
-            `https?://${escapeRegex(this.ghostSubdomain)}`,
-            "g"
-          ),
-          `https://${this.publicDomain}${this.blogPath}`
-        );
-        text.replace(rewritten, { html: false });
-      }
-      this.chunks = [];
     }
   }
 }
