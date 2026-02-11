@@ -35,7 +35,7 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 88%
 | 05-vibe-scanner | 4/6 | 12 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (3 min), 05-01 (5 min), 05-02 (5 min), 05-03 (-- min), 05-04 (2 min)
+- Last 5 plans: 04-02 (3 min), 05-01 (5 min), 05-02 (5 min), 05-03 (3 min), 05-04 (2 min)
 - Trend: Consistent ~2-5 min per plan
 
 *Updated after each plan completion*
@@ -113,6 +113,10 @@ Recent decisions affecting current work:
 - [05-02]: AI query generation uses Claude Haiku structured JSON output with type-specific system prompts
 - [05-02]: Radar icon replaces Sparkles for sidebar -- reflects multi-scanner monitoring concept
 - [05-02]: Filters stored as flexible subdocument in Scanner model -- type-specific fields optional
+- [05-03]: Composite key pattern (columnId:entityId) for scanner store scores -- flat Record over nested Maps for Zustand compatibility
+- [05-03]: Separate getScore selector exported alongside store as standalone function
+- [05-03]: API routes for signals and buyers data sources following existing contracts pattern
+- [05-03]: ScoreBadge color thresholds: green >= 7, yellow >= 4, red < 4 on 10-point scale
 - [05-04]: Scoring engine loads CompanyProfile and uses generateScoringPrompt() for base prompt since Scanner model lacks scoringPrompt field
 - [05-04]: Signals model skipped for vibeScore source document updates -- model lacks vibeScore/vibeReasoning fields
 - [05-04]: Score field uses type union ['number', 'null'] in JSON schema for text-only AI columns
