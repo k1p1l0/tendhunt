@@ -8,6 +8,13 @@ const serverEnvSchema = z.object({
     message: "CLERK_SECRET_KEY must start with 'sk_'",
   }),
   CLERK_WEBHOOK_SIGNING_SECRET: z.string().min(1),
+  // Cloudflare R2 Storage
+  R2_ENDPOINT: z.string().url(),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
+  R2_BUCKET_NAME: z.string().min(1),
+  // Anthropic Claude API
+  ANTHROPIC_API_KEY: z.string().min(1),
 });
 
 const clientEnvSchema = z.object({
@@ -40,6 +47,11 @@ const serverEnv =
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
         CLERK_WEBHOOK_SIGNING_SECRET:
           process.env.CLERK_WEBHOOK_SIGNING_SECRET,
+        R2_ENDPOINT: process.env.R2_ENDPOINT,
+        R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+        R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
+        R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
       })
     : ({} as z.infer<typeof serverEnvSchema>);
 

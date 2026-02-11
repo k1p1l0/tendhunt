@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
+if (!process.env.MONGODB_URI) {
   throw new Error(
     "Please define the MONGODB_URI environment variable inside .env.local"
   );
 }
+
+const MONGODB_URI: string = process.env.MONGODB_URI;
 
 export async function connectDB(): Promise<typeof mongoose> {
   console.log("Connecting to MongoDB...");
