@@ -4,6 +4,8 @@ import Buyer from "@/models/buyer";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import ContactReveal from "@/models/contact-reveal";
+import BoardDocument from "@/models/board-document";
+import KeyPersonnel from "@/models/key-personnel";
 
 export interface BuyerFilters {
   sort?: "name" | "contracts" | "sector" | "region";
@@ -67,8 +69,8 @@ export async function fetchBuyerById(buyerId: string, userId: string) {
     return null;
   }
 
-  // Parallel fetch: contracts, signals, and reveal status
-  const [contracts, signals, reveal] = await Promise.all([
+  // Parallel fetch: contracts, signals, reveal status, board documents, key personnel
+  const [contracts, signals, reveal, boardDocuments, keyPersonnel] = await Promise.all([
     Contract.find({ buyerName: buyer.name })
       .sort({ publishedDate: -1 })
       .limit(20)
@@ -78,6 +80,13 @@ export async function fetchBuyerById(buyerId: string, userId: string) {
       .sort({ sourceDate: -1 })
       .lean(),
     ContactReveal.findOne({ userId, buyerId }),
+    BoardDocument.find({ buyerId: buyer._id })
+      .sort({ meetingDate: -1 })
+      .limit(20)
+      .lean(),
+    KeyPersonnel.find({ buyerId: buyer._id })
+      .sort({ confidence: -1 })
+      .lean(),
   ]);
 
   return {
@@ -85,5 +94,16 @@ export async function fetchBuyerById(buyerId: string, userId: string) {
     contracts,
     signals,
     isUnlocked: !!reveal,
+    boardDocuments,
+    keyPersonnel,
+    // Enrichment fields (already on buyer document via spread, but explicitly named for clarity)
+    enrichmentScore: buyer.enrichmentScore,
+    enrichmentSources: buyer.enrichmentSources,
+    orgType: buyer.orgType,
+    orgSubType: buyer.orgSubType,
+    staffCount: buyer.staffCount,
+    annualBudget: buyer.annualBudget,
+    democracyPortalUrl: buyer.democracyPortalUrl,
+    lastEnrichedAt: buyer.lastEnrichedAt,
   };
 }
