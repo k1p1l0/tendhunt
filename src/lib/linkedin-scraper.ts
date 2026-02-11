@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 export interface LinkedInCompanyData {
   profile: string | null; // formatted company profile text
   posts: string | null; // formatted recent posts text
+  logoUrl: string | null; // company logo URL from Apify response
 }
 
 /** Timeout for Apify actor calls (30 seconds) */
@@ -66,15 +67,57 @@ async function callApifyActor(
 }
 
 /**
+ * Extract a logo URL from the raw Apify company object.
+ * Tries multiple field names; handles both string URLs and objects with url/rootUrl.
+ */
+function extractLogoUrl(company: Record<string, unknown>): string | null {
+  const candidateFields = [
+    "logo",
+    "companyLogo",
+    "logoUrl",
+    "profilePicture",
+    "companyLogoUrl",
+    "logoResolutionResult",
+  ];
+
+  for (const field of candidateFields) {
+    const value = company[field];
+    if (!value) continue;
+
+    // String URL
+    if (typeof value === "string" && value.startsWith("http")) {
+      return value;
+    }
+
+    // Object with url or rootUrl property
+    if (typeof value === "object" && value !== null) {
+      const obj = value as Record<string, unknown>;
+      if (typeof obj.url === "string" && obj.url.startsWith("http")) {
+        return obj.url;
+      }
+      if (typeof obj.rootUrl === "string" && obj.rootUrl.startsWith("http")) {
+        return obj.rootUrl;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Format company profile data from Apify actor response into readable text.
+ * Also extracts logo URL from the raw response.
  */
 function formatCompanyProfile(
   results: Record<string, unknown>[]
-): string | null {
-  if (results.length === 0) return null;
+): { text: string | null; logoUrl: string | null } {
+  if (results.length === 0) return { text: null, logoUrl: null };
 
   const company = results[0];
-  if (!company) return null;
+  if (!company) return { text: null, logoUrl: null };
+
+  // Extract logo URL before text formatting
+  const logoUrl = extractLogoUrl(company);
 
   const lines: string[] = [];
 
@@ -103,7 +146,8 @@ function formatCompanyProfile(
   if (company.tagline) lines.push(`Tagline: ${company.tagline}`);
   if (company.description) lines.push(`Description: ${company.description}`);
 
-  return lines.length > 0 ? lines.join("\n") : null;
+  const text = lines.length > 0 ? lines.join("\n") : null;
+  return { text, logoUrl };
 }
 
 /**
@@ -172,12 +216,12 @@ export async function scrapeLinkedInCompany(
     console.warn(
       `Invalid LinkedIn company URL: ${linkedinUrl}`
     );
-    return { profile: null, posts: null };
+    return { profile: null, posts: null, logoUrl: null };
   }
 
   if (!env.APIFY_API_TOKEN) {
     console.warn("APIFY_API_TOKEN not configured -- skipping LinkedIn scraping");
-    return { profile: null, posts: null };
+    return { profile: null, posts: null, logoUrl: null };
   }
 
   try {
@@ -195,12 +239,15 @@ export async function scrapeLinkedInCompany(
       }),
     ]);
 
-    const profile =
+    const formatted =
       profileResult.status === "fulfilled"
         ? formatCompanyProfile(
             profileResult.value as Record<string, unknown>[]
           )
-        : null;
+        : { text: null, logoUrl: null };
+
+    const profile = formatted.text;
+    const logoUrl = formatted.logoUrl;
 
     const posts =
       postsResult.status === "fulfilled"
@@ -209,9 +256,9 @@ export async function scrapeLinkedInCompany(
           )
         : null;
 
-    return { profile, posts };
+    return { profile, posts, logoUrl };
   } catch (err) {
     console.warn("LinkedIn scraping failed:", err);
-    return { profile: null, posts: null };
+    return { profile: null, posts: null, logoUrl: null };
   }
 }
