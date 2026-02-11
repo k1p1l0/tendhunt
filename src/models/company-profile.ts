@@ -4,6 +4,17 @@ const companyProfileSchema = new Schema(
   {
     userId: { type: String, required: true, unique: true, index: true }, // Clerk user ID
     companyName: { type: String, default: "" },
+    website: { type: String, default: "" },
+    address: { type: String, default: "" },
+    socialLinks: [
+      {
+        platform: {
+          type: String,
+          enum: ["linkedin", "twitter", "facebook", "instagram", "other"],
+        },
+        url: { type: String },
+      },
+    ],
     summary: { type: String, default: "" },
     sectors: [{ type: String }],
     capabilities: [{ type: String }],
