@@ -1,0 +1,163 @@
+---
+const faqs = [
+  {
+    question: 'What procurement data sources does TendHunt use?',
+    answer:
+      "TendHunt aggregates contracts from Find a Tender (UK's official portal for high-value opportunities) and Contracts Finder (below-threshold notices). We normalize and enrich data from both sources into a unified search experience.",
+  },
+  {
+    question: 'How does the Vibe Scanner AI scoring work?',
+    answer:
+      'Upload your company profile (past bids, capability statements, certifications). Our AI analyzes your strengths and scores every contract 1-10 based on fit. You see your best opportunities first, not just keyword matches.',
+  },
+  {
+    question: 'Where do buyer contact details come from?',
+    answer:
+      'We source contacts from public records: GOV.UK appointments, council websites, NHS board lists, and LinkedIn. Every contact is verified and includes name, job title, email, and public profile links.',
+  },
+  {
+    question: "What's a credit and how do they work?",
+    answer:
+      '1 credit = reveal 1 buyer contact. Scout tier includes 10 credits/month, Hunter 50, Enterprise custom. Unused credits roll over. No hidden fees.',
+  },
+  {
+    question: 'Is TendHunt compliant with UK data protection laws?',
+    answer:
+      "Yes. We're GDPR and UK GDPR compliant. All data is sourced from public records. We use Cloudflare infrastructure for security and data residency.",
+  },
+  {
+    question: 'Can I cancel anytime?',
+    answer:
+      'Yes. Cancel anytime from your account settings. No long-term contracts, no cancellation fees.',
+  },
+  {
+    question: 'Do you offer a free trial?',
+    answer:
+      'New users get 10 free credits on signup. Search, filter, and score contracts for free. Spend credits only when you want to reveal buyer contacts.',
+  },
+];
+---
+
+<section id="faq" class="bg-bg-primary">
+  <div class="mx-auto max-w-[80rem] px-6 py-24">
+    <div class="text-center mb-16">
+      <h2 class="font-heading text-3xl md:text-4xl font-bold text-text-primary">
+        Frequently Asked Questions
+      </h2>
+    </div>
+
+    <div class="max-w-3xl mx-auto">
+      {faqs.map((faq, index) => (
+        <details
+          class:list={[
+            'faq-item group border-b border-border',
+            index === 0 && 'border-t',
+          ]}
+        >
+          <summary class="flex items-center justify-between gap-4 py-6 cursor-pointer list-none text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+            <h3 class="font-heading text-base md:text-lg font-semibold text-text-primary group-hover:text-accent transition-colors pr-4">
+              {faq.question}
+            </h3>
+            <span class="faq-icon flex-shrink-0 w-6 h-6 flex items-center justify-center text-accent" aria-hidden="true">
+              <svg
+                class="w-5 h-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" class="faq-vertical" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </span>
+          </summary>
+          <div class="faq-answer overflow-hidden">
+            <p class="pb-6 text-text-secondary text-sm md:text-base leading-relaxed pr-10">
+              {faq.answer}
+            </p>
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- FAQPage JSON-LD structured data -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(faq => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": faq.answer
+    }
+  }))
+})} />
+
+<style>
+  /* Remove default marker/arrow across browsers */
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Rotate the + to x when open: hide vertical line */
+  details[open] .faq-vertical {
+    opacity: 0;
+    transform: scaleY(0);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .faq-vertical {
+    opacity: 1;
+    transform: scaleY(1);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  /* Rotate the icon 90deg on open for visual polish */
+  details[open] .faq-icon {
+    transform: rotate(45deg);
+    transition: transform 0.3s ease;
+  }
+
+  .faq-icon {
+    transition: transform 0.3s ease;
+  }
+
+  /* Slide-down animation for the answer */
+  @keyframes faq-slide-down {
+    from {
+      opacity: 0;
+      max-height: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      max-height: 500px;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes faq-slide-up {
+    from {
+      opacity: 1;
+      max-height: 500px;
+    }
+    to {
+      opacity: 0;
+      max-height: 0;
+    }
+  }
+
+  details[open] .faq-answer {
+    animation: faq-slide-down 0.3s ease forwards;
+  }
+
+  details:not([open]) .faq-answer {
+    animation: faq-slide-up 0.2s ease forwards;
+  }
+</style>

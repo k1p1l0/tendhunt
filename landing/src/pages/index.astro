@@ -1,25 +1,152 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Button from '../components/Button.astro';
+import HeroBackground from '../components/HeroBackground.astro';
+import HeroMapIllustration from '../components/HeroMapIllustration.astro';
+import FeaturesSection from '../components/sections/FeaturesSection.astro';
+import HowItWorksSection from '../components/sections/HowItWorksSection.astro';
+import SocialProofSection from '../components/sections/SocialProofSection.astro';
+import PricingSection from '../components/sections/PricingSection.astro';
+import FAQSection from '../components/sections/FAQSection.astro';
+import WaitlistSection from '../components/sections/WaitlistSection.astro';
 ---
 
-<BaseLayout title="TendHunt - UK Procurement Intelligence for Suppliers">
-  <!-- Placeholder hero section -->
-  <section class="mx-auto max-w-[80rem] px-6 py-section-lg">
-    <div class="max-w-3xl">
-      <h1 class="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary leading-tight">
-        The only platform built for UK public sector sales
-      </h1>
-      <p class="mt-6 text-text-secondary text-lg md:text-xl max-w-2xl leading-relaxed">
-        Find government contracts before your competitors, reveal buyer contacts, and track procurement signals — all in one platform.
-      </p>
-      <div class="mt-8">
-        <Button href="#early-access" variant="primary" size="lg">
-          Get Early Access
-        </Button>
+<BaseLayout
+  title="TendHunt - UK Procurement Intelligence for Suppliers"
+  description="Find UK government contracts before competitors, reveal buyer contacts, and track procurement signals. Join 200,000+ contract opportunities."
+>
+  <!-- WebSite JSON-LD structured data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "TendHunt",
+    "url": "https://tendhunt.com",
+    "description": "UK procurement intelligence platform for suppliers. Find government contracts, reveal buyer contacts, and track procurement signals.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "TendHunt",
+      "url": "https://tendhunt.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tendhunt.com/favicon.svg"
+      }
+    }
+  })} />
+
+  <!-- Organization JSON-LD structured data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TendHunt",
+    "url": "https://tendhunt.com",
+    "logo": "https://tendhunt.com/favicon.svg",
+    "description": "UK procurement intelligence for suppliers",
+    "sameAs": []
+  })} />
+
+  <!-- Hero section with animated background -->
+  <section class="relative min-h-[85vh] flex items-center overflow-hidden">
+    <HeroBackground />
+    <HeroMapIllustration />
+    <div class="relative z-10 mx-auto max-w-[80rem] px-6 py-24 md:py-32 w-full">
+      <div class="max-w-2xl lg:max-w-[50%]">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-bg-secondary/50 mb-8">
+          <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+          <span class="text-text-secondary text-sm">Now accepting early access signups</span>
+        </div>
+        <h1 class="font-heading text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-text-primary leading-[1.1] tracking-tight">
+          The only platform built for
+          <span class="text-accent">UK public sector</span> sales
+        </h1>
+        <p class="mt-6 text-text-secondary text-lg md:text-xl max-w-2xl leading-relaxed">
+          Find government contracts before your competitors, reveal buyer contacts, and track procurement signals — all in one platform.
+        </p>
+        <div class="mt-10 flex flex-col sm:flex-row gap-4">
+          <Button href="#waitlist" variant="primary" size="lg">
+            Get Early Access
+          </Button>
+          <Button href="#how-it-works" variant="secondary" size="lg">
+            See How It Works
+          </Button>
+        </div>
+        <div class="mt-12 flex items-center gap-8 text-text-muted text-sm">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Free to start</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>No credit card required</span>
+          </div>
+          <div class="hidden sm:flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>10 free credits</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Phase 2 content sections go here -->
+  <!-- Smooth transition from hero to features -->
+  <div class="hero-to-features" aria-hidden="true"></div>
+
+  <!-- Features: tabbed carousel with 3 features -->
+  <FeaturesSection />
+
+  <!-- How It Works: 3-step flow -->
+  <HowItWorksSection />
+
+  <!-- Mid-page CTA banner -->
+  <section class="relative bg-accent py-16">
+    <div class="mx-auto max-w-[80rem] px-6 text-center">
+      <h2 class="font-heading text-3xl md:text-4xl font-bold text-bg-primary mb-6">
+        Ready to find your next contract?
+      </h2>
+      <p class="text-bg-primary/80 text-lg mb-8 max-w-2xl mx-auto">
+        Join hundreds of suppliers already on the waitlist for early access to TendHunt.
+      </p>
+      <Button href="#waitlist" variant="secondary" size="lg" class="border-bg-primary text-bg-primary hover:bg-bg-primary/10">
+        Get Early Access
+      </Button>
+    </div>
+  </section>
+
+  <!-- Social Proof: market stats + trust badges -->
+  <SocialProofSection />
+
+  <!-- Pricing: 3 tiers -->
+  <PricingSection />
+
+  <!-- FAQ: accordion -->
+  <FAQSection />
+
+  <!-- Waitlist: email capture form -->
+  <WaitlistSection />
 </BaseLayout>
+
+<style>
+  .hero-to-features {
+    height: 80px;
+    background: linear-gradient(
+      to bottom,
+      var(--color-bg-primary) 0%,
+      var(--color-bg-primary) 100%
+    );
+    position: relative;
+  }
+
+  .hero-to-features::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(
+      to bottom,
+      rgba(229, 255, 0, 0.15) 0%,
+      transparent 100%
+    );
+  }
+</style>
