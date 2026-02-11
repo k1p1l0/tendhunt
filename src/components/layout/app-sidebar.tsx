@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   FileText,
   Building2,
-  Settings,
   Radar,
 } from "lucide-react";
 import {
@@ -45,11 +44,6 @@ const navItems: NavItem[] = [
     title: "Scanners",
     href: "/scanners",
     icon: Radar,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
   },
 ];
 
