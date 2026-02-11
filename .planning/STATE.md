@@ -89,7 +89,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None.
+1. **Enhance onboarding with company photo upload and AI analysis animations** (ui) — Add company logo upload to onboarding step 1, implement AI reasoning/task/chain-of-thought animations during profile generation using shadcn patterns
 
 ### Blockers/Concerns
 
