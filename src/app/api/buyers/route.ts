@@ -1,28 +1,29 @@
 import { auth } from "@clerk/nextjs/server";
-import { dbConnect } from "@/lib/mongodb";
-import Buyer from "@/models/buyer";
+import { fetchBuyers, type BuyerFilters } from "@/lib/buyers";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    await dbConnect();
+    const { searchParams } = new URL(request.url);
 
-    const buyers = await Buyer.find({})
-      .select("name description sector region website contractCount contacts")
-      .sort({ name: 1 })
-      .lean();
+    const filters: BuyerFilters = {
+      sort: (searchParams.get("sort") as BuyerFilters["sort"]) ?? undefined,
+      order: (searchParams.get("order") as BuyerFilters["order"]) ?? undefined,
+      page: searchParams.get("page")
+        ? parseInt(searchParams.get("page")!, 10)
+        : undefined,
+      pageSize: searchParams.get("pageSize")
+        ? parseInt(searchParams.get("pageSize")!, 10)
+        : undefined,
+    };
 
-    // Add computed contactCount field for each buyer
-    const buyersWithCount = buyers.map((b) => ({
-      ...b,
-      contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
-    }));
+    const { buyers, total } = await fetchBuyers(userId, filters);
 
-    return Response.json({ buyers: buyersWithCount });
+    return Response.json({ buyers, total });
   } catch (error) {
     console.error("Buyers API error:", error);
     return Response.json(

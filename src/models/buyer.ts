@@ -5,6 +5,7 @@ const contactSchema = new Schema(
     name: { type: String },
     title: { type: String },
     email: { type: String },
+    phone: { type: String },
     linkedIn: { type: String },
     isRevealed: { type: Boolean, default: false },
   },
