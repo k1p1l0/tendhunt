@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef, use } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannerHeader } from "@/components/scanners/scanner-header";
 import { ScannerTable } from "@/components/scanners/scanner-table";
 import { AddColumnModal } from "@/components/scanners/add-column-modal";
+import { ThresholdControls } from "@/components/scanners/threshold-controls";
+import { ScoreProgressBar } from "@/components/scanners/score-progress-bar";
+import { AiCellDrawer } from "@/components/scanners/ai-cell-drawer";
 import { getColumnsForType } from "@/components/scanners/table-columns";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import { useScannerStore } from "@/stores/scanner-store";
@@ -100,6 +103,12 @@ export default function ScannerDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
+
+  // Drawer state for AI cell details
+  const [drawerCell, setDrawerCell] = useState<{
+    columnId: string;
+    entityId: string;
+  } | null>(null);
 
   // Store refs for SSE callbacks (avoid stale closures)
   const rowsRef = useRef(rows);
@@ -344,22 +353,40 @@ export default function ScannerDetailPage({
   }
 
   function handleAiCellClick(columnId: string, entityId: string) {
-    // For now, show the reasoning in a temporary alert-like UX.
-    // Plan 06 will add the full side drawer.
-    const scores = useScannerStore.getState().scores;
-    const key = `${columnId}:${entityId}`;
-    const entry = scores[key];
-
-    if (entry) {
-      console.log("AI cell details:", {
-        columnId,
-        entityId,
-        score: entry.score,
-        reasoning: entry.reasoning,
-        response: entry.response,
-      });
-    }
+    setDrawerCell({ columnId, entityId });
   }
+
+  // Build column name map for progress bar and drawer
+  const columnNames = useMemo(() => {
+    if (!scanner) return {};
+    const map: Record<string, string> = {};
+    for (const col of scanner.aiColumns) {
+      map[col.columnId] = col.name;
+    }
+    return map;
+  }, [scanner]);
+
+  // Resolve drawer entity and column names
+  const drawerEntityName = useMemo(() => {
+    if (!drawerCell) return "";
+    const row = rows.find((r) => String(r._id) === drawerCell.entityId);
+    if (!row) return "";
+    // Try common name fields
+    return String(
+      row.title || row.name || row.organizationName || row._id || ""
+    );
+  }, [drawerCell, rows]);
+
+  const drawerColumnName = useMemo(() => {
+    if (!drawerCell || !scanner) return "";
+    return columnNames[drawerCell.columnId] || "AI Analysis";
+  }, [drawerCell, scanner, columnNames]);
+
+  // Get the primary (first) AI column ID for threshold controls
+  const primaryColumnId = useMemo(() => {
+    if (!scanner || scanner.aiColumns.length === 0) return undefined;
+    return scanner.aiColumns[0].columnId;
+  }, [scanner]);
 
   // Loading state
   if (isLoading) {
@@ -418,7 +445,7 @@ export default function ScannerDetailPage({
         Back to Scanners
       </Button>
 
-      {/* Scanner Header */}
+      {/* 1. Scanner Header */}
       <ScannerHeader
         scanner={scanner}
         rowCount={rows.length}
@@ -428,12 +455,31 @@ export default function ScannerDetailPage({
         isScoring={isScoring}
       />
 
-      {/* Scanner Table */}
+      {/* 2. Score Progress Bar (visible during scoring) */}
+      <ScoreProgressBar columnNames={columnNames} />
+
+      {/* 3. Threshold Controls (visible when scores exist) */}
+      <ThresholdControls primaryColumnId={primaryColumnId} />
+
+      {/* 4. Scanner Table */}
       <ScannerTable
         columns={columns}
         rows={rows}
         scannerType={scanner.type}
         onAiCellClick={handleAiCellClick}
+      />
+
+      {/* 5. AI Cell Drawer (side panel) */}
+      <AiCellDrawer
+        open={drawerCell !== null}
+        onOpenChange={(open) => {
+          if (!open) setDrawerCell(null);
+        }}
+        columnId={drawerCell?.columnId ?? null}
+        entityId={drawerCell?.entityId ?? null}
+        columnName={drawerColumnName}
+        entityName={drawerEntityName}
+        scannerType={scanner.type}
       />
 
       {/* Add Column Modal */}
