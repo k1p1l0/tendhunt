@@ -1,4 +1,4 @@
-import type { Db } from "mongodb";
+import { ObjectId, type Db } from "mongodb";
 import type { DataSourceDoc } from "../types";
 
 const COLLECTION = "datasources";
@@ -22,4 +22,16 @@ export async function getDataSourceByName(
 ): Promise<DataSourceDoc | null> {
   const collection = db.collection<DataSourceDoc>(COLLECTION);
   return collection.findOne({ name });
+}
+
+/**
+ * Find a single DataSource by _id.
+ * Used by Stage 2 to look up the linked DataSource for a buyer.
+ */
+export async function getDataSourceById(
+  db: Db,
+  id: ObjectId
+): Promise<DataSourceDoc | null> {
+  const collection = db.collection<DataSourceDoc>(COLLECTION);
+  return collection.findOne({ _id: id });
 }

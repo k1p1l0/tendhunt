@@ -7,6 +7,7 @@ import {
   markJobError,
 } from "./db/enrichment-jobs";
 import { classifyBuyers } from "./stages/01-classify";
+import { mapGovernanceUrls } from "./stages/02-governance-urls";
 
 // ---------------------------------------------------------------------------
 // Stage registry — maps stage name to its implementation function
@@ -14,8 +15,8 @@ import { classifyBuyers } from "./stages/01-classify";
 
 const STAGE_FUNCTIONS: Partial<Record<EnrichmentStage, StageFn>> = {
   classify: classifyBuyers,
-  // Stages 2-6 will be added in subsequent plans:
-  // governance_urls: mapGovernanceUrls,
+  governance_urls: mapGovernanceUrls,
+  // Stages 3-6 will be added in subsequent plans:
   // moderngov: fetchModernGov,
   // scrape: scrapeWebsites,
   // personnel: extractPersonnel,
