@@ -60,10 +60,12 @@ Plans:
   3. Canonical URLs, OG tags, and sitemap all reference tendhunt.com/blog/...
   4. Blog navigation links back to landing page
   5. Admin route (/blog/ghost) blocked on main domain
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Ghost instance setup, CF Worker proxy, end-to-end validation
+- [ ] 03-01-PLAN.md — VPS Setup + Ghost Installation (Ubuntu 24.04, Node.js 22, MySQL, NGINX, SSL)
+- [ ] 03-02-PLAN.md — Custom Ghost Theme (Tailwind CSS, TendHunt design system, header/footer matching landing)
+- [ ] 03-03-PLAN.md — Cloudflare Worker Proxy + Verification (HTMLRewriter, sitemap/RSS rewriting, end-to-end tests)
 
 ### Phase 4: Content Pipeline
 **Goal**: Automated pipeline generates AI-drafted articles with thumbnails, converts to Lexical format, and publishes via Ghost Admin API — with 5-10 SEO articles live
@@ -133,6 +135,6 @@ Note: Phase 2 (Content) and Phase 3 (Ghost Blog) can run in parallel since they 
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-02-11 |
 | 2. Content | 0/2 | Not started | - |
-| 3. Ghost Blog Setup | 0/1 | Not started | - |
+| 3. Ghost Blog Setup | 0/3 | Ready to execute | - |
 | 4. Content Pipeline | 0/2 | Not started | - |
 | 5. SEO & Polish | 0/1 | Not started | - |
