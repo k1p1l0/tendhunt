@@ -6,16 +6,16 @@ See: landing/.planning/PROJECT.md (updated 2026-02-10)
 See: landing/.planning/ROADMAP.md (created 2026-02-11)
 
 **Core value:** Marketing site at tendhunt.com converting visitors into waitlist signups + Ghost blog driving organic SEO traffic for UK procurement keywords.
-**Current focus:** Phase 3 in progress -- Ghost blog theme deployed, reverse proxy next
+**Current focus:** Phase 3 COMPLETE -- Ghost blog fully deployed with reverse proxy at tendhunt.com/blog
 
 ## Current Position
 
-Phase: 3 of 5 (Ghost Blog) -- IN PROGRESS
-Plan: 2 of 3 in current phase -- plans 01 + 02 executed
-Status: Ghost installed on VPS (plan 01), custom theme deployed (plan 02), reverse proxy pending (plan 03)
-Last activity: 2026-02-11 -- Phase 3 plan 02 executed (custom Ghost theme)
+Phase: 3 of 5 (Ghost Blog) -- COMPLETE
+Plan: 3 of 3 in current phase -- all plans executed
+Status: Phase 3 complete -- Ghost VPS (01), custom theme (02), Cloudflare Worker proxy (03) all done
+Last activity: 2026-02-11 -- Phase 3 plan 03 executed (Cloudflare Worker blog reverse proxy)
 
-Progress: [######░░░░] 60%
+Progress: [########░░] 80%
 
 ## Linear Sync
 
@@ -25,9 +25,9 @@ Progress: [######░░░░] 60%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 6 min
-- Total execution time: 40 min
+- Total plans completed: 7
+- Average duration: 7 min
+- Total execution time: 48 min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -37,6 +37,7 @@ Progress: [######░░░░] 60%
 | 02 | 02 | 5min | 4 | 11 |
 | 03 | 01 | 10min | 3 | 8 |
 | 03 | 02 | 10min | 3 | 12 |
+| 03 | 03 | 8min | 3 | 6 |
 
 ## Accumulated Context
 
@@ -83,6 +84,10 @@ Progress: [######░░░░] 60%
 - [03-02]: Mobile nav via vanilla JS toggle (Ghost themes can't use astronav)
 - [03-02]: Ghost 6.x requires @page.show_title_and_feature_image in page.hbs
 - [03-02]: card_assets: true enables Ghost's built-in card CSS/JS for Koenig editor content
+- [03-03]: Hybrid text replacement + HTMLRewriter -- text replacement for absolute/protocol-relative URLs, HTMLRewriter only for root-relative path prefixing
+- [03-03]: Protocol-relative URL rewriting (//ghost-admin.tendhunt.com) -- Ghost sitemap XSL uses protocol-relative URLs
+- [03-03]: Explicit --config wrangler.toml flag -- wrangler 3.x mistakenly detects Pages project without it
+- [03-03]: Admin route /blog/ghost returns 403 with message pointing to ghost-admin.tendhunt.com/ghost
 
 ### Pending Todos
 
@@ -99,5 +104,5 @@ Progress: [######░░░░] 60%
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-02-PLAN.md (Custom Ghost theme deployed and activated)
-Next action: Execute Plan 03-03 (Cloudflare Worker reverse proxy for /blog subdirectory)
+Stopped at: Completed 03-03-PLAN.md (Cloudflare Worker blog reverse proxy -- Phase 3 COMPLETE)
+Next action: Phase 4 (Content Pipeline) or Phase 5 (Analytics/Monitoring)
