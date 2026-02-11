@@ -48,12 +48,12 @@ Plans:
   3. Each contract record includes source attribution (Find a Tender or Contracts Finder)
   4. 50-100 pre-processed board minutes signals are seeded across multiple sectors and signal types
   5. Buyer contact data from public sources (GOV.UK appointments, council pages, NHS board lists) is seeded for 50-100 organizations
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Find a Tender OCDS API scraper (Python) and MongoDB ingestion
-- [ ] 02-02: Contracts Finder API scraper and unified schema normalization
-- [ ] 02-03: Seed board minutes signals and buyer contacts from public sources
+- [ ] 02-01-PLAN.md -- Shared ingestion lib (DB, API client, OCDS mapper) + Find a Tender OCDS API ingestion (200-500 contracts)
+- [ ] 02-02-PLAN.md -- Contracts Finder OCDS API ingestion with unified schema normalization
+- [ ] 02-03-PLAN.md -- Seed board minutes signals (75) and buyer contacts (75) from generated JSON data
 
 ### Phase 3: Onboarding & Company Profile
 **Goal**: New users can upload company documents and get an AI-generated company profile that powers the Vibe Scanner, plus receive their signup credit bonus
@@ -217,7 +217,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | ✓ Complete | 2026-02-10 |
-| 2. Data Pipeline | 0/3 | Not started | - |
+| 2. Data Pipeline | 0/3 | Planned | - |
 | 3. Onboarding & Company Profile | 0/2 | Not started | - |
 | 4. Contract Dashboard | 0/2 | Not started | - |
 | 5. Vibe Scanner | 0/3 | Not started | - |
