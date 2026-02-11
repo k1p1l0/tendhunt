@@ -11,19 +11,19 @@ import { mapGovernanceUrls } from "./stages/02-governance-urls";
 import { fetchModernGovData } from "./stages/03-moderngov";
 import { scrapeGovernancePages } from "./stages/04-scrape";
 import { extractKeyPersonnel } from "./stages/05-personnel";
+import { computeEnrichmentScores } from "./stages/06-score";
 
 // ---------------------------------------------------------------------------
 // Stage registry — maps stage name to its implementation function
 // ---------------------------------------------------------------------------
 
-const STAGE_FUNCTIONS: Partial<Record<EnrichmentStage, StageFn>> = {
+const STAGE_FUNCTIONS: Record<EnrichmentStage, StageFn> = {
   classify: classifyBuyers,
   governance_urls: mapGovernanceUrls,
   moderngov: fetchModernGovData,
   scrape: scrapeGovernancePages,
   personnel: extractKeyPersonnel,
-  // Stage 6 will be added in subsequent plans:
-  // score: computeScores,
+  score: computeEnrichmentScores,
 };
 
 // ---------------------------------------------------------------------------
@@ -65,14 +65,8 @@ export async function processEnrichmentPipeline(
     console.log(`Resuming errored job for stage ${currentStage} from cursor ${job.cursor}`);
   }
 
-  // Look up the stage function
+  // Look up the stage function (all 6 stages are implemented)
   const stageFn = STAGE_FUNCTIONS[currentStage];
-
-  if (!stageFn) {
-    console.log(`Stage ${currentStage} not yet implemented -- skipping.`);
-    await markJobComplete(db, job._id!);
-    return { stage: currentStage, processed: 0, errors: 0, done: true };
-  }
 
   // Execute the stage
   try {
