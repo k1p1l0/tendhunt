@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -7,9 +8,26 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
 ]);
 
+const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
+
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  const { userId, sessionClaims } = await auth();
+
+  // Public routes: no auth required
+  if (isPublicRoute(request)) return;
+
+  // Not authenticated: redirect to sign-in
+  if (!userId) {
+    return (await auth()).redirectToSignIn({ returnBackUrl: request.url });
+  }
+
+  // Onboarding route: allow through (authenticated users can always access)
+  if (isOnboardingRoute(request)) return;
+
+  // Check if onboarding is complete -- if not, redirect to /onboarding
+  const onboardingComplete = sessionClaims?.metadata?.onboardingComplete;
+  if (!onboardingComplete) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 });
 
