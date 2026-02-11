@@ -152,6 +152,11 @@ export async function scrapeLinkedInCompany(
     return { profile: null, posts: null };
   }
 
+  if (!env.APIFY_API_TOKEN) {
+    console.warn("APIFY_API_TOKEN not configured -- skipping LinkedIn scraping");
+    return { profile: null, posts: null };
+  }
+
   try {
     const [profileResult, postsResult] = await Promise.allSettled([
       // Actor 1: Company Profile

@@ -23,7 +23,7 @@ const EMPTY_PROFILE: ProfileData = {
   companyName: "",
   website: "",
   address: "",
-  socialLinks: [],
+  linkedinUrl: "",
   summary: "",
   sectors: [],
   capabilities: [],
@@ -41,7 +41,7 @@ export function OnboardingWizard() {
     companyName: "",
     website: "",
     address: "",
-    socialLinks: [],
+    linkedinUrl: "",
   });
 
   // AI generation state
@@ -95,9 +95,7 @@ export function OnboardingWizard() {
               companyName: companyInfo.companyName,
               website: companyInfo.website,
               address: companyInfo.address,
-              socialLinks: companyInfo.socialLinks.filter(
-                (sl) => sl.url.trim()
-              ),
+              linkedinUrl: companyInfo.linkedinUrl,
             },
           }),
         });
@@ -123,10 +121,8 @@ export function OnboardingWizard() {
               data.profile.website || companyInfo.website || "",
             address:
               data.profile.address || companyInfo.address || "",
-            socialLinks:
-              data.profile.socialLinks ||
-              companyInfo.socialLinks.filter((sl) => sl.url.trim()) ||
-              [],
+            linkedinUrl:
+              data.profile.linkedinUrl || companyInfo.linkedinUrl || "",
             summary: data.profile.summary || "",
             sectors: data.profile.sectors || [],
             capabilities: data.profile.capabilities || [],

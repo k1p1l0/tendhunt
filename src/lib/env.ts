@@ -15,8 +15,8 @@ const serverEnvSchema = z.object({
   R2_BUCKET_NAME: z.string().min(1),
   // Anthropic Claude API
   ANTHROPIC_API_KEY: z.string().min(1),
-  // Apify (LinkedIn scraping)
-  APIFY_API_TOKEN: z.string().min(1),
+  // Apify (LinkedIn scraping) -- optional, only needed when LinkedIn URL is provided during onboarding
+  APIFY_API_TOKEN: z.string().optional().default(""),
 });
 
 const clientEnvSchema = z.object({
@@ -54,7 +54,7 @@ const serverEnv =
         R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
         R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-        APIFY_API_TOKEN: process.env.APIFY_API_TOKEN,
+        APIFY_API_TOKEN: process.env.APIFY_API_TOKEN ?? "",
       })
     : ({} as z.infer<typeof serverEnvSchema>);
 
