@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (4/6 plans complete)
+**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (5/6 plans complete)
 
 ## Current Position
 
 Phase: 13 of 13 (Buyer Data Enrichment)
-Plan: 6 of 6 in current phase (13-04 Website Scraping + Personnel Extraction COMPLETE)
-Status: Plan 13-04 complete -- Stage 4 governance page scraping, Stage 5 Claude Haiku personnel extraction
-Last activity: 2026-02-11 -- Plan 13-04 executed (2 tasks, 4 min)
+Plan: 6 of 6 in current phase (13-05 Enrichment Scoring + Pipeline Wiring COMPLETE)
+Status: Plan 13-05 complete -- Stage 6 enrichment scoring, all 6 stages wired into pipeline
+Last activity: 2026-02-11 -- Plan 13-05 executed (1 task, 2 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓░] ~97% (Phases 1-6, 9-10, 12 complete; Phase 13: 4/6)
+Progress: [▓▓▓▓▓▓▓▓▓▓░] ~98% (Phases 1-6, 9-10, 12 complete; Phase 13: 5/6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31
+- Total plans completed: 32
 - Average duration: 3.6 min
 - Total execution time: 2.03 hours
 
@@ -36,10 +36,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓░] ~97% (Phases 1-6, 9-10, 12 complet
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
-| 13-buyer-data-enrichment | 4/6 | 17 min | 4.3 min |
+| 13-buyer-data-enrichment | 5/6 | 19 min | 3.8 min |
 
 **Recent Trend:**
-- Last 5 plans: 12-02 (6 min), 13-01 (7 min), 13-06 (3 min), 13-03 (3 min), 13-04 (4 min)
+- Last 5 plans: 13-01 (7 min), 13-06 (3 min), 13-03 (3 min), 13-04 (4 min), 13-05 (2 min)
 - Trend: Consistent ~3-7 min per plan
 
 *Updated after each plan completion*
@@ -188,6 +188,9 @@ Recent decisions affecting current work:
 - [13-04]: Combined text from up to 3 board documents, max 8000 chars, for Claude Haiku context window
 - [13-04]: 10-second AbortController timeout per fetch to avoid blocking on unresponsive sites
 - [13-04]: Typed Collection<T> parameters for helper functions to avoid MongoDB generic type inference conflicts
+- [13-05]: Score weights sum to exactly 100: orgType(15) + governance(10) + boardPapers(10) + website(5) + description(5) + staff(10) + budget(10) + personnel(20) + docs(15)
+- [13-05]: Batch aggregate queries for keypersonnel/boarddocuments counts instead of per-buyer countDocuments
+- [13-05]: Full Record<EnrichmentStage, StageFn> (not Partial) since all 6 stages are implemented
 
 ### Pending Todos
 
@@ -208,5 +211,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 13-04-PLAN.md -- Stage 4 governance page scraping + Stage 5 Claude Haiku personnel extraction
-Next: Plan 13-05 (enrichment scoring) to complete Phase 13
+Stopped at: Completed 13-05-PLAN.md -- Stage 6 enrichment scoring + complete pipeline wiring (all 6 stages)
+Next: Plan 13-06 (buyer profile UI enhancement) to complete Phase 13
