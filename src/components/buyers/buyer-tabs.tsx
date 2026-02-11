@@ -9,6 +9,8 @@ import {
 import { ContractsTab } from "@/components/buyers/contracts-tab";
 import { ContactsTab } from "@/components/buyers/contacts-tab";
 import { SignalsTab } from "@/components/buyers/signals-tab";
+import { BoardDocumentsTab, type BoardDocumentData } from "@/components/buyers/board-documents-tab";
+import { KeyPersonnelTab, type KeyPersonnelData } from "@/components/buyers/key-personnel-tab";
 import { AttributesTab } from "@/components/buyers/attributes-tab";
 
 interface ContractData {
@@ -53,6 +55,8 @@ interface BuyerTabsProps {
     contractCount: number;
     sector?: string;
   };
+  boardDocuments: BoardDocumentData[];
+  keyPersonnel: KeyPersonnelData[];
   onUnlocked?: () => void;
 }
 
@@ -70,6 +74,12 @@ export function BuyerTabs(props: BuyerTabsProps) {
         </TabsTrigger>
         <TabsTrigger value="signals">
           Buying Signals ({props.signals.length})
+        </TabsTrigger>
+        <TabsTrigger value="board-documents">
+          Board Documents ({props.boardDocuments.length})
+        </TabsTrigger>
+        <TabsTrigger value="key-personnel">
+          Key Personnel ({props.keyPersonnel.length})
         </TabsTrigger>
         <TabsTrigger value="attributes">
           Buyer Attributes
@@ -91,6 +101,14 @@ export function BuyerTabs(props: BuyerTabsProps) {
 
       <TabsContent value="signals" className="mt-4">
         <SignalsTab signals={props.signals} />
+      </TabsContent>
+
+      <TabsContent value="board-documents" className="mt-4">
+        <BoardDocumentsTab documents={props.boardDocuments} />
+      </TabsContent>
+
+      <TabsContent value="key-personnel" className="mt-4">
+        <KeyPersonnelTab personnel={props.keyPersonnel} />
       </TabsContent>
 
       <TabsContent value="attributes" className="mt-4">

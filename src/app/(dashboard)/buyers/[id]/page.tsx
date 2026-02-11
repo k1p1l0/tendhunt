@@ -55,6 +55,29 @@ export default async function BuyerDetailPage({
     linkedIn: c.linkedIn ?? undefined,
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const boardDocuments = (buyer.boardDocuments ?? []).map((d: any) => ({
+    _id: String(d._id),
+    title: d.title ?? "",
+    meetingDate: d.meetingDate ? String(d.meetingDate) : null,
+    committeeName: d.committeeName ?? undefined,
+    documentType: d.documentType ?? undefined,
+    sourceUrl: d.sourceUrl ?? "",
+    extractionStatus: d.extractionStatus ?? undefined,
+  }));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const keyPersonnel = (buyer.keyPersonnel ?? []).map((p: any) => ({
+    _id: String(p._id),
+    name: p.name ?? "",
+    title: p.title ?? undefined,
+    role: p.role ?? undefined,
+    department: p.department ?? undefined,
+    email: p.email ?? undefined,
+    confidence: p.confidence ?? undefined,
+    extractionMethod: p.extractionMethod ?? undefined,
+  }));
+
   return (
     <div className="space-y-6">
       <BuyerBreadcrumb name={buyerName} />
@@ -71,6 +94,15 @@ export default async function BuyerDetailPage({
           contacts,
           contracts,
           signals,
+          boardDocuments,
+          keyPersonnel,
+          enrichmentScore: buyer.enrichmentScore ?? undefined,
+          enrichmentSources: buyer.enrichmentSources ?? undefined,
+          orgType: buyer.orgType ?? undefined,
+          staffCount: buyer.staffCount ?? undefined,
+          annualBudget: buyer.annualBudget ?? undefined,
+          democracyPortalUrl: buyer.democracyPortalUrl ?? undefined,
+          lastEnrichedAt: buyer.lastEnrichedAt ? String(buyer.lastEnrichedAt) : undefined,
         }}
       />
     </div>

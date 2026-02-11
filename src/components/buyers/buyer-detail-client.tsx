@@ -33,6 +33,27 @@ interface ContactData {
   linkedIn?: string;
 }
 
+interface BoardDocumentData {
+  _id: string;
+  title: string;
+  meetingDate?: string | null;
+  committeeName?: string;
+  documentType?: string;
+  sourceUrl: string;
+  extractionStatus?: string;
+}
+
+interface KeyPersonnelData {
+  _id: string;
+  name: string;
+  title?: string;
+  role?: string;
+  department?: string;
+  email?: string;
+  confidence?: number;
+  extractionMethod?: string;
+}
+
 interface BuyerData {
   _id: string;
   name: string;
@@ -45,6 +66,15 @@ interface BuyerData {
   contacts: ContactData[];
   contracts: ContractData[];
   signals: SignalData[];
+  boardDocuments: BoardDocumentData[];
+  keyPersonnel: KeyPersonnelData[];
+  enrichmentScore?: number;
+  enrichmentSources?: string[];
+  orgType?: string;
+  staffCount?: number;
+  annualBudget?: number;
+  democracyPortalUrl?: string;
+  lastEnrichedAt?: string;
 }
 
 interface BuyerDetailClientProps {
@@ -70,6 +100,11 @@ export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
           contractCount: buyer.contractCount,
           website: buyer.website,
           isUnlocked,
+          enrichmentScore: buyer.enrichmentScore,
+          orgType: buyer.orgType,
+          staffCount: buyer.staffCount,
+          annualBudget: buyer.annualBudget,
+          democracyPortalUrl: buyer.democracyPortalUrl,
         }}
       />
       <BuyerTabs
@@ -85,6 +120,8 @@ export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
           contractCount: buyer.contractCount,
           sector: buyer.sector,
         }}
+        boardDocuments={buyer.boardDocuments}
+        keyPersonnel={buyer.keyPersonnel}
         onUnlocked={handleUnlocked}
       />
     </div>

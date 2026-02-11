@@ -8,7 +8,11 @@ import {
   FileText,
   ExternalLink,
   Unlock,
+  Users,
+  PoundSterling,
+  Landmark,
 } from "lucide-react";
+import { EnrichmentBadge } from "@/components/buyers/enrichment-badge";
 
 interface BuyerHeaderProps {
   buyer: {
@@ -18,8 +22,45 @@ interface BuyerHeaderProps {
     contractCount: number;
     website?: string;
     isUnlocked: boolean;
+    enrichmentScore?: number;
+    orgType?: string;
+    staffCount?: number;
+    annualBudget?: number;
+    democracyPortalUrl?: string;
   };
 }
+
+function orgTypeLabel(orgType: string): string {
+  const labels: Record<string, string> = {
+    local_council_london: "London Borough",
+    local_council_metropolitan: "Metropolitan Borough",
+    local_council_district: "District Council",
+    local_council_county: "County Council",
+    local_council_unitary: "Unitary Authority",
+    nhs_trust_acute: "NHS Trust (Acute)",
+    nhs_trust_mental_health: "NHS Trust (Mental Health)",
+    nhs_trust_community: "NHS Trust (Community)",
+    nhs_trust_ambulance: "NHS Trust (Ambulance)",
+    nhs_icb: "NHS ICB",
+    police_force: "Police Force",
+    fire_service: "Fire & Rescue",
+    university: "University",
+    further_education: "FE College",
+    multi_academy_trust: "Multi-Academy Trust",
+    central_government: "Central Government",
+    devolved_government: "Devolved Government",
+    housing_association: "Housing Association",
+    combined_authority: "Combined Authority",
+  };
+  return labels[orgType] ?? orgType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const budgetFormatter = new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "GBP",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 function hashCode(str: string): number {
   let hash = 0;
@@ -64,18 +105,26 @@ export function BuyerHeader({ buyer }: BuyerHeaderProps) {
               <h1 className="text-2xl font-bold tracking-tight truncate">
                 {buyer.name}
               </h1>
-              {buyer.isUnlocked && (
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 shrink-0">
-                  <Unlock className="h-3 w-3" />
-                  Unlocked
-                </Badge>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {buyer.isUnlocked && (
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Unlock className="h-3 w-3" />
+                    Unlocked
+                  </Badge>
+                )}
+                {buyer.enrichmentScore != null && buyer.enrichmentScore > 0 && (
+                  <EnrichmentBadge score={buyer.enrichmentScore} size="md" />
+                )}
+              </div>
             </div>
 
             {/* Metadata row */}
             <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
               {buyer.sector && (
                 <Badge variant="outline">{buyer.sector}</Badge>
+              )}
+              {buyer.orgType && (
+                <Badge variant="outline">{orgTypeLabel(buyer.orgType)}</Badge>
               )}
               {buyer.region && (
                 <span className="flex items-center gap-1">
@@ -87,6 +136,18 @@ export function BuyerHeader({ buyer }: BuyerHeaderProps) {
                 <FileText className="h-3.5 w-3.5" />
                 {buyer.contractCount} contract{buyer.contractCount !== 1 ? "s" : ""}
               </span>
+              {buyer.staffCount != null && buyer.staffCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  {buyer.staffCount.toLocaleString("en-GB")} staff
+                </span>
+              )}
+              {buyer.annualBudget != null && buyer.annualBudget > 0 && (
+                <span className="flex items-center gap-1">
+                  <PoundSterling className="h-3.5 w-3.5" />
+                  {budgetFormatter.format(buyer.annualBudget)}
+                </span>
+              )}
               {buyer.website && (
                 <a
                   href={buyer.website.startsWith("http") ? buyer.website : `https://${buyer.website}`}
@@ -96,6 +157,17 @@ export function BuyerHeader({ buyer }: BuyerHeaderProps) {
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Website
+                </a>
+              )}
+              {buyer.democracyPortalUrl && (
+                <a
+                  href={buyer.democracyPortalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Landmark className="h-3.5 w-3.5" />
+                  Governance Portal
                 </a>
               )}
             </div>
