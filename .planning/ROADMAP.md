@@ -225,12 +225,12 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 7. Buying Signals | 0/1 | Not started | - |
 | 8. Landing & Pricing | 0/2 | Not started | - |
 
-### Phase 9: Enhance Onboarding: Company Photo Upload + AI Analysis Animations
+### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
-**Goal:** Polish the onboarding wizard with company logo upload (circular avatar preview, R2 storage) and animated step-by-step AI analysis progress (replaces basic Loader2 spinner) for the investor demo
+**Goal:** Auto-extract company logo from LinkedIn/website during profile generation and add animated step-by-step AI analysis progress (replaces basic Loader2 spinner) for the investor demo
 **Depends on:** Phase 3
 **Plans:** 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md -- Logo upload infrastructure: shared upload utility, image presigned URL endpoint, LogoDropzone component, CompanyProfile logoKey field
-- [ ] 09-02-PLAN.md -- AI analysis progress component with conditional animated steps, wire logo + progress into onboarding wizard, logo avatar in profile review
+- [x] 09-01-PLAN.md -- Logo auto-extraction from LinkedIn Apify response + website og:image, logoUrl threading through API/model/actions
+- [x] 09-02-PLAN.md -- AI analysis progress component with conditional animated steps, wire logo + progress into onboarding wizard, logo avatar in profile review
