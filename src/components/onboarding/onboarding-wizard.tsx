@@ -11,7 +11,8 @@ import {
   type CompanyInfo,
 } from "./company-info-form";
 import { completeOnboarding } from "@/app/onboarding/_actions";
-import { Loader2, AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
+import { AiAnalysisProgress } from "./ai-analysis-progress";
 
 const STEPS = [
   { label: "Upload", number: 1 },
@@ -52,6 +53,8 @@ export function OnboardingWizard() {
   const [generationWarning, setGenerationWarning] = useState<string | null>(
     null
   );
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
 
   // Save state
   const [isSaving, setIsSaving] = useState(false);
@@ -84,6 +87,7 @@ export function OnboardingWizard() {
       setIsGenerating(true);
       setGenerationError(null);
       setGenerationWarning(null);
+      setGenerationComplete(false);
 
       try {
         const res = await fetch("/api/profile/generate", {
@@ -134,7 +138,16 @@ export function OnboardingWizard() {
             regions: data.profile.regions || [],
           });
           setIsAIGenerated(true);
-          setStep(3);
+          setLogoUrl(data.logoUrl || null);
+          setGenerationComplete(true);
+          // Brief pause to show completion animation before transitioning
+          setTimeout(() => {
+            if (!cancelled) {
+              setIsGenerating(false);
+              setStep(3);
+            }
+          }, 600);
+          return; // skip the finally block's setIsGenerating
         } else {
           // No profile generated (e.g., scanned docs)
           setGenerationWarning(
@@ -177,6 +190,7 @@ export function OnboardingWizard() {
           ...data,
           documentKeys,
           isAIGenerated,
+          logoUrl: logoUrl || undefined,
         });
 
         if (result.error) {
@@ -198,7 +212,7 @@ export function OnboardingWizard() {
         setIsSaving(false);
       }
     },
-    [documentKeys, isAIGenerated]
+    [documentKeys, isAIGenerated, logoUrl]
   );
 
   return (
@@ -295,19 +309,13 @@ export function OnboardingWizard() {
             </CardHeader>
             <CardContent>
               {isGenerating && (
-                <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
-                  <Loader2 className="size-10 animate-spin text-primary" />
-                  <div className="text-center">
-                    <p className="font-medium">
-                      {documentKeys.length > 0
-                        ? "Analyzing your documents and company information..."
-                        : "Analyzing your company information..."}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Our AI is building your company profile. This usually
-                      takes 10-20 seconds.
-                    </p>
-                  </div>
+                <div className="flex min-h-[200px] flex-col items-center justify-center">
+                  <AiAnalysisProgress
+                    hasDocuments={documentKeys.length > 0}
+                    hasWebsite={!!companyInfo.website.trim()}
+                    hasLinkedIn={!!companyInfo.linkedinUrl.trim()}
+                    isComplete={generationComplete}
+                  />
                 </div>
               )}
 
@@ -371,6 +379,7 @@ export function OnboardingWizard() {
                 onSave={handleSave}
                 isSaving={isSaving}
                 isAIGenerated={isAIGenerated}
+                logoUrl={logoUrl}
               />
             </CardContent>
           </>

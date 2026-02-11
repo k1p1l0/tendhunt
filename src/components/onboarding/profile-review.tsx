@@ -35,6 +35,7 @@ interface ProfileReviewProps {
   onSave: (data: ProfileData) => void;
   isSaving: boolean;
   isAIGenerated?: boolean;
+  logoUrl?: string | null;
 }
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
@@ -122,6 +123,7 @@ export function ProfileReview({
   onSave,
   isSaving,
   isAIGenerated,
+  logoUrl,
 }: ProfileReviewProps) {
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
 
@@ -134,6 +136,19 @@ export function ProfileReview({
 
   return (
     <div className="space-y-6">
+      {logoUrl && (
+        <div className="flex justify-center">
+          <div className="relative size-20 overflow-hidden rounded-full border-2 border-primary/20 bg-muted">
+            <img
+              src={logoUrl}
+              alt={`${initialProfile.companyName || "Company"} logo`}
+              className="size-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+        </div>
+      )}
+
       {isAIGenerated && (
         <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
           <Sparkles className="size-4" />
