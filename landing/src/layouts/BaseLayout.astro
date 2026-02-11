@@ -4,15 +4,27 @@ import Footer from '../components/Footer.astro';
 import { SEO } from 'astro-seo';
 import '../styles/global.css';
 
+import spaceGrotesk from '@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2?url';
+import inter from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
+
 interface Props {
   title: string;
   description?: string;
+  canonicalUrl?: string;
+  ogImage?: string;
+  noindex?: boolean;
 }
 
 const {
   title,
-  description = 'TendHunt - Find and win UK government contracts',
+  description = 'TendHunt - Find and win UK government contracts. Discover opportunities, reveal buyer contacts, and track procurement signals.',
+  canonicalUrl,
+  ogImage,
+  noindex = false,
 } = Astro.props;
+
+const canonical = canonicalUrl || Astro.url.href;
+const ogImageUrl = new URL(ogImage || '/og-image.png', Astro.site).href;
 ---
 
 <!DOCTYPE html>
@@ -21,16 +33,43 @@ const {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#0A0A0A" />
     <meta name="generator" content={Astro.generator} />
+    <link rel="preload" href={spaceGrotesk} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={inter} as="font" type="font/woff2" crossorigin />
     <SEO
       title={title}
       description={description}
+      canonical={canonical}
+      noindex={noindex}
+      nofollow={noindex}
       openGraph={{
         basic: {
           title: title,
           type: 'website',
-          image: '/og-image.png',
+          image: ogImageUrl,
+          url: Astro.url.href,
         },
+        optional: {
+          description: description,
+          siteName: 'TendHunt',
+          locale: 'en_GB',
+        },
+        image: {
+          width: 1200,
+          height: 630,
+          alt: 'TendHunt - UK Procurement Intelligence',
+          type: 'image/png',
+        },
+      }}
+      twitter={{
+        card: 'summary_large_image',
+        site: '@tendhunt',
+        title: title,
+        description: description,
+        image: ogImageUrl,
+        imageAlt: 'TendHunt - UK Procurement Intelligence',
       }}
     />
   </head>
