@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 2 of 8 (Data Pipeline)
-Plan: 1 of 3 in current phase (COMPLETE)
-Status: Plan 02-01 complete -- 509 FaT contracts ingested into MongoDB
-Last activity: 2026-02-11 -- Find a Tender ingestion (shared lib + 509 contracts)
+Plan: 2 of 3 in current phase (COMPLETE)
+Status: Plan 02-02 complete -- 300 CF contracts ingested, 809 total in MongoDB
+Last activity: 2026-02-11 -- Contracts Finder ingestion (300 below-threshold notices)
 
-Progress: [▓▓▓▓░░░░░░] 30%
+Progress: [▓▓▓▓▓░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4 min
-- Total execution time: 0.2 hours
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 2/2 | 6 min | 3 min |
-| 02-data-pipeline | 1/3 | 7 min | 7 min |
+| 02-data-pipeline | 2/3 | 9 min | 4.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 02-01 (7 min)
-- Trend: Slight increase (API calls + rate limit wait)
+- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 02-01 (7 min), 02-02 (2 min)
+- Trend: Faster execution when reusing shared library
 
 *Updated after each plan completion*
 
@@ -61,6 +61,9 @@ Recent decisions affecting current work:
 - [02-01]: FaT API rejects comma-separated stages -- fetch each stage separately
 - [02-01]: 60-day window with dual-stage fetch to ensure 200+ contracts
 - [02-01]: Relative imports in scripts (../../src/) since tsx runs outside Next.js
+- [02-02]: CF OCDS search API supports comma-separated stages (unlike FaT)
+- [02-02]: CF uses publishedFrom/publishedTo date params (not updatedFrom/updatedTo)
+- [02-02]: Per-release error handling for resilient batch mapping
 
 ### Pending Todos
 
@@ -73,5 +76,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-01-PLAN.md (Find a Tender ingestion)
-Next plan: 02-02-PLAN.md (Contracts Finder ingestion)
+Stopped at: Completed 02-02-PLAN.md (Contracts Finder ingestion)
+Next plan: 02-03-PLAN.md (seed signals + buyer intelligence data)
