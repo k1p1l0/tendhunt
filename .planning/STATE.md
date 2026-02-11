@@ -133,6 +133,7 @@ Recent decisions affecting current work:
 
 1. **Enhance onboarding with company photo upload and AI analysis animations** (ui) — Add company logo upload to onboarding step 1, implement AI reasoning/task/chain-of-thought animations during profile generation using shadcn patterns
 2. **Rebuild Notus feature skeleton screens with TendHunt-specific illustrations** (ui) — Replace generic AI agent skeletons (LLM selector, chat UI, integrations) with TendHunt feature illustrations (contract search, Vibe Scanner scoring, buyer contact reveal)
+3. **Add custom data columns with field references and data types to scanner grid** (ui) — Users can add columns referencing entity fields (status, region, etc.) with configurable data types (Text, Number, Date, Badge, Currency, URL, Email, Checkbox, Paragraph). Detailed plan at `.claude/plans/wild-crafting-flurry.md`
 
 ### Roadmap Evolution
 
