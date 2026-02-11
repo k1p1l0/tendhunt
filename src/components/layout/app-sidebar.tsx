@@ -8,7 +8,7 @@ import {
   Building2,
   Settings,
   Crosshair,
-  Sparkles,
+  Radar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,9 +41,9 @@ const navItems: NavItem[] = [
     icon: Building2,
   },
   {
-    title: "Vibe Scanner",
-    href: "/vibe-scanner",
-    icon: Sparkles,
+    title: "Scanners",
+    href: "/scanners",
+    icon: Radar,
   },
   {
     title: "Settings",
