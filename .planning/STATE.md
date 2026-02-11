@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 05 of 6 complete)
+**Current focus:** Phase 5 COMPLETE -- Vibe Scanner (all 6 plans done, all 11 VIBE requirements satisfied)
 
 ## Current Position
 
-Phase: 5 of 9 (Vibe Scanner)
-Plan: 5 of 6 in current phase
-Status: Plan 05 complete -- Custom AI columns with SSE scoring integration
-Last activity: 2026-02-11 -- Add Column modal, Score All SSE wiring, single-column scoring endpoint
+Phase: 5 of 9 (Vibe Scanner) -- COMPLETE
+Plan: 6 of 6 in current phase (all done)
+Status: Phase 5 complete -- All 11 VIBE requirements satisfied
+Last activity: 2026-02-11 -- Threshold controls, AI cell drawer, progress bar, page integration
 
-Progress: [▓▓▓▓▓▓▓▓▓░] 90%
+Progress: [▓▓▓▓▓▓▓▓▓▓] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 4.0 min
-- Total execution time: 1.25 hours
+- Total execution time: 1.32 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 90%
 | 03-onboarding | 4/4 | 16 min | 4 min |
 | 09-enhance-onboarding | 2/2 | 6 min | 3 min |
 | 04-contract-dashboard | 2/2 | 7 min | 3.5 min |
-| 05-vibe-scanner | 5/6 | 15 min | 3 min |
+| 05-vibe-scanner | 6/6 | 19 min | 3.2 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (5 min), 05-02 (5 min), 05-03 (3 min), 05-04 (2 min), 05-05 (3 min)
+- Last 5 plans: 05-02 (5 min), 05-03 (3 min), 05-04 (2 min), 05-05 (3 min), 05-06 (4 min)
 - Trend: Consistent ~2-5 min per plan
 
 *Updated after each plan completion*
@@ -124,6 +124,10 @@ Recent decisions affecting current work:
 - [05-05]: Inline column creation (nanoid + $push) instead of separate lib/scanners.ts -- plan referenced non-existent file
 - [05-05]: readSSEStream extracted as reusable helper for both Score All and single-column scoring flows
 - [05-05]: $pull then $push for single-column score persistence -- idempotent re-scoring by column
+- [05-06]: Threshold split rendering: above/below arrays with divider row instead of filter-based approach
+- [05-06]: Collapsible below-threshold group with expand/collapse toggle when hide mode is active
+- [05-06]: Column name map passed as prop from page to progress bar for decoupled components
+- [05-06]: Legacy vibe-scanner page replaced with redirect (not deleted) for backward compatibility
 
 ### Pending Todos
 
@@ -141,5 +145,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-05-PLAN.md (Custom AI columns with SSE scoring integration)
-Next plan: 05-06-PLAN.md (Side drawer and re-scoring)
+Stopped at: Completed 05-06-PLAN.md (Threshold controls, AI drawer, progress bar -- Phase 5 COMPLETE)
+Next plan: Phase 6 (Buyer Intelligence + Credit System)
