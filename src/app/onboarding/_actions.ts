@@ -9,7 +9,7 @@ interface ProfileData {
   companyName: string;
   website: string;
   address: string;
-  socialLinks: Array<{ platform: string; url: string }>;
+  linkedinUrl: string;
   summary: string;
   sectors: string[];
   capabilities: string[];

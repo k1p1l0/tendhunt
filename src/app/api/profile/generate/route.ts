@@ -5,6 +5,7 @@ import { anthropic } from "@/lib/anthropic";
 import { extractTextFromBuffer, MAX_TEXT_LENGTH } from "@/lib/extract-text";
 import { fetchWebContent } from "@/lib/fetch-web-content";
 import { extractWebInfo } from "@/lib/extract-web-info";
+import { scrapeLinkedInCompany } from "@/lib/linkedin-scraper";
 
 /** Map file extension to MIME type for text extraction */
 function mimeTypeFromKey(key: string): string {
@@ -27,7 +28,7 @@ interface CompanyInfo {
   companyName?: string;
   website?: string;
   address?: string;
-  socialLinks?: Array<{ platform: string; url: string }>;
+  linkedinUrl?: string;
 }
 
 interface RequestBody {
@@ -109,48 +110,50 @@ export async function POST(request: Request) {
       }
     }
 
-    // ---- 2. Fetch and extract web content IN PARALLEL ----
+    // ---- 2. Fetch web content and LinkedIn data IN PARALLEL ----
     const webExtractions: string[] = [];
 
-    const webFetchPromises: Promise<string | null>[] = [];
-    const webLabels: string[] = [];
+    // Website content extraction (unchanged)
+    const websitePromise =
+      companyInfo?.website?.trim()
+        ? fetchWebContent(companyInfo.website).then((html) =>
+            html ? extractWebInfo(html, "company website") : null
+          )
+        : Promise.resolve(null);
 
-    // Website
-    if (companyInfo?.website?.trim()) {
-      webFetchPromises.push(
-        fetchWebContent(companyInfo.website).then((html) =>
-          html ? extractWebInfo(html, "company website") : null
-        )
+    // LinkedIn scraping via Apify actors
+    const linkedInPromise =
+      companyInfo?.linkedinUrl?.trim()
+        ? scrapeLinkedInCompany(companyInfo.linkedinUrl)
+        : Promise.resolve({ profile: null, posts: null });
+
+    const [websiteResult, linkedInResult] = await Promise.allSettled([
+      websitePromise,
+      linkedInPromise,
+    ]);
+
+    // Add website extraction
+    if (
+      websiteResult.status === "fulfilled" &&
+      websiteResult.value
+    ) {
+      webExtractions.push(
+        `--- Company Website ---\n${websiteResult.value}`
       );
-      webLabels.push("Company Website");
     }
 
-    // Social links
-    if (companyInfo?.socialLinks) {
-      for (const link of companyInfo.socialLinks) {
-        if (link.url?.trim()) {
-          webFetchPromises.push(
-            fetchWebContent(link.url).then((html) =>
-              html
-                ? extractWebInfo(html, `${link.platform} profile`)
-                : null
-            )
-          );
-          webLabels.push(`${link.platform} profile`);
-        }
+    // Add LinkedIn profile data
+    if (linkedInResult.status === "fulfilled") {
+      const linkedInData = linkedInResult.value;
+      if (linkedInData.profile) {
+        webExtractions.push(
+          `--- LinkedIn Company Profile ---\n${linkedInData.profile}`
+        );
       }
-    }
-
-    if (webFetchPromises.length > 0) {
-      const results = await Promise.allSettled(webFetchPromises);
-
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.status === "fulfilled" && result.value) {
-          webExtractions.push(
-            `--- ${webLabels[i]} ---\n${result.value}`
-          );
-        }
+      if (linkedInData.posts) {
+        webExtractions.push(
+          `--- LinkedIn Recent Activity ---\n${linkedInData.posts}`
+        );
       }
     }
 
@@ -184,7 +187,7 @@ export async function POST(request: Request) {
       return Response.json({
         profile: null,
         warning:
-          "No content could be gathered from documents, website, or social links. Please provide more information.",
+          "No content could be gathered from documents, website, or LinkedIn. Please provide more information.",
       });
     }
 
@@ -199,11 +202,11 @@ export async function POST(request: Request) {
       model: "claude-haiku-4-5-20251001",
       max_tokens: 2048,
       system:
-        "You are an expert at analyzing company information for UK government procurement. Extract structured company intelligence from the provided content, which may include uploaded documents, website content, and social media profiles. Be thorough but concise.",
+        "You are an expert at analyzing company information for UK government procurement. Extract structured company intelligence from the provided content, which may include uploaded documents, website content, and LinkedIn company profile data including recent posts. Be thorough but concise.",
       messages: [
         {
           role: "user",
-          content: `Analyze the following company information and extract a structured company profile for UK government procurement matching. The content may include uploaded documents, website content, and social media profiles.
+          content: `Analyze the following company information and extract a structured company profile for UK government procurement matching. The content may include uploaded documents, website content, LinkedIn company profile data, and recent LinkedIn posts.
 
 Content:
 ${combinedText}
@@ -212,7 +215,7 @@ Extract the following information:
 - Company name (if identifiable)
 - Website URL (if available)
 - Company address (if available)
-- Social media links (if available, as platform + URL pairs)
+- LinkedIn company page URL (if available)
 - A concise 2-3 sentence summary of what the company does
 - Industry sectors they operate in (e.g., IT, Healthcare, Construction, Defence)
 - Key capabilities and services they offer
@@ -233,18 +236,7 @@ Extract the following information:
               companyName: { type: "string" as const },
               website: { type: "string" as const },
               address: { type: "string" as const },
-              socialLinks: {
-                type: "array" as const,
-                items: {
-                  type: "object" as const,
-                  properties: {
-                    platform: { type: "string" as const },
-                    url: { type: "string" as const },
-                  },
-                  required: ["platform", "url"] as const,
-                  additionalProperties: false,
-                },
-              },
+              linkedinUrl: { type: "string" as const },
               summary: { type: "string" as const },
               sectors: {
                 type: "array" as const,

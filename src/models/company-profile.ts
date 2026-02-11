@@ -6,15 +6,7 @@ const companyProfileSchema = new Schema(
     companyName: { type: String, default: "" },
     website: { type: String, default: "" },
     address: { type: String, default: "" },
-    socialLinks: [
-      {
-        platform: {
-          type: String,
-          enum: ["linkedin", "twitter", "facebook", "instagram", "other"],
-        },
-        url: { type: String },
-      },
-    ],
+    linkedinUrl: { type: String, default: "" },
     summary: { type: String, default: "" },
     sectors: [{ type: String }],
     capabilities: [{ type: String }],
