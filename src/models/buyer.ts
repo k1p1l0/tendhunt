@@ -24,6 +24,18 @@ const buyerSchema = new Schema(
     contacts: [contactSchema],
     vibeScore: { type: Number, min: 0, max: 10 },
     vibeReasoning: { type: String },
+    orgType: { type: String, index: true },
+    orgSubType: { type: String },
+    dataSourceId: { type: Schema.Types.ObjectId, ref: "DataSource" },
+    democracyPortalUrl: { type: String },
+    democracyPlatform: { type: String },
+    boardPapersUrl: { type: String },
+    staffCount: { type: Number },
+    annualBudget: { type: Number },
+    enrichmentScore: { type: Number, min: 0, max: 100 },
+    enrichmentSources: [{ type: String }],
+    lastEnrichedAt: { type: Date },
+    enrichmentVersion: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
