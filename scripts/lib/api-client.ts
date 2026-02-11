@@ -38,9 +38,15 @@ export async function fetchWithRetry(
 }
 
 /**
- * Fetch all OCDS releases from a paginated endpoint using cursor-based
- * pagination. Stops when the cursor is absent / empty, the page returns
- * no releases, or maxItems is reached. Waits 500 ms between pages.
+ * Fetch all OCDS releases from a paginated endpoint.
+ *
+ * The Find a Tender API uses `links.next` (a full URL) for pagination
+ * rather than a standalone cursor token. This function handles both
+ * styles: full next-URL (`links.next`) and bare cursor token
+ * (`nextCursor` / `cursor` fields).
+ *
+ * Stops when there is no next page, the page returns no releases,
+ * or maxItems is reached. Waits 500 ms between pages.
  */
 export async function fetchAllReleases(
   baseUrl: string,
@@ -48,25 +54,24 @@ export async function fetchAllReleases(
   maxItems = 500
 ): Promise<any[]> {
   const allReleases: any[] = [];
-  let cursor: string | undefined;
   let page = 0;
 
-  while (allReleases.length < maxItems) {
-    page++;
-    const url = new URL(baseUrl);
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, value);
-    }
-    url.searchParams.set("limit", "100");
-    if (cursor) {
-      url.searchParams.set("cursor", cursor);
-    }
+  // Build the first page URL from baseUrl + params
+  const firstUrl = new URL(baseUrl);
+  for (const [key, value] of Object.entries(params)) {
+    firstUrl.searchParams.set(key, value);
+  }
+  firstUrl.searchParams.set("limit", "100");
 
+  let nextUrl: string | undefined = firstUrl.toString();
+
+  while (nextUrl && allReleases.length < maxItems) {
+    page++;
     console.log(
       `Fetching page ${page} (${allReleases.length} releases so far)...`
     );
 
-    const res = await fetchWithRetry(url.toString());
+    const res = await fetchWithRetry(nextUrl);
     const data = await res.json();
 
     // OCDS release packages wrap releases in a `releases` array
@@ -77,15 +82,32 @@ export async function fetchAllReleases(
     }
 
     allReleases.push(...releases);
-    cursor = data.cursor ?? data.links?.next;
 
-    if (!cursor) {
-      console.log("No cursor returned — pagination complete.");
-      break;
+    // Determine next page URL:
+    // 1. links.next — full URL (Find a Tender style)
+    // 2. nextCursor / cursor — bare token (append as query param)
+    if (data.links?.next) {
+      nextUrl = data.links.next;
+    } else {
+      const cursor = data.nextCursor ?? data.cursor;
+      if (cursor) {
+        const u = new URL(baseUrl);
+        for (const [key, value] of Object.entries(params)) {
+          u.searchParams.set(key, value);
+        }
+        u.searchParams.set("limit", "100");
+        u.searchParams.set("cursor", cursor);
+        nextUrl = u.toString();
+      } else {
+        console.log("No next page — pagination complete.");
+        nextUrl = undefined;
+      }
     }
 
     // Polite delay between requests
-    await sleep(500);
+    if (nextUrl && allReleases.length < maxItems) {
+      await sleep(500);
+    }
   }
 
   const result = allReleases.slice(0, maxItems);
