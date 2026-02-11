@@ -17,7 +17,7 @@ Continuously sync all available UK procurement data from Find a Tender and Contr
 - Pull from both Find a Tender (FaT) OCDS API and Contracts Finder (CF) OCDS API
 - Fetch ALL historical data available — not just a time window
 - Keep both sources when contracts overlap (same contract in both APIs stored as separate records with source attribution)
-- Also sync buyer organizations and board minutes signals — not just contracts
+- Also auto-extract buyer organizations from incoming contract data (board minutes signals remain as Phase 2 seed data — no live API source exists for signals)
 
 ### Backfill Strategy
 - Single Cloudflare Worker handles both initial backfill AND ongoing hourly sync

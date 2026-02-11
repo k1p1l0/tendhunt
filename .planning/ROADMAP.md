@@ -243,7 +243,7 @@ Plans:
 ### Phase 10: Live Data Pipeline
 **Goal:** Continuously sync all UK procurement data from Find a Tender and Contracts Finder APIs into MongoDB via a Cloudflare Worker cron job running hourly, with full historical backfill, auto-extraction of buyer organizations, and sync progress tracking
 **Depends on:** Phase 2
-**Requirements**: DATA-01, DATA-02, DATA-04, DATA-05
+**Requirements**: DATA-01, DATA-02
 **Success Criteria** (what must be TRUE):
   1. Cloudflare Worker runs hourly via cron trigger, fetching new contracts from both FaT and CF APIs
   2. Full historical backfill completes automatically across multiple Worker runs (chunked, resumable)
@@ -251,8 +251,8 @@ Plans:
   4. New buyer organizations auto-extracted from incoming contract data and added to buyers collection
   5. Sync progress tracked in MongoDB syncJobs collection (last run, records fetched, errors, cursor position)
   6. Rate limits respected (max ~6 req/min) with exponential backoff on 429 responses
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: Cloudflare Worker scaffold, sync job model, chunked backfill engine with resume capability
-- [ ] 10-02: FaT + CF API clients in Worker, delta sync logic, buyer auto-extraction, hourly cron trigger
+- [ ] 10-01-PLAN.md -- Worker scaffold, TypeScript types, native MongoDB driver, OCDS mapper port, DB operations (contracts/buyers/sync-jobs), core sync engine with resumable chunked backfill
+- [ ] 10-02-PLAN.md -- Rate limiter, FaT + CF API clients with pagination, Worker scheduled handler wiring both sources, hourly cron trigger
