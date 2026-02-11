@@ -6,16 +6,16 @@ See: landing/.planning/PROJECT.md (updated 2026-02-10)
 See: landing/.planning/ROADMAP.md (created 2026-02-11)
 
 **Core value:** Marketing site at tendhunt.com converting visitors into waitlist signups + Ghost blog driving organic SEO traffic for UK procurement keywords.
-**Current focus:** Phase 4 COMPLETE -- 10 SEO articles published live at tendhunt.com/blog/
+**Current focus:** Phase 5 IN PROGRESS -- SEO meta, OG/Twitter, JSON-LD, font preloads complete (plan 01 done)
 
 ## Current Position
 
-Phase: 4 of 5 (Content Pipeline) -- COMPLETE
-Plan: 2 of 2 in current phase -- ALL TASKS COMPLETE
-Status: 10 SEO articles generated, branded thumbnails created, internal links added, all published live
-Last activity: 2026-02-11 -- Phase 4 plan 02 executed (article generation, linking, publishing)
+Phase: 5 of 5 (SEO & Polish) -- IN PROGRESS
+Plan: 1 of 2 in current phase -- COMPLETE
+Status: Full SEO meta, OG/Twitter cards, JSON-LD structured data, font preloads, OG image all implemented
+Last activity: 2026-02-11 -- Phase 5 plan 01 executed (SEO meta, structured data, OG image)
 
-Progress: [#########░] 90%
+Progress: [#########░] 95%
 
 ## Linear Sync
 
@@ -25,9 +25,9 @@ Progress: [#########░] 90%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 8 min
-- Total execution time: 68 min
+- Total execution time: 82 min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -40,6 +40,7 @@ Progress: [#########░] 90%
 | 03 | 03 | 8min | 3 | 6 |
 | 04 | 01 | 5min | 1 | 9 |
 | 04 | 02 | 15min | 3 | 3 |
+| 05 | 01 | 14min | 2 | 8 |
 
 ## Accumulated Context
 
@@ -99,6 +100,11 @@ Progress: [#########░] 90%
 - [04-02]: Ghost PUT update requires GET updated_at first for collision detection
 - [04-02]: Tag-based related article matching with max 3 related + 2 inline links per article
 - [04-02]: Idempotent link injection -- strips existing Related Articles and CTA before re-adding
+- [05-01]: Font preload via Vite ?url import (resolves hashed _astro/ paths at build time)
+- [05-01]: JSON-LD via set:html on script tags (prevents Astro HTML escaping)
+- [05-01]: FAQPage JSON-LD dynamically generated from faqs array (always in sync with displayed content)
+- [05-01]: OG image generated programmatically with sharp from SVG (no design tool dependency)
+- [05-01]: Fontsource already sets font-display: swap -- no manual override needed
 
 ### Pending Todos
 
@@ -115,5 +121,5 @@ Progress: [#########░] 90%
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 04-02-PLAN.md -- Phase 4 Content Pipeline fully complete
-Next action: Phase 5 (SEO/Performance Optimization) or other remaining work
+Stopped at: Completed 05-01-PLAN.md -- SEO meta, OG/Twitter, JSON-LD, font preloads, OG image
+Next action: Execute 05-02-PLAN.md (remaining SEO/polish tasks) to complete Phase 5
