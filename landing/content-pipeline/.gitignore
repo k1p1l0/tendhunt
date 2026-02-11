@@ -3,5 +3,6 @@
 __pycache__/
 articles/
 thumbnails/
-output/
+output/*
+!output/published.json
 fonts/*.ttf
