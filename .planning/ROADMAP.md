@@ -87,21 +87,26 @@ Plans:
 - [x] 04-02-PLAN.md -- Contract detail page, dashboard real stats + recent contracts, score badge placeholder
 
 ### Phase 5: Vibe Scanner
-**Goal**: Users can create an AI-powered scoring engine from their company profile that batch-scores all contracts and buyer organizations using Claude Haiku, with interactive threshold controls to surface the best opportunities
+**Goal**: Users can create multiple named AI-powered scanners of different types (RFPs, Board Meetings, Buyers) each showing a Starbridge-style table with data columns and customizable AI columns, scored by Claude Haiku with threshold controls and side drawer details
 **Depends on**: Phase 3, Phase 4
 **Requirements**: VIBE-01, VIBE-02, VIBE-03, VIBE-04, VIBE-05, VIBE-06, VIBE-07, VIBE-08, VIBE-09, VIBE-10, VIBE-11
 **Success Criteria** (what must be TRUE):
-  1. User can create a Vibe Scanner from their company profile and see the generated scoring prompt
-  2. User can view and edit the scoring prompt in a textarea, then trigger re-scoring with "Apply & Score"
-  3. AI batch-scores contracts using Claude Haiku, with a visible progress bar during scoring
-  4. Each contract card shows an AI score (1-10) with color-coded badge (green/yellow/red) and reasoning text
-  5. User can adjust a score threshold slider (1-10, 0.1 increments) and contracts below threshold appear with reduced opacity or are hidden, with a visual divider separating above/below threshold
-**Plans**: 3 plans
+  1. User can create multiple named scanners of three types (RFPs, Board Meetings, Buyers) from a scanner list page
+  2. Each scanner has an AI-generated search query and customizable AI columns with per-column scoring
+  3. AI batch-scores all entities across all AI columns using Claude Haiku, with real-time progress display
+  4. Table view shows entity-first data columns plus AI columns with color-coded scores and reasoning
+  5. User can adjust a score threshold slider (1-10, 0.1 increments) and rows below threshold appear with reduced opacity or are hidden, with a visual divider
+  6. Clicking an AI cell opens a side drawer with full response, reasoning, and metadata
+  7. User can add custom AI columns with any prompt and see results auto-populate
+**Plans**: 6 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- VibeScanner model, scoring prompt generation from CompanyProfile, scanner creation/retrieval APIs, prompt editor page
-- [ ] 05-02-PLAN.md -- Zustand store, Claude Haiku batch scoring SSE endpoint with prompt caching, progress bar, scored contract feed, re-score flow
-- [ ] 05-03-PLAN.md -- Threshold slider (0.1 step), hide/dim toggle, score divider, buyer organization scoring
+- [x] 05-01-PLAN.md -- Scanner model (multi-type, AI columns, per-column scores), CRUD APIs, AI query generation
+- [x] 05-02-PLAN.md -- Scanner list page, type-selection creation modal, AI-generated query form, sidebar nav update
+- [x] 05-03-PLAN.md -- Scanner table view with entity-first columns per type, scanner store, header toolbar
+- [x] 05-04-PLAN.md -- Batch scoring SSE engine with Claude Haiku prompt caching, per-column scoring, async generator
+- [x] 05-05-PLAN.md -- Custom AI columns modal, scoring integration in table, per-cell loading states, Score All flow
+- [x] 05-06-PLAN.md -- Threshold slider + hide/dim toggle, score divider, AI cell side drawer, progress bar, final polish
 
 ### Phase 6: Buyer Intelligence & Credits
 **Goal**: Users can explore buyer organization profiles with AI relevance scores and reveal locked contacts by spending credits, demonstrating the monetization model to investors
@@ -220,7 +225,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 2. Data Pipeline | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. Onboarding & Company Profile | 2/2 | ✓ Complete | 2026-02-11 |
 | 4. Contract Dashboard | 2/2 | ✓ Complete | 2026-02-11 |
-| 5. Vibe Scanner | 0/3 | Planned | - |
+| 5. Vibe Scanner | 6/6 | ✓ Complete | 2026-02-11 |
 | 6. Buyer Intelligence & Credits | 0/3 | Not started | - |
 | 7. Buying Signals | 0/1 | Not started | - |
 | 8. Landing & Pricing | 0/2 | Not started | - |
