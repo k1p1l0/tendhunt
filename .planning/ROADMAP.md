@@ -267,3 +267,12 @@ Plans:
 - [ ] TBD (run /gsd:plan-phase 11 to break down)
 
 **Reference specs:** `/Users/kirillkozak/projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
+
+### Phase 12: Settings & Company Profile Management
+
+**Goal:** Replace the Settings placeholder page with a full company profile editor showing all AI-generated profile data for review/editing, and restructure the sidebar to show the user's company logo/name at the top with TendHunt branding moved to the footer
+**Depends on:** Phase 3, Phase 9
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
