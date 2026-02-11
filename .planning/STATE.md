@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 3: Onboarding & Company Profile
+**Current focus:** Phase 3 COMPLETE -- ready for Phase 4: Contract Dashboard
 
 ## Current Position
 
-Phase: 3 of 8 (Onboarding & Company Profile)
-Plan: 1 of 2 in current phase (COMPLETE)
-Status: Plan 01 complete -- upload infrastructure, onboarding gate, wizard shell
-Last activity: 2026-02-11 -- Presigned URL upload + onboarding wizard
+Phase: 3 of 8 (Onboarding & Company Profile) -- COMPLETE
+Plan: 2 of 2 in current phase (COMPLETE)
+Status: Phase 3 complete -- full onboarding wizard with AI profile generation, credit bonus, and Clerk metadata
+Last activity: 2026-02-11 -- AI profile generation + review/edit + onboarding completion
 
-Progress: [▓▓▓▓▓▓░░░░] 50%
+Progress: [▓▓▓▓▓▓▓░░░] 58%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 5 min
-- Total execution time: 0.5 hours
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [▓▓▓▓▓▓░░░░] 50%
 |-------|-------|-------|----------|
 | 01-foundation | 2/2 | 6 min | 3 min |
 | 02-data-pipeline | 3/3 | 17 min | 5.7 min |
-| 03-onboarding | 1/2 | 4 min | 4 min |
+| 03-onboarding | 2/2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (3 min), 02-01 (7 min), 02-02 (2 min), 02-03 (8 min), 03-01 (4 min)
-- Trend: Consistent ~4-5 min per plan for infrastructure setup tasks
+- Last 5 plans: 02-01 (7 min), 02-02 (2 min), 02-03 (8 min), 03-01 (4 min), 03-02 (4 min)
+- Trend: Consistent ~4-5 min per plan
 
 *Updated after each plan completion*
 
@@ -74,6 +74,10 @@ Recent decisions affecting current work:
 - [03-01]: Onboarding gate via Clerk middleware sessionClaims.metadata.onboardingComplete
 - [03-01]: Steps 2-3 of wizard are placeholder shells -- Plan 02 implements AI generation and profile review
 - [03-01]: Raw JSON schema over zodOutputFormat for Anthropic structured output -- avoids Zod 4 compatibility issues
+- [03-02]: Dynamic import for pdf-parse -- avoids DOMMatrix build error in Next.js static generation
+- [03-02]: window.location.href over router.push for post-onboarding redirect -- forces Clerk session token refresh
+- [03-02]: Idempotent credit creation -- check for existing CreditAccount before creating signup bonus
+- [03-02]: Tag-style inputs for array fields (sectors, capabilities, keywords, certifications, regions)
 
 ### Pending Todos
 
@@ -86,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-01-PLAN.md (upload infrastructure + onboarding gate + wizard)
-Next plan: 03-02-PLAN.md (AI profile generation, profile review/edit, credit bonus, complete onboarding)
+Stopped at: Completed 03-02-PLAN.md (AI profile generation + review/edit + credit bonus + onboarding completion)
+Next plan: Phase 4 (Contract Dashboard) -- Phase 3 complete
