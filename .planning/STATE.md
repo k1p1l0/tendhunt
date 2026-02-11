@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 3 COMPLETE (all 4 plans) -- ready for Phase 4: Contract Dashboard
+**Current focus:** Phase 9 Plan 01 COMPLETE -- logo auto-extraction backend pipeline
 
 ## Current Position
 
-Phase: 3 of 8 (Onboarding & Company Profile) -- COMPLETE
-Plan: 4 of 4 in current phase (COMPLETE)
-Status: Phase 3 fully complete -- onboarding wizard with LinkedIn scraping via Apify, AI profile generation, credit bonus, and Clerk metadata
-Last activity: 2026-02-11 -- LinkedIn scraper via Apify actors, simplified onboarding UI to LinkedIn-only
+Phase: 9 of 9 (Enhance Onboarding: Logo + AI Animations)
+Plan: 1 of 2 in current phase (COMPLETE)
+Status: Plan 09-01 complete -- logo URL auto-extracted from LinkedIn/og:image, threaded through API and persistence
+Last activity: 2026-02-11 -- Logo extraction backend pipeline (LinkedIn Apify + og:image fallback)
 
-Progress: [▓▓▓▓▓▓▓░░░] 62%
+Progress: [▓▓▓▓▓▓▓░░░] 65%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 5 min
-- Total execution time: 0.8 hours
+- Total plans completed: 10
+- Average duration: 4.6 min
+- Total execution time: 0.85 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [▓▓▓▓▓▓▓░░░] 62%
 | 01-foundation | 2/2 | 6 min | 3 min |
 | 02-data-pipeline | 3/3 | 17 min | 5.7 min |
 | 03-onboarding | 4/4 | 16 min | 4 min |
+| 09-enhance-onboarding | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (8 min), 03-01 (4 min), 03-02 (4 min), 03-03 (4 min), 03-04 (4 min)
-- Trend: Consistent ~4 min per plan
+- Last 5 plans: 03-01 (4 min), 03-02 (4 min), 03-03 (4 min), 03-04 (4 min), 09-01 (3 min)
+- Trend: Consistent ~3-4 min per plan
 
 *Updated after each plan completion*
 
@@ -86,11 +87,19 @@ Recent decisions affecting current work:
 - [03-04]: APIFY_API_TOKEN optional in env validation -- graceful degradation when not configured
 - [03-04]: Promise.allSettled for parallel Apify actor calls -- company profile and posts fetched independently
 - [03-04]: socialLinks replaced with linkedinUrl string field across entire stack (model, API, UI)
+- [09-01]: LinkedIn logo has priority over og:image -- more reliable and specific to the company
+- [09-01]: fetchWebContentWithOgImage as new function preserves backward compatibility of fetchWebContent
+- [09-01]: logoUrl is NOT sent to Claude prompt -- extracted directly from data sources, not AI-generated
+- [09-01]: logoUrl optional in ProfileData interface for backward compatibility with older callers
 
 ### Pending Todos
 
 1. **Enhance onboarding with company photo upload and AI analysis animations** (ui) — Add company logo upload to onboarding step 1, implement AI reasoning/task/chain-of-thought animations during profile generation using shadcn patterns
 2. **Rebuild Notus feature skeleton screens with TendHunt-specific illustrations** (ui) — Replace generic AI agent skeletons (LLM selector, chat UI, integrations) with TendHunt feature illustrations (contract search, Vibe Scanner scoring, buyer contact reveal)
+
+### Roadmap Evolution
+
+- Phase 9 added: Enhance Onboarding: Company Photo Upload + AI Analysis Animations
 
 ### Blockers/Concerns
 
@@ -99,5 +108,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-04-PLAN.md (LinkedIn scraper via Apify actors + simplified onboarding UI)
-Next plan: Phase 4 (Contract Dashboard) -- Phase 3 fully complete (all 4 plans)
+Stopped at: Completed 09-01-PLAN.md (Logo auto-extraction backend pipeline)
+Next plan: 09-02-PLAN.md (UI: logo display in onboarding wizard + AI analysis animations)
