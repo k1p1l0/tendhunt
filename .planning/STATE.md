@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 01 of 2 complete)
+**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 02 of 6 complete)
 
 ## Current Position
 
 Phase: 5 of 9 (Vibe Scanner)
-Plan: 1 of 2 in current phase
-Status: Plan 01 complete -- VibeScanner model, prompt generation, CRUD APIs, and page
-Last activity: 2026-02-11 -- Vibe Scanner model, scoring prompt, APIs, and editable prompt editor page
+Plan: 2 of 6 in current phase
+Status: Plan 02 complete -- Scanner list page, creation flow, type selection modal, AI query generation
+Last activity: 2026-02-11 -- Multi-scanner list page, type selection modal, AI-generated creation form with filters
 
 Progress: [▓▓▓▓▓▓▓▓▓░] 88%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 4.3 min
-- Total execution time: 1.0 hours
+- Total execution time: 1.1 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 88%
 | 03-onboarding | 4/4 | 16 min | 4 min |
 | 09-enhance-onboarding | 2/2 | 6 min | 3 min |
 | 04-contract-dashboard | 2/2 | 7 min | 3.5 min |
-| 05-vibe-scanner | 1/2 | 5 min | 5 min |
+| 05-vibe-scanner | 2/6 | 10 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 09-01 (3 min), 09-02 (3 min), 04-01 (4 min), 04-02 (3 min), 05-01 (5 min)
+- Last 5 plans: 09-02 (3 min), 04-01 (4 min), 04-02 (3 min), 05-01 (5 min), 05-02 (5 min)
 - Trend: Consistent ~3-5 min per plan
 
 *Updated after each plan completion*
@@ -108,6 +108,11 @@ Recent decisions affecting current work:
 - [05-01]: PUT /api/vibe-scanner for reset-to-default (regenerates from CompanyProfile) vs PATCH for user edits
 - [05-01]: Embedded subdocuments for contractScores/buyerScores with _id:false for performance
 - [05-01]: toObject() cast on Mongoose documents to access _id in API responses with InferSchemaType
+- [05-02]: New Scanner model supports multiple scanners per user with type enum (rfps/meetings/buyers) -- evolving beyond single VibeScanner
+- [05-02]: Default AI columns auto-populated per scanner type on creation (2 per type)
+- [05-02]: AI query generation uses Claude Haiku structured JSON output with type-specific system prompts
+- [05-02]: Radar icon replaces Sparkles for sidebar -- reflects multi-scanner monitoring concept
+- [05-02]: Filters stored as flexible subdocument in Scanner model -- type-specific fields optional
 
 ### Pending Todos
 
@@ -125,5 +130,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-01-PLAN.md (VibeScanner model, prompt generation, APIs, page)
-Next plan: 05-02-PLAN.md (batch scoring with Claude Haiku)
+Stopped at: Completed 05-02-PLAN.md (Scanner list page, creation flow, type selection modal, AI query generation)
+Next plan: 05-03-PLAN.md (Scanner table view with entity-first columns per type)
