@@ -10,6 +10,7 @@ import { classifyBuyers } from "./stages/01-classify";
 import { mapGovernanceUrls } from "./stages/02-governance-urls";
 import { fetchModernGovData } from "./stages/03-moderngov";
 import { scrapeGovernancePages } from "./stages/04-scrape";
+import { extractKeyPersonnel } from "./stages/05-personnel";
 
 // ---------------------------------------------------------------------------
 // Stage registry — maps stage name to its implementation function
@@ -20,8 +21,8 @@ const STAGE_FUNCTIONS: Partial<Record<EnrichmentStage, StageFn>> = {
   governance_urls: mapGovernanceUrls,
   moderngov: fetchModernGovData,
   scrape: scrapeGovernancePages,
-  // Stages 5-6 will be added in subsequent plans:
-  // personnel: extractPersonnel,
+  personnel: extractKeyPersonnel,
+  // Stage 6 will be added in subsequent plans:
   // score: computeScores,
 };
 
