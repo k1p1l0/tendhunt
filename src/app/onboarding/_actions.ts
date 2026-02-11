@@ -10,6 +10,7 @@ interface ProfileData {
   website: string;
   address: string;
   linkedinUrl: string;
+  logoUrl?: string;
   summary: string;
   sectors: string[];
   capabilities: string[];

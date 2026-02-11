@@ -3,7 +3,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
 import { anthropic } from "@/lib/anthropic";
 import { extractTextFromBuffer, MAX_TEXT_LENGTH } from "@/lib/extract-text";
-import { fetchWebContent } from "@/lib/fetch-web-content";
+import { fetchWebContentWithOgImage } from "@/lib/fetch-web-content";
 import { extractWebInfo } from "@/lib/extract-web-info";
 import { scrapeLinkedInCompany } from "@/lib/linkedin-scraper";
 
@@ -113,38 +113,48 @@ export async function POST(request: Request) {
     // ---- 2. Fetch web content and LinkedIn data IN PARALLEL ----
     const webExtractions: string[] = [];
 
-    // Website content extraction (unchanged)
+    // Website content extraction (returns both text and og:image)
     const websitePromise =
       companyInfo?.website?.trim()
-        ? fetchWebContent(companyInfo.website).then((html) =>
-            html ? extractWebInfo(html, "company website") : null
-          )
-        : Promise.resolve(null);
+        ? fetchWebContentWithOgImage(companyInfo.website)
+        : Promise.resolve({ text: null, ogImage: null });
 
     // LinkedIn scraping via Apify actors
     const linkedInPromise =
       companyInfo?.linkedinUrl?.trim()
         ? scrapeLinkedInCompany(companyInfo.linkedinUrl)
-        : Promise.resolve({ profile: null, posts: null });
+        : Promise.resolve({ profile: null, posts: null, logoUrl: null });
 
     const [websiteResult, linkedInResult] = await Promise.allSettled([
       websitePromise,
       linkedInPromise,
     ]);
 
+    // Extract og:image and logo URLs for logoUrl resolution
+    let ogImageUrl: string | null = null;
+    let linkedInLogoUrl: string | null = null;
+
     // Add website extraction
     if (
       websiteResult.status === "fulfilled" &&
       websiteResult.value
     ) {
-      webExtractions.push(
-        `--- Company Website ---\n${websiteResult.value}`
-      );
+      ogImageUrl = websiteResult.value.ogImage;
+      const websiteText = websiteResult.value.text;
+      if (websiteText) {
+        const extracted = await extractWebInfo(websiteText, "company website");
+        if (extracted) {
+          webExtractions.push(
+            `--- Company Website ---\n${extracted}`
+          );
+        }
+      }
     }
 
     // Add LinkedIn profile data
     if (linkedInResult.status === "fulfilled") {
       const linkedInData = linkedInResult.value;
+      linkedInLogoUrl = linkedInData.logoUrl;
       if (linkedInData.profile) {
         webExtractions.push(
           `--- LinkedIn Company Profile ---\n${linkedInData.profile}`
@@ -156,6 +166,9 @@ export async function POST(request: Request) {
         );
       }
     }
+
+    // Determine final logoUrl: LinkedIn logo (priority) > og:image (fallback) > null
+    const logoUrl = linkedInLogoUrl || ogImageUrl || null;
 
     // ---- 3. Build combined context ----
     const contextParts: string[] = [];
@@ -186,6 +199,7 @@ export async function POST(request: Request) {
     if (contextParts.length === 0) {
       return Response.json({
         profile: null,
+        logoUrl: null,
         warning:
           "No content could be gathered from documents, website, or LinkedIn. Please provide more information.",
       });
@@ -278,7 +292,7 @@ Extract the following information:
     const content = response.content[0];
     if (content.type === "text") {
       const profile = JSON.parse(content.text);
-      return Response.json({ profile });
+      return Response.json({ profile, logoUrl });
     }
 
     return Response.json(

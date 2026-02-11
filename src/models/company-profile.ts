@@ -7,6 +7,7 @@ const companyProfileSchema = new Schema(
     website: { type: String, default: "" },
     address: { type: String, default: "" },
     linkedinUrl: { type: String, default: "" },
+    logoUrl: { type: String, default: "" },
     summary: { type: String, default: "" },
     sectors: [{ type: String }],
     capabilities: [{ type: String }],
