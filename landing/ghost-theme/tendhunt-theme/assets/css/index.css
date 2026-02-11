@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font-face declarations (self-hosted, copied from landing) */
+@font-face {
+  font-family: "Space Grotesk Variable";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("../fonts/space-grotesk-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: theme("fontFamily.body");
+    background-color: theme("colors.bg-primary");
+    color: theme("colors.text-body");
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: theme("fontFamily.heading");
+    color: theme("colors.text-primary");
+  }
+}
+
+/* Ghost-specific content styling */
+.gh-content {
+  @apply prose prose-invert max-w-none;
+  @apply prose-headings:font-heading prose-headings:text-text-primary;
+  @apply prose-p:text-text-body prose-a:text-accent hover:prose-a:text-accent-hover prose-a:no-underline;
+  @apply prose-code:text-accent prose-code:bg-bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded;
+  @apply prose-blockquote:border-accent prose-blockquote:text-text-secondary;
+  @apply prose-strong:text-text-primary;
+  @apply prose-hr:border-border;
+  @apply prose-th:text-text-primary;
+  @apply prose-img:rounded-lg;
+}
+
+/* Ghost content pre/code blocks */
+.gh-content pre {
+  @apply bg-bg-secondary border border-border rounded-lg;
+}
+
+.gh-content pre code {
+  @apply text-text-body bg-transparent p-0;
+}
+
+/* Ghost Bookmark Card */
+.kg-bookmark-card {
+  @apply border border-border rounded-lg overflow-hidden bg-bg-secondary;
+}
+
+.kg-bookmark-container {
+  @apply flex no-underline text-text-body;
+}
+
+.kg-bookmark-content {
+  @apply p-4 flex-1;
+}
+
+.kg-bookmark-title {
+  @apply text-text-primary font-heading font-semibold;
+}
+
+.kg-bookmark-description {
+  @apply text-text-secondary text-sm mt-2 line-clamp-2;
+}
+
+.kg-bookmark-metadata {
+  @apply flex items-center gap-2 mt-4 text-xs text-text-muted;
+}
+
+.kg-bookmark-thumbnail {
+  @apply w-48 relative;
+}
+
+.kg-bookmark-thumbnail img {
+  @apply absolute inset-0 w-full h-full object-cover;
+}
+
+/* Ghost Gallery Card */
+.kg-gallery-container {
+  @apply grid gap-4;
+}
+
+.kg-gallery-row {
+  @apply flex gap-4;
+}
+
+.kg-gallery-image img {
+  @apply rounded-lg;
+}
