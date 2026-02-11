@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 02 of 6 complete)
+**Current focus:** Phase 5 IN PROGRESS -- Vibe Scanner (plan 04 of 6 complete)
 
 ## Current Position
 
 Phase: 5 of 9 (Vibe Scanner)
-Plan: 2 of 6 in current phase
-Status: Plan 02 complete -- Scanner list page, creation flow, type selection modal, AI query generation
-Last activity: 2026-02-11 -- Multi-scanner list page, type selection modal, AI-generated creation form with filters
+Plan: 4 of 6 in current phase
+Status: Plan 04 complete -- Batch scoring SSE engine with Claude Haiku prompt caching
+Last activity: 2026-02-11 -- Scoring engine library and SSE endpoint for multi-type batch scoring
 
 Progress: [▓▓▓▓▓▓▓▓▓░] 88%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: 4.3 min
-- Total execution time: 1.1 hours
+- Total plans completed: 17
+- Average duration: 4.1 min
+- Total execution time: 1.2 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 88%
 | 03-onboarding | 4/4 | 16 min | 4 min |
 | 09-enhance-onboarding | 2/2 | 6 min | 3 min |
 | 04-contract-dashboard | 2/2 | 7 min | 3.5 min |
-| 05-vibe-scanner | 2/6 | 10 min | 5 min |
+| 05-vibe-scanner | 4/6 | 12 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 09-02 (3 min), 04-01 (4 min), 04-02 (3 min), 05-01 (5 min), 05-02 (5 min)
-- Trend: Consistent ~3-5 min per plan
+- Last 5 plans: 04-02 (3 min), 05-01 (5 min), 05-02 (5 min), 05-03 (-- min), 05-04 (2 min)
+- Trend: Consistent ~2-5 min per plan
 
 *Updated after each plan completion*
 
@@ -113,6 +113,10 @@ Recent decisions affecting current work:
 - [05-02]: AI query generation uses Claude Haiku structured JSON output with type-specific system prompts
 - [05-02]: Radar icon replaces Sparkles for sidebar -- reflects multi-scanner monitoring concept
 - [05-02]: Filters stored as flexible subdocument in Scanner model -- type-specific fields optional
+- [05-04]: Scoring engine loads CompanyProfile and uses generateScoringPrompt() for base prompt since Scanner model lacks scoringPrompt field
+- [05-04]: Signals model skipped for vibeScore source document updates -- model lacks vibeScore/vibeReasoning fields
+- [05-04]: Score field uses type union ['number', 'null'] in JSON schema for text-only AI columns
+- [05-04]: Promise.all collects concurrent results then yields sequentially for consistent event ordering per column
 
 ### Pending Todos
 
@@ -130,5 +134,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-02-PLAN.md (Scanner list page, creation flow, type selection modal, AI query generation)
-Next plan: 05-03-PLAN.md (Scanner table view with entity-first columns per type)
+Stopped at: Completed 05-04-PLAN.md (Batch scoring SSE engine with Claude Haiku prompt caching)
+Next plan: 05-05-PLAN.md (Custom AI columns)
