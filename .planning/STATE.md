@@ -146,6 +146,10 @@ Recent decisions affecting current work:
 - [06-01]: estimatedDocumentCount for total buyers count matching contracts.ts pattern
 - [06-01]: .npmrc with legacy-peer-deps to resolve marked peer conflict with glide-data-grid
 - [06-01]: Excluded workers/ from tsconfig.json to fix pre-existing build error
+- [06-02]: BuyerDetailClient wrapper manages isUnlocked state client-side for reactive blur-to-reveal without page refresh
+- [06-02]: Deterministic attribute scores via hashCode(name + attribute) % 60 + 30 for consistent 30-90 range
+- [06-02]: BuyerBreadcrumb as separate client component for clean server/client boundary in Next.js 16
+- [06-02]: UnlockButton integrated directly into ContactsTab for immediate unlock flow
 - [06-03]: Atomic findOneAndUpdate with $gte:1 filter for credit deduction -- single operation prevents double-spend
 - [06-03]: Server balance as source of truth -- setBalance(data.balance) from API response, not local decrement
 - [06-03]: BuyerDetailClient wraps server component page for local isUnlocked state management
