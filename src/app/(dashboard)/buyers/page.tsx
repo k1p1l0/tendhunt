@@ -1,35 +1,97 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { fetchBuyers } from "@/lib/buyers";
+import { BuyerTable } from "@/components/buyers/buyer-table";
+import { Pagination } from "@/components/contracts/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function BuyersPage() {
+function TableSkeleton() {
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full" />
+      ))}
+    </div>
+  );
+}
+
+async function BuyerFeed({
+  sort,
+  order,
+  page,
+  userId,
+}: {
+  sort?: string;
+  order?: string;
+  page: number;
+  userId: string;
+}) {
+  const pageSize = 25;
+  const validSort = (["name", "sector", "region", "contracts"] as const).includes(
+    sort as "name" | "sector" | "region" | "contracts"
+  )
+    ? (sort as "name" | "sector" | "region" | "contracts")
+    : "name";
+  const validOrder = order === "desc" ? "desc" : "asc";
+
+  const { buyers, total } = await fetchBuyers(userId, {
+    sort: validSort,
+    order: validOrder,
+    page,
+    pageSize,
+  });
+
+  const totalPages = Math.ceil(total / pageSize);
+
+  // Serialize ObjectIds for client component
+  const serializedBuyers = buyers.map((b) => ({
+    _id: String(b._id),
+    name: b.name ?? "",
+    sector: b.sector ?? undefined,
+    region: b.region ?? undefined,
+    contractCount: b.contractCount ?? 0,
+    contactCount: b.contactCount ?? 0,
+    isUnlocked: b.isUnlocked ?? false,
+  }));
+
+  return (
+    <>
+      <BuyerTable buyers={serializedBuyers} total={total} />
+      <Pagination currentPage={page} totalPages={totalPages} />
+    </>
+  );
+}
+
+export default async function BuyersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  const params = await searchParams;
+
+  const sort = typeof params.sort === "string" ? params.sort : undefined;
+  const order = typeof params.order === "string" ? params.order : undefined;
+  const pageStr = typeof params.page === "string" ? params.page : undefined;
+  const page = pageStr ? Math.max(1, parseInt(pageStr, 10) || 1) : 1;
+
+  const suspenseKey = JSON.stringify({ sort, order, page });
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Buyers</h1>
         <p className="text-muted-foreground">
-          Buyer organization profiles and contacts. Coming in Phase 6.
+          Explore buyer organizations and unlock contacts
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>No buyer profiles yet</CardTitle>
-          <CardDescription>
-            Buyer intelligence profiles will show organization details, contact
-            information, procurement patterns, and AI-generated vibe scores.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-10">
-          <p className="text-sm text-muted-foreground">
-            Buyer data will be aggregated from contract history in Phase 6.
-          </p>
-        </CardContent>
-      </Card>
+      <Suspense key={suspenseKey} fallback={<TableSkeleton />}>
+        <BuyerFeed sort={sort} order={order} page={page} userId={userId} />
+      </Suspense>
     </div>
   );
 }
