@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (2/6 plans complete)
+**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (3/6 plans complete)
 
 ## Current Position
 
 Phase: 13 of 13 (Buyer Data Enrichment)
-Plan: 6 of 6 in current phase (13-06 Buyer Profile Enrichment UI COMPLETE)
-Status: Plan 13-06 complete -- enrichment badge, board docs tab, key personnel tab, extended header
-Last activity: 2026-02-11 -- Plan 13-06 executed (2 tasks, 3 min)
+Plan: 6 of 6 in current phase (13-03 Governance URLs + ModernGov SOAP COMPLETE)
+Status: Plan 13-03 complete -- Stage 2 governance URL propagation, Stage 3 ModernGov SOAP meeting discovery
+Last activity: 2026-02-11 -- Plan 13-03 executed (2 tasks, 3 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓░] ~94% (Phases 1-6, 9-10, 12 complete; Phase 13: 2/6)
+Progress: [▓▓▓▓▓▓▓▓▓▓░] ~95% (Phases 1-6, 9-10, 12 complete; Phase 13: 3/6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 29
-- Average duration: 3.7 min
-- Total execution time: 1.91 hours
+- Total plans completed: 30
+- Average duration: 3.6 min
+- Total execution time: 1.96 hours
 
 **By Phase:**
 
@@ -36,10 +36,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓░] ~94% (Phases 1-6, 9-10, 12 complet
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
-| 13-buyer-data-enrichment | 2/6 | 10 min | 5 min |
+| 13-buyer-data-enrichment | 3/6 | 13 min | 4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 12-01 (3 min), 12-03 (2 min), 12-02 (6 min), 13-01 (7 min), 13-06 (3 min)
+- Last 5 plans: 12-03 (2 min), 12-02 (6 min), 13-01 (7 min), 13-06 (3 min), 13-03 (3 min)
 - Trend: Consistent ~2-7 min per plan
 
 *Updated after each plan completion*
@@ -178,6 +178,10 @@ Recent decisions affecting current work:
 - [13-06]: Green/yellow/red thresholds at 70/40 for enrichment badge and confidence bars
 - [13-06]: Tabs additive only: Board Documents and Key Personnel inserted after Signals, before Attributes
 - [13-06]: Empty states always shown (not hidden tabs) for non-enriched buyers
+- [13-03]: Double-parse pattern for ModernGov SOAP: outer envelope parse, then inner GetMeetingsResult XML string re-parse
+- [13-03]: Batch size 20 for Stage 3 (vs 100 for Stage 2) because each buyer requires HTTP calls
+- [13-03]: testConnection uses raw fetch with 5s AbortController timeout (not fetchWithDomainDelay) for quick health checks
+- [13-03]: $nin filter for democracyPortalUrl to exclude both null and empty string in single MongoDB operator
 
 ### Pending Todos
 
@@ -198,5 +202,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 13-02-PLAN.md -- Enrichment Worker scaffold + Stage 1 Fuse.js classification
-Next: Plans 13-03 through 13-05 for enrichment pipeline (governance URLs, ModernGov SOAP, scraping, personnel, scoring)
+Stopped at: Completed 13-03-PLAN.md -- Stage 2 governance URL propagation + Stage 3 ModernGov SOAP meeting discovery
+Next: Plans 13-04 through 13-05 for enrichment pipeline (scraping, personnel, scoring)
