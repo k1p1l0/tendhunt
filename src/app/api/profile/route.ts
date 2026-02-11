@@ -16,6 +16,8 @@ const ALLOWED_FIELDS = new Set([
   "idealContractDescription",
   "companySize",
   "regions",
+  "logoUrl",
+  "documentKeys",
 ]);
 
 export async function GET() {
