@@ -1,0 +1,196 @@
+import { auth } from "@clerk/nextjs/server";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { r2Client } from "@/lib/r2";
+import { anthropic } from "@/lib/anthropic";
+import { extractTextFromBuffer, MAX_TEXT_LENGTH } from "@/lib/extract-text";
+
+/** Map file extension to MIME type for text extraction */
+function mimeTypeFromKey(key: string): string {
+  const ext = key.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "pdf":
+      return "application/pdf";
+    case "docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case "doc":
+      return "application/msword";
+    case "txt":
+      return "text/plain";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return Response.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { documentKeys } = body as { documentKeys: string[] };
+
+    // Validate input
+    if (
+      !Array.isArray(documentKeys) ||
+      documentKeys.length === 0 ||
+      !documentKeys.every((k: unknown) => typeof k === "string")
+    ) {
+      return Response.json(
+        { error: "documentKeys must be a non-empty array of strings" },
+        { status: 400 }
+      );
+    }
+
+    // Download and extract text from each document
+    const extractedTexts: string[] = [];
+
+    for (const key of documentKeys) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME!,
+          Key: key,
+        });
+        const response = await r2Client.send(command);
+
+        if (!response.Body) {
+          console.warn(`Empty body for document: ${key}`);
+          continue;
+        }
+
+        // Convert stream to buffer
+        const chunks: Uint8Array[] = [];
+        const stream = response.Body as AsyncIterable<Uint8Array>;
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+        const buffer = Buffer.concat(chunks);
+
+        const mimeType = mimeTypeFromKey(key);
+        const text = await extractTextFromBuffer(buffer, mimeType);
+
+        if (text.trim().length === 0) {
+          console.warn(
+            `No text extracted from document: ${key} (may be scanned/image-based)`
+          );
+          continue;
+        }
+
+        extractedTexts.push(text);
+      } catch (err) {
+        console.warn(`Failed to process document ${key}:`, err);
+        continue;
+      }
+    }
+
+    // If all documents yielded empty text
+    if (extractedTexts.length === 0) {
+      return Response.json({
+        profile: null,
+        warning:
+          "No text could be extracted from the uploaded documents. They may be scanned images.",
+      });
+    }
+
+    // Concatenate and truncate
+    let combinedText = extractedTexts.join("\n\n---\n\n");
+    if (combinedText.length > MAX_TEXT_LENGTH) {
+      combinedText = combinedText.substring(0, MAX_TEXT_LENGTH);
+    }
+
+    // Call Claude Haiku 4.5 with structured output
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 2048,
+      system:
+        "You are an expert at analyzing company documents for UK government procurement. Extract structured company intelligence from the provided documents. Be thorough but concise.",
+      messages: [
+        {
+          role: "user",
+          content: `Analyze the following company documents and extract a structured company profile for UK government procurement matching.
+
+Documents:
+${combinedText}
+
+Extract the following information:
+- Company name (if identifiable)
+- A concise 2-3 sentence summary of what the company does
+- Industry sectors they operate in (e.g., IT, Healthcare, Construction, Defence)
+- Key capabilities and services they offer
+- Important keywords for contract matching
+- Any certifications mentioned (e.g., ISO 27001, Cyber Essentials, G-Cloud)
+- A description of their ideal government contract
+- Estimated company size (e.g., "1-10", "11-50", "51-200", "201-1000", "1000+")
+- UK regions they operate in (e.g., "London", "South East", "National")`,
+        },
+      ],
+      // Raw JSON schema -- not zodOutputFormat (avoids Zod 4 compatibility issues)
+      output_config: {
+        format: {
+          type: "json_schema" as const,
+          schema: {
+            type: "object" as const,
+            properties: {
+              companyName: { type: "string" as const },
+              summary: { type: "string" as const },
+              sectors: {
+                type: "array" as const,
+                items: { type: "string" as const },
+              },
+              capabilities: {
+                type: "array" as const,
+                items: { type: "string" as const },
+              },
+              keywords: {
+                type: "array" as const,
+                items: { type: "string" as const },
+              },
+              certifications: {
+                type: "array" as const,
+                items: { type: "string" as const },
+              },
+              idealContractDescription: { type: "string" as const },
+              companySize: { type: "string" as const },
+              regions: {
+                type: "array" as const,
+                items: { type: "string" as const },
+              },
+            },
+            required: [
+              "summary",
+              "sectors",
+              "capabilities",
+              "keywords",
+              "idealContractDescription",
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+
+    // Parse the structured response
+    const content = response.content[0];
+    if (content.type === "text") {
+      const profile = JSON.parse(content.text);
+      return Response.json({ profile });
+    }
+
+    return Response.json(
+      { error: "Unexpected response format from AI" },
+      { status: 500 }
+    );
+  } catch (error) {
+    console.error("Profile generation error:", error);
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate profile",
+      },
+      { status: 500 }
+    );
+  }
+}
