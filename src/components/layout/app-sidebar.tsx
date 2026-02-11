@@ -8,6 +8,7 @@ import {
   Building2,
   Settings,
   Crosshair,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,11 @@ const navItems: NavItem[] = [
     title: "Buyers",
     href: "/buyers",
     icon: Building2,
+  },
+  {
+    title: "Vibe Scanner",
+    href: "/vibe-scanner",
+    icon: Sparkles,
   },
   {
     title: "Settings",

@@ -363,3 +363,36 @@ export async function updateScoringPrompt(
 
   return scanner;
 }
+
+/**
+ * Regenerates the scoring prompt from the user's current CompanyProfile.
+ * Resets isDefault to true.
+ */
+export async function resetScoringPrompt(
+  userId: string
+): Promise<IVibeScanner> {
+  await dbConnect();
+
+  const profile = await CompanyProfile.findOne({ userId });
+  if (!profile) {
+    throw new Error(
+      "No company profile found. Cannot reset scoring prompt."
+    );
+  }
+
+  const scoringPrompt = generateScoringPrompt(profile);
+
+  const scanner = await VibeScanner.findOneAndUpdate(
+    { userId },
+    { scoringPrompt, isDefault: true },
+    { new: true }
+  );
+
+  if (!scanner) {
+    throw new Error(
+      "No Vibe Scanner found. Please create a scanner first."
+    );
+  }
+
+  return scanner;
+}
