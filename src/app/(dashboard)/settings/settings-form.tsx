@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TagInput } from "@/components/ui/tag-input";
+import { LogoUpload } from "@/components/settings/logo-upload";
+import { DocumentsSection } from "@/components/settings/documents-section";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
 
@@ -81,6 +83,12 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
     profile.certifications
   );
   const [regions, setRegions] = useState<string[]>(profile.regions);
+
+  // Logo & documents
+  const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
+  const [documentKeys, setDocumentKeys] = useState<string[]>(
+    profile.documentKeys
+  );
 
   const [lastEditedAt, setLastEditedAt] = useState(profile.lastEditedAt);
 
@@ -168,25 +176,44 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
     [saveField]
   );
 
+  const handleLogoUpdated = useCallback((newUrl: string) => {
+    setLogoUrl(newUrl);
+    // Dispatch custom event for sidebar refresh (consumed in Plan 03)
+    window.dispatchEvent(
+      new CustomEvent("profile-updated", { detail: { logoUrl: newUrl } })
+    );
+  }, []);
+
+  const handleDocumentsUpdated = useCallback((newKeys: string[]) => {
+    setDocumentKeys(newKeys);
+  }, []);
+
   return (
     <>
-      {/* Page header: company name + last edited */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {companyName || "Company Settings"}
-        </h1>
-        {lastEditedAt && (
-          <p className="text-sm text-muted-foreground">
-            Last edited{" "}
-            {new Date(lastEditedAt).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        )}
+      {/* Page header: logo + company name + last edited */}
+      <div className="flex items-center gap-4">
+        <LogoUpload
+          logoUrl={logoUrl || null}
+          companyName={companyName}
+          onLogoUpdated={handleLogoUpdated}
+        />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-3xl font-bold tracking-tight">
+            {companyName || "Company Settings"}
+          </h1>
+          {lastEditedAt && (
+            <p className="text-sm text-muted-foreground">
+              Last edited{" "}
+              {new Date(lastEditedAt).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Section 1: Company Info */}
@@ -359,14 +386,15 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         </div>
       </section>
 
-      {/* Section 3: Documents — wired in Task 3 */}
+      {/* Section 3: Documents */}
       <section>
         <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
           Documents
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Document management loading...
-        </p>
+        <DocumentsSection
+          documentKeys={documentKeys}
+          onDocumentsUpdated={handleDocumentsUpdated}
+        />
       </section>
     </>
   );
