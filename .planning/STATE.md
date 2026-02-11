@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (3/6 plans complete)
+**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (4/6 plans complete)
 
 ## Current Position
 
 Phase: 13 of 13 (Buyer Data Enrichment)
-Plan: 6 of 6 in current phase (13-03 Governance URLs + ModernGov SOAP COMPLETE)
-Status: Plan 13-03 complete -- Stage 2 governance URL propagation, Stage 3 ModernGov SOAP meeting discovery
-Last activity: 2026-02-11 -- Plan 13-03 executed (2 tasks, 3 min)
+Plan: 6 of 6 in current phase (13-04 Website Scraping + Personnel Extraction COMPLETE)
+Status: Plan 13-04 complete -- Stage 4 governance page scraping, Stage 5 Claude Haiku personnel extraction
+Last activity: 2026-02-11 -- Plan 13-04 executed (2 tasks, 4 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓░] ~95% (Phases 1-6, 9-10, 12 complete; Phase 13: 3/6)
+Progress: [▓▓▓▓▓▓▓▓▓▓░] ~97% (Phases 1-6, 9-10, 12 complete; Phase 13: 4/6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30
+- Total plans completed: 31
 - Average duration: 3.6 min
-- Total execution time: 1.96 hours
+- Total execution time: 2.03 hours
 
 **By Phase:**
 
@@ -36,11 +36,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓░] ~95% (Phases 1-6, 9-10, 12 complet
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
-| 13-buyer-data-enrichment | 3/6 | 13 min | 4.3 min |
+| 13-buyer-data-enrichment | 4/6 | 17 min | 4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 12-03 (2 min), 12-02 (6 min), 13-01 (7 min), 13-06 (3 min), 13-03 (3 min)
-- Trend: Consistent ~2-7 min per plan
+- Last 5 plans: 12-02 (6 min), 13-01 (7 min), 13-06 (3 min), 13-03 (3 min), 13-04 (4 min)
+- Trend: Consistent ~3-7 min per plan
 
 *Updated after each plan completion*
 
@@ -182,6 +182,12 @@ Recent decisions affecting current work:
 - [13-03]: Batch size 20 for Stage 3 (vs 100 for Stage 2) because each buyer requires HTTP calls
 - [13-03]: testConnection uses raw fetch with 5s AbortController timeout (not fetchWithDomainDelay) for quick health checks
 - [13-03]: $nin filter for democracyPortalUrl to exclude both null and empty string in single MongoDB operator
+- [13-04]: HTML extraction uses regex strip (scripts/styles/tags) -- no DOM parser needed for text-only extraction
+- [13-04]: Stage 4 tries URLs in priority order: boardPapersUrl > democracyPortalUrl > website/about/board > website/about/governance
+- [13-04]: Stage 5 uses p-limit(2) for concurrent Claude API calls to balance throughput vs rate limits
+- [13-04]: Combined text from up to 3 board documents, max 8000 chars, for Claude Haiku context window
+- [13-04]: 10-second AbortController timeout per fetch to avoid blocking on unresponsive sites
+- [13-04]: Typed Collection<T> parameters for helper functions to avoid MongoDB generic type inference conflicts
 
 ### Pending Todos
 
@@ -202,5 +208,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 13-03-PLAN.md -- Stage 2 governance URL propagation + Stage 3 ModernGov SOAP meeting discovery
-Next: Plans 13-04 through 13-05 for enrichment pipeline (scraping, personnel, scoring)
+Stopped at: Completed 13-04-PLAN.md -- Stage 4 governance page scraping + Stage 5 Claude Haiku personnel extraction
+Next: Plan 13-05 (enrichment scoring) to complete Phase 13
