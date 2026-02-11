@@ -41,13 +41,13 @@ export function createFatFetchPage(backfillStartDate: string): FetchPageFn {
     else if (params.cursor === "STAGE:award") {
       currentStage = "award";
       const updatedFrom = params.dateFrom ?? backfillStartDate;
-      url = `${FAT_BASE}?updatedFrom=${encodeURIComponent(updatedFrom)}&stage=award&limit=100`;
+      url = `${FAT_BASE}?updatedFrom=${encodeURIComponent(updatedFrom)}&stages=award&limit=100`;
     }
     // Case 3: First call (no cursor) -- start with tender stage
     else {
       currentStage = "tender";
       const updatedFrom = params.dateFrom ?? backfillStartDate;
-      url = `${FAT_BASE}?updatedFrom=${encodeURIComponent(updatedFrom)}&stage=tender&limit=100`;
+      url = `${FAT_BASE}?updatedFrom=${encodeURIComponent(updatedFrom)}&stages=tender&limit=100`;
     }
 
     const res = await fetchWithDelay(url);

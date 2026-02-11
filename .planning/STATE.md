@@ -137,6 +137,10 @@ Recent decisions affecting current work:
 - [10-02]: 60/40 budget split: FaT 5400 items (higher value) vs CF 3600 items per hourly invocation
 - [10-02]: Sequential source processing (not parallel) to respect combined API rate limits
 - [10-02]: BACKFILL_START_DATE env var overrides both default start dates for storage-constrained deployments
+- [10-UAT]: FaT API parameter is `stages` (plural) not `stage` -- API changed since Phase 2 research
+- [10-UAT]: CF base URL is `/Published/Notices/OCDS/Search` not `/Published/OCDS/Search`
+- [10-UAT]: CF uses `links.next` full URLs for pagination (same as FaT, not bare cursor tokens)
+- [10-UAT]: Worker deployed to https://tendhunt-data-sync.kozak-74d.workers.dev with hourly cron
 
 ### Pending Todos
 
@@ -155,5 +159,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Phase 10 execution complete -- all plans verified
-Next: Phase 6 (Buyer Intelligence & Credits) or deploy data-sync Worker
+Stopped at: Phase 10 UAT complete -- deployed, tested, 8/8 tests passed, 3 API fixes applied
+Next: Phase 6 (Buyer Intelligence & Credits). Worker running hourly backfill.
