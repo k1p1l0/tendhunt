@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 9 Plan 01 COMPLETE -- logo auto-extraction backend pipeline
+**Current focus:** Phase 9 COMPLETE -- AI analysis animations + logo display in onboarding
 
 ## Current Position
 
-Phase: 9 of 9 (Enhance Onboarding: Logo + AI Animations)
-Plan: 1 of 2 in current phase (COMPLETE)
-Status: Plan 09-01 complete -- logo URL auto-extracted from LinkedIn/og:image, threaded through API and persistence
-Last activity: 2026-02-11 -- Logo extraction backend pipeline (LinkedIn Apify + og:image fallback)
+Phase: 9 of 9 (Enhance Onboarding: Logo + AI Animations) COMPLETE
+Plan: 2 of 2 in current phase (COMPLETE)
+Status: Phase 09 complete -- AI analysis progress animation + logo avatar in profile review
+Last activity: 2026-02-11 -- AI analysis animation and logo display (onboarding wizard polish)
 
-Progress: [▓▓▓▓▓▓▓░░░] 65%
+Progress: [▓▓▓▓▓▓▓▓░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 4.6 min
-- Total execution time: 0.85 hours
+- Total plans completed: 11
+- Average duration: 4.4 min
+- Total execution time: 0.9 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [▓▓▓▓▓▓▓░░░] 65%
 | 01-foundation | 2/2 | 6 min | 3 min |
 | 02-data-pipeline | 3/3 | 17 min | 5.7 min |
 | 03-onboarding | 4/4 | 16 min | 4 min |
-| 09-enhance-onboarding | 1/2 | 3 min | 3 min |
+| 09-enhance-onboarding | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (4 min), 03-02 (4 min), 03-03 (4 min), 03-04 (4 min), 09-01 (3 min)
+- Last 5 plans: 03-02 (4 min), 03-03 (4 min), 03-04 (4 min), 09-01 (3 min), 09-02 (3 min)
 - Trend: Consistent ~3-4 min per plan
 
 *Updated after each plan completion*
@@ -91,6 +91,10 @@ Recent decisions affecting current work:
 - [09-01]: fetchWebContentWithOgImage as new function preserves backward compatibility of fetchWebContent
 - [09-01]: logoUrl is NOT sent to Claude prompt -- extracted directly from data sources, not AI-generated
 - [09-01]: logoUrl optional in ProfileData interface for backward compatibility with older callers
+- [09-02]: No framer-motion -- tw-animate-css utility classes and Tailwind animate-pulse only
+- [09-02]: 600ms delay between API completion and step transition for polished completion animation
+- [09-02]: Plain img tag for logo (not Next.js Image) since URL is external and may not be in remotePatterns
+- [09-02]: onError handler hides broken logo URLs gracefully instead of showing broken image placeholder
 
 ### Pending Todos
 
@@ -108,5 +112,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 09-01-PLAN.md (Logo auto-extraction backend pipeline)
-Next plan: 09-02-PLAN.md (UI: logo display in onboarding wizard + AI analysis animations)
+Stopped at: Completed 09-02-PLAN.md (AI analysis animation + logo display in onboarding wizard)
+Next plan: Phase 09 complete. Next: Phase 04 (Contract Dashboard) or other remaining phases
