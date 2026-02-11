@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 12 in progress -- Settings & Company Profile Management (1/3 plans complete)
+**Current focus:** Phase 12 in progress -- Settings & Company Profile Management (2/3 plans complete, 12-02 may be parallel)
 
 ## Current Position
 
 Phase: 12 of 12 (Settings & Company Profile Management)
-Plan: 1 of 3 in current phase (12-01 complete -- API infrastructure + toast system)
-Status: Plan 12-01 complete -- 6 profile API endpoints and sonner toast system ready
-Last activity: 2026-02-11 -- Plan 12-01 executed (2 tasks, 3 min)
+Plan: 2 of 3 in current phase (12-01 + 12-03 complete, 12-02 may be running in parallel)
+Status: Plan 12-03 complete -- Sidebar restructured with company header and TendHunt footer
+Last activity: 2026-02-11 -- Plan 12-03 executed (3 tasks, 2 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (Phases 1-6, 9-10 complete) + Phase 12: 1/3
+Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (Phases 1-6, 9-10 complete) + Phase 12: 2/3
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 25
-- Average duration: 3.7 min
-- Total execution time: 1.61 hours
+- Total plans completed: 26
+- Average duration: 3.6 min
+- Total execution time: 1.64 hours
 
 **By Phase:**
 
@@ -35,10 +35,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (Phases 1-6, 9-10 complete) + Ph
 | 05-vibe-scanner | 6/6 | 19 min | 3.2 min |
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
-| 12-settings-profile | 1/3 | 3 min | 3 min |
+| 12-settings-profile | 2/3 | 5 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 10-02 (2 min), 06-01 (4 min), 06-02 (2 min), 06-03 (2 min), 12-01 (3 min)
+- Last 5 plans: 06-01 (4 min), 06-02 (2 min), 06-03 (2 min), 12-01 (3 min), 12-03 (2 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -158,6 +158,9 @@ Recent decisions affecting current work:
 - [12-01]: ThemeProvider (next-themes) in root layout for sonner useTheme compatibility -- also enables future dark mode
 - [12-01]: PATCH /api/profile whitelist approach -- only allowed fields updatable, prevents overwriting logoUrl/documentKeys/userId
 - [12-01]: Profile PATCH upserts (findOneAndUpdate with upsert:true) so first edit auto-creates profile
+- [12-03]: SidebarFooterContent named export (not SidebarFooter) to avoid naming conflict with shadcn SidebarFooter from @/components/ui/sidebar
+- [12-03]: Company logo Avatar uses rounded-md (square), Clerk fallback uses default rounded (circle) -- visual distinction for workspace vs user identity
+- [12-03]: Custom event pattern: profile-updated event with { logoUrl, companyName } detail for cross-component sync
 
 ### Pending Todos
 
@@ -177,5 +180,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 12-01-PLAN.md -- API infrastructure and toast system for Settings page
-Next: Plan 12-02 (Settings page UI) then Plan 12-03 (Sidebar restructure)
+Stopped at: Completed 12-03-PLAN.md -- Sidebar restructured with company header and TendHunt footer
+Next: Plan 12-02 (Settings page UI) -- may already be complete if running in parallel
