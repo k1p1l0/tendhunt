@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Project scaffolding, Clerk auth, MongoDB schema, app shell
 - [x] **Phase 2: Data Pipeline** - Scrape and seed real UK procurement data into MongoDB Atlas
 - [x] **Phase 3: Onboarding & Company Profile** - Document upload, AI profile generation, credit bonus
-- [ ] **Phase 4: Contract Dashboard** - Core product screen with search, filters, and detail view
+- [x] **Phase 4: Contract Dashboard** - Core product screen with search, filters, and detail view
 - [ ] **Phase 5: Vibe Scanner** - AI-powered contract scoring using Claude Haiku
 - [ ] **Phase 6: Buyer Intelligence & Credits** - Buyer profiles, contact reveal, credit system
 - [ ] **Phase 7: Buying Signals** - Board minutes pre-tender signals display
@@ -83,8 +83,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Data access layer, contract feed with cards, keyword search, sector/region/value filters, pagination, count display
-- [ ] 04-02-PLAN.md -- Contract detail page, dashboard real stats + recent contracts, score badge placeholder
+- [x] 04-01-PLAN.md -- Data access layer, contract feed with cards, keyword search, sector/region/value filters, pagination, count display
+- [x] 04-02-PLAN.md -- Contract detail page, dashboard real stats + recent contracts, score badge placeholder
 
 ### Phase 5: Vibe Scanner
 **Goal**: Users can create an AI-powered scoring engine from their company profile that batch-scores all contracts and buyer organizations using Claude Haiku, with interactive threshold controls to surface the best opportunities
@@ -219,7 +219,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 1. Foundation | 2/2 | ✓ Complete | 2026-02-10 |
 | 2. Data Pipeline | 3/3 | ✓ Complete | 2026-02-11 |
 | 3. Onboarding & Company Profile | 2/2 | ✓ Complete | 2026-02-11 |
-| 4. Contract Dashboard | 0/2 | Planning complete | - |
+| 4. Contract Dashboard | 2/2 | ✓ Complete | 2026-02-11 |
 | 5. Vibe Scanner | 0/3 | Not started | - |
 | 6. Buyer Intelligence & Credits | 0/3 | Not started | - |
 | 7. Buying Signals | 0/1 | Not started | - |
