@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (1/6 plans complete)
+**Current focus:** Phase 13 IN PROGRESS -- Buyer Data Enrichment (2/6 plans complete)
 
 ## Current Position
 
 Phase: 13 of 13 (Buyer Data Enrichment)
-Plan: 1 of 6 in current phase (13-01 Models & Seed COMPLETE)
-Status: Plan 13-01 complete -- 4 new models, Buyer enrichment fields, seed script
-Last activity: 2026-02-11 -- Plan 13-01 executed (2 tasks, 7 min)
+Plan: 6 of 6 in current phase (13-06 Buyer Profile Enrichment UI COMPLETE)
+Status: Plan 13-06 complete -- enrichment badge, board docs tab, key personnel tab, extended header
+Last activity: 2026-02-11 -- Plan 13-06 executed (2 tasks, 3 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓░] ~93% (Phases 1-6, 9-10, 12 complete; Phase 13: 1/6)
+Progress: [▓▓▓▓▓▓▓▓▓▓░] ~94% (Phases 1-6, 9-10, 12 complete; Phase 13: 2/6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28
-- Average duration: 3.8 min
-- Total execution time: 1.86 hours
+- Total plans completed: 29
+- Average duration: 3.7 min
+- Total execution time: 1.91 hours
 
 **By Phase:**
 
@@ -36,10 +36,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓░] ~93% (Phases 1-6, 9-10, 12 complet
 | 10-live-data-pipeline | 2/2 | 6 min | 3 min |
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
-| 13-buyer-data-enrichment | 1/6 | 7 min | 7 min |
+| 13-buyer-data-enrichment | 2/6 | 10 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-03 (2 min), 12-01 (3 min), 12-03 (2 min), 12-02 (6 min), 13-01 (7 min)
+- Last 5 plans: 12-01 (3 min), 12-03 (2 min), 12-02 (6 min), 13-01 (7 min), 13-06 (3 min)
 - Trend: Consistent ~2-7 min per plan
 
 *Updated after each plan completion*
@@ -170,6 +170,10 @@ Recent decisions affecting current work:
 - [13-01]: Abolished/merged orgs tracked with status field and successorOrg -- preserves historical data and org lineage
 - [13-01]: Tier 1 expansion orgs use numbered placeholder entries to reach target counts (1,154 MATs, 165 universities, 228 FE colleges)
 - [13-01]: DataSource as canonical org registry -- all enrichment stages reference this collection
+- [13-06]: SVG circle with stroke-dasharray for enrichment score (no third-party lib)
+- [13-06]: Green/yellow/red thresholds at 70/40 for enrichment badge and confidence bars
+- [13-06]: Tabs additive only: Board Documents and Key Personnel inserted after Signals, before Attributes
+- [13-06]: Empty states always shown (not hidden tabs) for non-enriched buyers
 
 ### Pending Todos
 
@@ -190,5 +194,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 13-01-PLAN.md -- Enrichment data models and seed script
-Next: Plan 13-02 (Classification pipeline), then 13-03 through 13-06 for full enrichment pipeline
+Stopped at: Completed 13-06-PLAN.md -- Buyer profile enrichment UI (badge, tabs, header)
+Next: Plans 13-02 through 13-05 for enrichment pipeline (classification, scraping, extraction, Worker)
