@@ -3,10 +3,13 @@
 import { useCallback, useRef } from "react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
-import { useAgentStore, getActiveMessages } from "@/stores/agent-store";
+import { useAgentStore } from "@/stores/agent-store";
+import { getActiveMessages } from "@/stores/agent-store";
 import { useAgentContext } from "@/components/agent/agent-provider";
 
 import type { AgentMessage } from "@/stores/agent-store";
+
+const EMPTY_MESSAGES: AgentMessage[] = [];
 
 interface SSEEvent {
   type: string;
@@ -35,8 +38,12 @@ export function useAgent(): UseAgentReturn {
   const conversationIdRef = useRef<string | null>(null);
 
   const isStreaming = useAgentStore((s) => s.isStreaming);
-  const messages = useAgentStore((s) => getActiveMessages(s));
   const activeConversationId = useAgentStore((s) => s.activeConversationId);
+  const messages = useAgentStore((s) => {
+    if (!s.activeConversationId) return EMPTY_MESSAGES;
+    const conv = s.conversations.find((c) => c.id === s.activeConversationId);
+    return conv?.messages ?? EMPTY_MESSAGES;
+  });
 
   const handleSSEEvent = useCallback(
     (event: SSEEvent, messageId: string, convId: string) => {
@@ -82,10 +89,10 @@ export function useAgent(): UseAgentReturn {
           );
           updateMessage(convId, messageId, { toolCalls });
 
-          if (event.action?.type === "create_scanner") {
-            const scannerId = event.action.scannerId as string | undefined;
-            if (scannerId) {
-              router.push(`/scanners/${scannerId}`);
+          if (event.action?.type === "navigate") {
+            const url = event.action.url as string | undefined;
+            if (url) {
+              router.push(url);
             }
           }
           break;

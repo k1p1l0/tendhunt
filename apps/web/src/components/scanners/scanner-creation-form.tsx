@@ -21,35 +21,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import type { ScannerType } from "@/models/scanner";
+import { SECTORS } from "@/lib/constants/sectors";
 
 interface ScannerCreationFormProps {
   type: ScannerType;
   onSave: (scanner: { _id: string }) => void;
   onCancel: () => void;
 }
-
-const SECTORS = [
-  "Health & Social",
-  "Construction",
-  "Business Services",
-  "Transport",
-  "IT Services",
-  "Software",
-  "Architecture & Engineering",
-  "Education & Training",
-  "Research & Development",
-  "Defence",
-  "Environmental Services",
-  "Utilities",
-  "Legal Services",
-  "Financial Services",
-  "Facilities Management",
-  "Food & Catering",
-  "Telecommunications",
-  "Publishing & Printing",
-  "Industrial Equipment",
-  "Medical Equipment",
-] as const;
 
 const REGIONS: Record<string, string> = {
   UKC: "North East England",

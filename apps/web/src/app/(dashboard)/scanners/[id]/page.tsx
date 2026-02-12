@@ -225,10 +225,13 @@ export default function ScannerDetailPage({
 
       const params = new URLSearchParams();
       if (scannerData.searchQuery) {
-        // MongoDB $text treats spaces as implicit OR, strip explicit "OR"/"AND" operators
+        // MongoDB $text: unquoted words are OR'd, quoted phrases are AND'd.
+        // Strip OR/AND operators and quotes so all terms become OR'd words —
+        // otherwise multiple quoted phrases require ALL to appear in one document.
         const mongoQuery = scannerData.searchQuery
           .replace(/\bOR\b/gi, " ")
           .replace(/\bAND\b/gi, " ")
+          .replace(/"/g, "")
           .replace(/\s+/g, " ")
           .trim();
         params.set("q", mongoQuery);
