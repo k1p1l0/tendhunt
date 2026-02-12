@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 Phase: 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
 Plan: 19 ALL COMPLETE (4/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
 Status: Phase 19 Plan 04 complete -- Agent panel polish (Cmd+K shortcut, DOMPurify markdown, error retry, animations, accessibility)
-Last activity: 2026-02-12 - Completed quick task 1: Add PDF spend file parsing to spend-ingest worker pipeline with R2 storage
+Last activity: 2026-02-12 - Completed quick task 3: Fix data-sync worker index conflict + trigger enrichment for new buyers
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 
@@ -273,9 +273,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Add PDF spend file parsing to spend-ingest worker pipeline with R2 storage | 2026-02-12 | dcf5616 | [1-add-pdf-spend-file-parsing-to-spend-inge](./quick/1-add-pdf-spend-file-parsing-to-spend-inge/) |
+| 3 | Fix data-sync worker: remove index conflict + trigger enrichment for new buyers | 2026-02-12 | 6d11175 | [3-fix-data-sync-worker-remove-index-confli](./quick/3-fix-data-sync-worker-remove-index-confli/) |
 
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed quick-1-PLAN.md -- PDF spend file parsing added to spend-ingest worker and enrich-buyer script
-Next: Phase 19 COMPLETE. Pending: 11-02, 15-02.
+Stopped at: Completed quick-3 -- Fixed data-sync worker index conflict + added enrichment trigger for new buyers
+Next: Phase 19 COMPLETE. Pending: 11-02, 15-02. Deploy data-sync worker.
