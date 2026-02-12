@@ -233,6 +233,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 14. Buyer Explorer Filters | 3/3 | ✓ Complete | 2026-02-12 |
 | 17. Dashboard Home | 0/? | Not started | - |
 | 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
+| 19. Research Agent Chat Panel | 0/? | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -275,7 +276,7 @@ Plans:
 - [ ] 11-05-PLAN.md -- Vendors table, breakdown table with filters, opportunity cards, Spending tab integration into buyer profile
 - [x] 11-06-PLAN.md -- GOV.UK two-level scraping (buyer filtering + publication page following) + ODS/XLSX parsing via SheetJS
 
-**Reference specs:** `/Users/kirillkozak/projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
+**Reference specs:** `.planning/DATA_SOURCES.md`
 
 ### Phase 12: Settings & Company Profile Management
 
@@ -305,7 +306,7 @@ Plans:
   10. Buyer profile UI displays enrichmentScore, enrichmentSources, board documents tab, and key personnel
 **Plans**: 6 plans
 
-**Reference specs:** `/Users/kirillkozak/Projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
+**Reference specs:** `.planning/DATA_SOURCES.md`
 **Research notes:** `files/research_notes/uk_public_sector_data_sources.md`, `files/research_notes/scraping_enrichment_strategies.md`, `files/research_notes/enrichment_pipeline_best_practices.md`
 
 Plans:
@@ -368,3 +369,26 @@ Plans:
 - [x] 18-02-PLAN.md -- Overview dashboard + worker health monitoring: stats cards, worker status cards with stage breakdowns, recent activity feed, 15s polling
 - [x] 18-03-PLAN.md -- Data explorer pages: recent contracts/buyers/signals tables with sortable columns, total counts, source badges, 30s polling
 - [x] 18-04-PLAN.md -- Users management page: Clerk user list enriched with MongoDB data (company profiles, credit balances), summary stats
+
+### Phase 19: Research Agent Chat Panel
+
+**Goal:** Build a conversational AI research agent as a right-side slide-out panel accessible from any page. The agent can query all TendHunt data (buyers, contracts, signals, personnel, spending, board docs) via Claude Sonnet tool-use, perform web research, and take actions (create scanners, apply filters, add AI columns). Conversations persist to MongoDB across sessions. Context-aware with suggested prompts based on current page/entity.
+**Depends on:** Phase 5, Phase 6, Phase 11
+**Requirements**: AGENT-01 through AGENT-12 (see .planning/output.md)
+**Success Criteria** (what must be TRUE):
+  1. Right-side slide-out panel opens from a persistent trigger button in the global header on all dashboard pages
+  2. Panel is context-aware — knows which page, scanner, buyer, contract, or selected row the user is viewing
+  3. 9 read-only tools query all internal data collections (buyers, contracts, signals, personnel, spend, board docs, buyer/contract detail, web search)
+  4. 3 write tools allow the agent to create scanners, apply filters, and add AI columns — with UI state sync
+  5. Streaming responses with tool call indicators ("Searching 2,384 buyers..." → "Found 47 matches")
+  6. Conversations persist to MongoDB (`ChatConversation` collection) and can be resumed across sessions
+  7. Context-aware suggested prompts appear when conversation is empty, based on current page
+  8. Sonnet model used for strong tool-use reasoning
+  9. All queries free (no credit cost) for hackathon
+**Plans:** 4 plans
+
+Plans:
+- [ ] 19-01-PLAN.md -- ChatConversation model, system prompt builder, 12 tool definitions + handlers, SSE API route with tool-use loop
+- [ ] 19-02-PLAN.md -- AgentProvider context, Zustand store, Sheet panel UI, message components, input, suggested actions, header trigger
+- [ ] 19-03-PLAN.md -- useAgent SSE hook, page context setters (scanner/buyer/contract/dashboard), conversation persistence
+- [ ] 19-04-PLAN.md -- Keyboard shortcut (Cmd+K), animations, typing indicator, safe markdown (DOMPurify), error handling + retry
