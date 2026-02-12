@@ -141,8 +141,11 @@ function computeProfileMatch(
     }
   }
 
-  const matchPercentage =
-    totalSpend > 0 ? Math.round((totalMatchedSpend / totalSpend) * 100) : 0;
+  const rawPercent = totalSpend > 0 ? (totalMatchedSpend / totalSpend) * 100 : 0;
+  // Show 1 decimal for small matches (<1%), whole number otherwise
+  const matchPercentage = rawPercent > 0 && rawPercent < 1
+    ? Math.round(rawPercent * 10) / 10
+    : Math.round(rawPercent);
 
   return { matchedCategories, totalMatchedSpend, matchPercentage };
 }
