@@ -12,11 +12,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   Calendar,
   Building2,
-  PoundSterling,
   Tag,
   Layers,
   FileText,
   Hash,
+  ExternalLink,
 } from "lucide-react";
 
 interface Transaction {
@@ -28,6 +28,7 @@ interface Transaction {
   subcategory?: string | null;
   department?: string | null;
   reference?: string | null;
+  sourceFile?: string | null;
 }
 
 interface TransactionDetailSheetProps {
@@ -146,6 +147,26 @@ export function TransactionDetailSheet({
               mono
             />
           </div>
+
+          {transaction.sourceFile && (
+            <>
+              <Separator />
+              <a
+                href={transaction.sourceFile}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg border p-3 text-sm font-medium text-blue-600 transition-colors hover:bg-muted/50 dark:text-blue-400"
+              >
+                <ExternalLink className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">
+                  View Source File
+                </span>
+              </a>
+              <p className="text-xs text-muted-foreground">
+                Opens the original transparency report on GOV.UK
+              </p>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

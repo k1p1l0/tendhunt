@@ -31,6 +31,7 @@ interface Transaction {
   subcategory?: string | null;
   department?: string | null;
   reference?: string | null;
+  sourceFile?: string | null;
 }
 
 interface TransactionsResponse {
