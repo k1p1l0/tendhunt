@@ -8,7 +8,7 @@ import { updateJobProgress } from "../db/spend-jobs";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
 import { getPatternsForOrgType, getGovukDeptPaths } from "../patterns/transparency-urls";
 import { validateTransparencyUrl } from "../patterns/url-validator";
-import { extractNavAndFooter } from "../patterns/html-extractor";
+import { extractNavAndFooter, extractMainContent, containsSpendKeywords } from "../patterns/html-extractor";
 import { scoreLink } from "../patterns/csv-patterns";
 import { decodeHtmlEntities } from "../patterns/html-extractor";
 
@@ -285,8 +285,25 @@ export async function discoverTransparencyPages(
             return { error: false, found: false };
           }
 
-          // Use nav/footer-focused extraction with 20K limit
-          const extractedHtml = extractNavAndFooter(html, 20000);
+          // Smart content extraction: try nav/footer first, fall back to main content
+          const navFooterHtml = extractNavAndFooter(html, 15000);
+          const hasSpendInNav = containsSpendKeywords(navFooterHtml);
+          const hasSpendInBody = containsSpendKeywords(html);
+
+          let extractedHtml: string;
+          if (hasSpendInNav) {
+            extractedHtml = navFooterHtml;
+          } else if (hasSpendInBody) {
+            // Nav/footer missed it — use main content extraction
+            const mainContent = extractMainContent(html, 20000);
+            extractedHtml = navFooterHtml.slice(0, 10000) + "\n<!-- main content -->\n" + mainContent;
+            extractedHtml = extractedHtml.slice(0, 30000);
+          } else {
+            // No keywords anywhere — still try with combined content
+            const mainContent = extractMainContent(html, 15000);
+            extractedHtml = navFooterHtml.slice(0, 10000) + "\n" + mainContent;
+            extractedHtml = extractedHtml.slice(0, 30000);
+          }
 
           try {
             const response = await anthropic.messages.create({
@@ -295,25 +312,33 @@ export async function discoverTransparencyPages(
               messages: [
                 {
                   role: "user",
-                  content: `You are analyzing a UK public sector website to find spending transparency data.
+                  content: `You are analyzing a UK public sector website to find their spending/transparency data page.
 
 Organization: ${buyer.name}
 Website: ${websiteUrl}
 Organization type: ${buyer.orgType ?? "unknown"}
 
-HTML content:
+HTML content (navigation + main body):
 <html>${extractedHtml}</html>
 
-Find links to:
-1. "transparency", "spending", "payments over 500", "expenditure", "open data" pages
-2. Direct CSV/Excel file download links containing spending/payment data
-3. Links to external open data portals (data.gov.uk, etc.)
+Find links to pages about:
+1. Spending data, transparency reports, payments over £500/£25,000
+2. "Publication scheme", "What we spend", "Financial transparency"
+3. Direct CSV/Excel file download links for spending/payment data
+4. External open data portals (data.gov.uk, etc.)
 
-Look in navigation menus, footer links, and body content. UK councils typically have these under "Your Council" > "Transparency" or "About Us" > "Spending".
+IMPORTANT: UK public sector sites often use deep CMS paths like:
+- /about-the-council/finance-and-budget/spending
+- /your-council/budgets-and-spending
+- /about-us/freedom-of-information/spending-over-25000
+- /council-and-mayor/council-spending-and-performance
+- /performance-and-spending/our-financial-plans
+
+Look for ANY link containing words like: spending, transparency, payments, expenditure, invoices, financial, budget, procurement, open data.
 
 Return ONLY valid JSON (no markdown):
 {
-  "transparencyUrl": "full URL or null if not found",
+  "transparencyUrl": "full URL to spending/transparency page, or null if not found",
   "csvLinks": ["array of direct CSV/XLS download URLs found, empty if none"],
   "confidence": "HIGH|MEDIUM|LOW|NONE"
 }`,

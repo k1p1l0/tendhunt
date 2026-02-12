@@ -111,27 +111,57 @@ interface TransparencyUrlPattern {
 
 const PATTERN_REGISTRY: Record<string, TransparencyUrlPattern[]> = {
   local_council: [
-    { name: "council_transparency_spending", priority: 1, paths: ["/council/transparency/spending", "/transparency/spending", "/about-the-council/transparency/spending-and-procurement"] },
-    { name: "council_payments", priority: 2, paths: ["/payments-over-500", "/spending-over-500", "/spending-over-250"] },
-    { name: "council_open_data", priority: 3, paths: ["/open-data/spending", "/open-data/council-spending"] },
-    { name: "council_transparency_generic", priority: 4, paths: ["/transparency", "/transparency-and-open-data", "/your-council/transparency"] },
+    { name: "council_transparency_spending", priority: 1, paths: [
+      "/council/transparency/spending", "/transparency/spending", "/about-the-council/transparency/spending-and-procurement",
+      "/council-and-mayor/council-spending-and-performance/spending-over-500", "/council/council-spending-and-performance/spending-over-500",
+      "/about-the-council/finance-and-budget/spending", "/about-the-council/finance-and-budget/spending/invoices-over-250",
+      "/performance-and-spending/our-financial-plans/spending-over-500", "/your-council/performance-and-spending/our-financial-plans/spending-over-500",
+    ] },
+    { name: "council_payments", priority: 2, paths: [
+      "/payments-over-500", "/spending-over-500", "/spending-over-250", "/payments-over-250",
+      "/your-council/finance/payments-suppliers", "/about-the-council/budgets-and-spending/spending-and-payments",
+      "/council-spending-and-performance", "/your-council/budgets-and-spending", "/about-us/what-we-spend",
+    ] },
+    { name: "council_open_data", priority: 3, paths: ["/open-data/spending", "/open-data/council-spending", "/opendata/spending", "/publication-scheme"] },
+    { name: "council_transparency_generic", priority: 4, paths: ["/transparency", "/transparency-and-open-data", "/your-council/transparency", "/about-the-council/transparency"] },
   ],
   nhs_trust: [
-    { name: "nhs_spending_25k", priority: 1, paths: ["/about-us/freedom-of-information/spending-over-25000", "/about-us/spending-over-25-000", "/about-us/spending-over-25000"] },
-    { name: "nhs_spending_money", priority: 2, paths: ["/about-us/how-we-spend-our-money", "/about-us/spending"] },
+    { name: "nhs_spending_25k", priority: 1, paths: [
+      "/about-us/freedom-of-information/spending-over-25000", "/about-us/spending-over-25-000", "/about-us/spending-over-25000",
+      "/about-us/information-governance/freedom-information/spending-over-25000",
+      "/about-us/freedom-of-information/expenditure-over-25-000", "/about-us/freedom-of-information/expenditure-over-25000",
+      "/spending-over-25k",
+    ] },
+    { name: "nhs_spending_money", priority: 2, paths: [
+      "/about-us/how-we-spend-our-money", "/about-us/spending", "/about-us/our-spending",
+      "/about-us/guide-information-publication-scheme/transparency-spending",
+      "/about-us/key-documents/investing-money-in-your-care", "/about-us/corporate-publications/financial-transparency",
+      "/what-we-spend", "/what-we-spend-and-how-we-spend-it",
+    ] },
+    { name: "nhs_publications", priority: 3, paths: ["/publications/spending", "/about-us/publications/spending"] },
   ],
   nhs_icb: [
     { name: "icb_spending", priority: 1, paths: ["/about-us/how-we-spend-public-money", "/about-us/spending-reports", "/about-us/spending-over-25000"] },
+    { name: "icb_transparency", priority: 2, paths: ["/about-us/transparency", "/transparency/spending"] },
   ],
   central_government: [
     { name: "govuk_spending_25k", priority: 1, paths: ["/government/collections/spending-over-25-000", "/government/publications/spending-over-25-000"] },
     { name: "govuk_transparency", priority: 2, paths: ["/government/collections/transparency-data", "/transparency"] },
   ],
-  fire_rescue: [{ name: "fire_transparency", priority: 1, paths: ["/about-us/transparency", "/transparency/spending"] }],
-  police_pcc: [{ name: "police_spending", priority: 1, paths: ["/transparency/spending", "/about-us/what-we-spend"] }],
-  combined_authority: [{ name: "combined_authority_spending", priority: 1, paths: ["/transparency/spending", "/about-us/how-we-spend-public-money"] }],
-  university: [{ name: "university_spending", priority: 1, paths: ["/about/transparency", "/about-us/transparency", "/governance/transparency"] }],
-  alb: [{ name: "alb_spending", priority: 1, paths: ["/about-us/transparency", "/transparency/spending", "/about-us/spending"] }],
+  fire_rescue: [{ name: "fire_transparency", priority: 1, paths: [
+    "/about-us/transparency", "/transparency/spending", "/about-us/transparency/spending-over-500",
+    "/your-service/transparency/what-we-spend", "/about-us/what-we-spend", "/about-us/what-we-spend/spend-over-ps500",
+  ] }],
+  police_pcc: [{ name: "police_spending", priority: 1, paths: ["/transparency/spending", "/about-us/what-we-spend", "/transparency/payments-over-500"] }],
+  combined_authority: [{ name: "combined_authority_spending", priority: 1, paths: [
+    "/transparency/spending", "/about-us/how-we-spend-public-money", "/about-us/transparency",
+    "/about-us/democracy-funding-transparency/financial-information", "/what-we-do/budget-spending-transparency",
+  ] }],
+  university: [{ name: "university_spending", priority: 1, paths: ["/about/transparency", "/about-us/transparency", "/governance/transparency", "/about/spending"] }],
+  fe_college: [{ name: "fe_spending", priority: 1, paths: ["/about-us/transparency", "/about/transparency", "/transparency"] }],
+  mat: [{ name: "mat_spending", priority: 1, paths: ["/about-us/transparency", "/transparency", "/about/spending"] }],
+  national_park: [{ name: "national_park_spending", priority: 1, paths: ["/about-us/transparency", "/transparency", "/about-us/spending"] }],
+  alb: [{ name: "alb_spending", priority: 1, paths: ["/about-us/transparency", "/transparency/spending", "/about-us/spending", "/spending"] }],
 };
 
 const GOVUK_DEPT_SLUG_MAP: Record<string, string> = {
@@ -181,6 +211,9 @@ const SPEND_KEYWORDS = [
   "spending", "expenditure", "transparency", "payments over",
   "spend over", "csv", ".csv", ".xls", "download",
   "freedom of information", "publication scheme",
+  "invoices over", "payments to suppliers", "payment data",
+  "spend data", "monthly spend", "financial transparency",
+  "open government licence", "open data", "25,000", "£25", "£500", "procurement",
 ];
 
 function containsSpendKeywords(html: string): boolean {
@@ -194,8 +227,31 @@ function extractNavAndFooter(html: string, maxChars = 20000): string {
   sections.push(...(html.match(/<header[\s\S]*?<\/header>/gi) ?? []));
   sections.push(...(html.match(/<footer[\s\S]*?<\/footer>/gi) ?? []));
   sections.push(...(html.match(/<aside[\s\S]*?<\/aside>/gi) ?? []));
+  const sidebarMatches =
+    html.match(/<div[^>]*class="[^"]*(?:sidebar|side-nav|subnav)[^"]*"[\s\S]*?<\/div>/gi) ?? [];
+  sections.push(...sidebarMatches);
   const combined = sections.join("\n");
   if (combined.length > 2000) return stripHtml(combined).slice(0, maxChars);
+  return stripHtml(html).slice(0, maxChars);
+}
+
+function extractMainContent(html: string, maxChars = 30000): string {
+  const mainMatches = html.match(/<main[\s\S]*?<\/main>/gi) ?? [];
+  if (mainMatches.length > 0) {
+    const content = stripHtml(mainMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+  const articleMatches = html.match(/<article[\s\S]*?<\/article>/gi) ?? [];
+  if (articleMatches.length > 0) {
+    const content = stripHtml(articleMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+  const contentDivMatches =
+    html.match(/<div[^>]*(?:id="content"|class="[^"]*content[^"]*")[^>]*>[\s\S]*?<\/div>/gi) ?? [];
+  if (contentDivMatches.length > 0) {
+    const content = stripHtml(contentDivMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
   return stripHtml(html).slice(0, maxChars);
 }
 
@@ -736,9 +792,26 @@ async function main() {
           return;
         }
 
-        // Use nav/footer-focused extraction with 20K limit
-        const extractedHtml = extractNavAndFooter(html, 20000);
-        console.log(`Extracted ${extractedHtml.length} chars (nav/footer-focused)`);
+        // Smart content extraction: try nav/footer first, fall back to main content
+        const navFooterHtml = extractNavAndFooter(html, 15000);
+        const hasSpendInNav = containsSpendKeywords(navFooterHtml);
+        const hasSpendInBody = containsSpendKeywords(html);
+
+        let extractedHtml: string;
+        if (hasSpendInNav) {
+          extractedHtml = navFooterHtml;
+          console.log(`Extracted ${extractedHtml.length} chars (nav/footer — has spend keywords)`);
+        } else if (hasSpendInBody) {
+          const mainContent = extractMainContent(html, 20000);
+          extractedHtml = navFooterHtml.slice(0, 10000) + "\n<!-- main content -->\n" + mainContent;
+          extractedHtml = extractedHtml.slice(0, 30000);
+          console.log(`Extracted ${extractedHtml.length} chars (nav/footer + main content — spend keywords in body)`);
+        } else {
+          const mainContent = extractMainContent(html, 15000);
+          extractedHtml = navFooterHtml.slice(0, 10000) + "\n" + mainContent;
+          extractedHtml = extractedHtml.slice(0, 30000);
+          console.log(`Extracted ${extractedHtml.length} chars (combined — no spend keywords found)`);
+        }
 
         console.log("Calling Claude Haiku for transparency page analysis...");
         const aiResponse = await anthropic.messages.create({
@@ -747,25 +820,33 @@ async function main() {
           messages: [
             {
               role: "user",
-              content: `You are analyzing a UK public sector website to find spending transparency data.
+              content: `You are analyzing a UK public sector website to find their spending/transparency data page.
 
 Organization: ${buyer.name}
 Website: ${websiteUrl}
 Organization type: ${buyer.orgType ?? "unknown"}
 
-HTML content:
+HTML content (navigation + main body):
 <html>${extractedHtml}</html>
 
-Find links to:
-1. "transparency", "spending", "payments over 500", "expenditure", "open data" pages
-2. Direct CSV/Excel file download links containing spending/payment data
-3. Links to external open data portals (data.gov.uk, etc.)
+Find links to pages about:
+1. Spending data, transparency reports, payments over £500/£25,000
+2. "Publication scheme", "What we spend", "Financial transparency"
+3. Direct CSV/Excel file download links for spending/payment data
+4. External open data portals (data.gov.uk, etc.)
 
-Look in navigation menus, footer links, and body content. UK councils typically have these under "Your Council" > "Transparency" or "About Us" > "Spending".
+IMPORTANT: UK public sector sites often use deep CMS paths like:
+- /about-the-council/finance-and-budget/spending
+- /your-council/budgets-and-spending
+- /about-us/freedom-of-information/spending-over-25000
+- /council-and-mayor/council-spending-and-performance
+- /performance-and-spending/our-financial-plans
+
+Look for ANY link containing words like: spending, transparency, payments, expenditure, invoices, financial, budget, procurement, open data.
 
 Return ONLY valid JSON (no markdown):
 {
-  "transparencyUrl": "full URL or null if not found",
+  "transparencyUrl": "full URL to spending/transparency page, or null if not found",
   "csvLinks": ["array of direct CSV/XLS download URLs found, empty if none"],
   "confidence": "HIGH|MEDIUM|LOW|NONE"
 }`,

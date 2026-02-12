@@ -14,6 +14,18 @@ const SPEND_KEYWORDS = [
   "download",
   "freedom of information",
   "publication scheme",
+  "invoices over",
+  "payments to suppliers",
+  "payment data",
+  "spend data",
+  "monthly spend",
+  "financial transparency",
+  "open government licence",
+  "open data",
+  "25,000",
+  "£25",
+  "£500",
+  "procurement",
 ] as const;
 
 /**
@@ -56,6 +68,41 @@ export function extractNavAndFooter(
   }
 
   // Fallback: full stripped HTML with higher limit
+  return stripScriptsAndStyles(html).slice(0, maxChars);
+}
+
+/**
+ * Extract main content sections from HTML. Used as fallback when nav/footer
+ * extraction yields insufficient content for AI analysis.
+ * Priority: <main> → <article> → #content/.content → stripped body.
+ */
+export function extractMainContent(
+  html: string,
+  maxChars = 30000
+): string {
+  // Try <main> sections
+  const mainMatches = html.match(/<main[\s\S]*?<\/main>/gi) ?? [];
+  if (mainMatches.length > 0) {
+    const content = stripScriptsAndStyles(mainMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+
+  // Try <article> sections
+  const articleMatches = html.match(/<article[\s\S]*?<\/article>/gi) ?? [];
+  if (articleMatches.length > 0) {
+    const content = stripScriptsAndStyles(articleMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+
+  // Try #content or .content divs
+  const contentDivMatches =
+    html.match(/<div[^>]*(?:id="content"|class="[^"]*content[^"]*")[^>]*>[\s\S]*?<\/div>/gi) ?? [];
+  if (contentDivMatches.length > 0) {
+    const content = stripScriptsAndStyles(contentDivMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+
+  // Fallback: full body stripped of scripts/styles
   return stripScriptsAndStyles(html).slice(0, maxChars);
 }
 
