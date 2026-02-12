@@ -339,13 +339,13 @@ Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on
 
 ### Scoring & Filters Rule (CRITICAL)
 
-**Every call to `scoreSingleColumn()` MUST check `getFilteredEntityIds()` first** and pass the result as `entityIds` if filters are active. This applies to:
+**Every call to `scoreSingleColumn()` MUST call `getVisibleEntityIds()` first** and pass the result as `entityIds`. This applies to:
 - `handleRunColumn` (header menu play button)
 - `handleColumnAdded` (new AI column auto-score)
 - `onScoreColumn` (inline play button callback)
 - Any future scoring trigger
 
-Without this, scoring ignores active column filters and processes ALL rows instead of just the filtered set. This was a bug caught on 2026-02-11.
+`getVisibleEntityIds()` always returns an array of IDs from the currently loaded rows, respecting both row pagination AND column filters. **Never pass `entityIds` as undefined/null** — the backend interprets missing `entityIds` as "score ALL entities in the database", which ignores pagination. This was a bug caught on 2026-02-11 (column filters) and 2026-02-12 (row pagination).
 
 ### Adding a New Column Type
 

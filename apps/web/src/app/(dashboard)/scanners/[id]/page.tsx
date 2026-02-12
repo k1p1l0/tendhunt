@@ -552,18 +552,22 @@ export default function ScannerDetailPage({
 
   /**
    * Compute filtered row IDs based on active column filters.
-   * Returns null if no filters are active (meaning: score all).
+   * Always returns IDs from the currently loaded rows, respecting both
+   * row pagination and column filters. Never returns null — the backend
+   * should only score what the user can see.
    */
-  function getFilteredEntityIds(): string[] | null {
+  function getVisibleEntityIds(): string[] {
+    const currentRows = rowsRef.current;
     const filters = useScannerStore.getState().columnFilters;
     const activeFilters = Object.entries(filters).filter(
       ([, vals]) => vals.length > 0
     );
-    if (activeFilters.length === 0) return null;
 
-    const currentRows = rowsRef.current;
+    if (activeFilters.length === 0) {
+      return currentRows.map((r) => String(r._id));
+    }
+
     const cols = columns;
-
     const filtered = currentRows.filter((row) =>
       activeFilters.every(([colId, allowedValues]) => {
         const col = cols.find((c) => c.id === colId);
@@ -825,9 +829,9 @@ export default function ScannerDetailPage({
       setScanner(updatedScanner);
       const newCols = getColumnsForType(updatedScanner.type, updatedAiColumns, updatedScanner.customColumns, updatedScanner.columnRenames);
       setColumns(reorderWithInsertPosition(newCols));
-      const filteredIds = getFilteredEntityIds();
+      const visibleIds = getVisibleEntityIds();
       await scoreSingleColumn(column.columnId, {
-        ...(filteredIds && { entityIds: filteredIds }),
+        entityIds: visibleIds,
       });
     }
   }
@@ -866,11 +870,11 @@ export default function ScannerDetailPage({
   }
 
   function handleRunColumn(options: RunColumnOptions) {
-    const filteredIds = getFilteredEntityIds();
+    const visibleIds = getVisibleEntityIds();
     scoreSingleColumn(options.columnId, {
       limit: options.limit,
       force: options.force,
-      ...(filteredIds && { entityIds: filteredIds }),
+      entityIds: visibleIds,
     });
   }
 
@@ -1217,10 +1221,10 @@ export default function ScannerDetailPage({
           scannerType={scanner.type}
           onAiCellClick={handleAiCellClick}
           onScoreColumn={(colId) => {
-            const filteredIds = getFilteredEntityIds();
+            const visibleIds = getVisibleEntityIds();
             scoreSingleColumn(colId, {
               force: true,
-              ...(filteredIds && { entityIds: filteredIds }),
+              entityIds: visibleIds,
             });
           }}
           onCancelScoring={cancelScoring}
