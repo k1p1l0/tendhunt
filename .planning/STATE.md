@@ -19,9 +19,9 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11, 15, 19 in progress)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 43
+- Total plans completed: 44
 - Average duration: 3.4 min
-- Total execution time: 2.60 hours
+- Total execution time: 2.63 hours
 
 **By Phase:**
 
@@ -41,10 +41,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11, 15, 19 in progress)
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
-| 19-research-agent-chat-panel | 1/? | 2 min | 2 min |
+| 19-research-agent-chat-panel | 2/4 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 19-01 (2 min), 18-03 (4 min), 18-02 (4 min), 18-04 (2 min), 18-01 (5 min)
+- Last 5 plans: 19-02 (2 min), 19-01 (2 min), 18-03 (4 min), 18-02 (4 min), 18-04 (2 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -231,6 +231,12 @@ Recent decisions affecting current work:
 - [19-01]: Max 5 tool-use iterations to prevent infinite agent loops
 - [19-01]: Web search returns stub for MVP -- internal data tools are the priority
 - [19-01]: EnrichmentScore filter applied client-side since fetchBuyers interface doesn't support it natively
+- [19-02]: AgentProvider wraps inside BreadcrumbProvider for access to both contexts
+- [19-02]: Sheet showCloseButton=false with custom close button in AgentPanelHeader for consistent header layout
+- [19-02]: getActiveMessages as standalone selector function (not computed store property) for Zustand compatibility
+- [19-02]: marked.parse with sync mode and dangerouslySetInnerHTML for assistant markdown rendering
+- [19-02]: Auto-create conversation on first message send if none active (nanoid for IDs)
+- [19-02]: useAgentStore.getState() for header button to avoid unnecessary re-renders
 
 ### Pending Todos
 
@@ -255,5 +261,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 19-01-PLAN.md -- Research agent backend (ChatConversation model, system prompt, 12 tools, SSE API route)
-Next: Phase 19 Plan 02 (chat panel UI). Pending: 11-02, 15-02.
+Stopped at: Completed 19-02-PLAN.md -- Agent panel UI shell (Sheet, Zustand store, context provider, messages, input, suggested actions)
+Next: Phase 19 Plan 03 (SSE API wiring). Pending: 19-03, 19-04, 11-02, 15-02.
