@@ -71,12 +71,12 @@ export interface SignalDoc {
   boardDocumentId?: ObjectId;
   organizationName: string;
   signalType:
-    | "budget_approval"
-    | "procurement_intent"
-    | "contract_renewal"
-    | "digital_transformation"
-    | "leadership_change"
-    | "policy_change";
+    | "PROCUREMENT"
+    | "STAFFING"
+    | "STRATEGY"
+    | "FINANCIAL"
+    | "PROJECTS"
+    | "REGULATORY";
   title: string;
   insight: string;
   source?: string;

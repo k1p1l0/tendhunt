@@ -15,12 +15,12 @@ import { updateJobProgress } from "../db/signal-jobs";
 // ---------------------------------------------------------------------------
 
 const VALID_SIGNAL_TYPES = [
-  "budget_approval",
-  "procurement_intent",
-  "contract_renewal",
-  "digital_transformation",
-  "leadership_change",
-  "policy_change",
+  "PROCUREMENT",
+  "STAFFING",
+  "STRATEGY",
+  "FINANCIAL",
+  "PROJECTS",
+  "REGULATORY",
 ] as const;
 
 type ValidSignalType = (typeof VALID_SIGNAL_TYPES)[number];
@@ -32,19 +32,19 @@ type ValidSignalType = (typeof VALID_SIGNAL_TYPES)[number];
 const SYSTEM_PROMPT = `You are an expert at analyzing UK public sector board meeting minutes and extracting business intelligence signals. You always return valid JSON.
 
 Focus on actionable signals:
-- budget_approval: Budgets, savings targets, cost improvement programmes, financial approvals
-- procurement_intent: Tenders, contracts, supplier changes, framework agreements
-- contract_renewal: Existing contract renewals, extensions, re-procurements
-- digital_transformation: IT systems, infrastructure, digital transformation projects
-- leadership_change: Senior appointments, restructures, recruitment campaigns
-- policy_change: Major policy changes, regulatory compliance, audits, inspections
+- PROCUREMENT: Tenders, contracts, supplier changes, framework agreements, re-procurements
+- STAFFING: Senior appointments, restructures, recruitment campaigns, leadership changes
+- STRATEGY: Transformations, mergers, major policy changes, partnerships
+- FINANCIAL: Budgets, savings targets, cost improvement programmes, financial approvals
+- PROJECTS: IT systems, infrastructure, digital transformation, capital projects
+- REGULATORY: Audits, compliance issues, inspections, CQC, GDPR
 
 Only extract signals with clear business value. Skip routine administrative items.`;
 
 const EXTRACTION_PROMPT = `Analyze this board meeting minutes excerpt and extract business signals.
 
 For each signal found, provide:
-- signal_type: budget_approval | procurement_intent | contract_renewal | digital_transformation | leadership_change | policy_change
+- signal_type: PROCUREMENT | STAFFING | STRATEGY | FINANCIAL | PROJECTS | REGULATORY
 - title: Short title (5-10 words)
 - summary: Brief description (1-2 sentences)
 - confidence: 0.0-1.0
@@ -160,23 +160,20 @@ function isValidSignal(obj: unknown): obj is RawSignal {
 }
 
 function normalizeSignalType(raw: string): ValidSignalType {
-  // Handle both UPPER_CASE (reference project) and lower_case (our schema)
-  const normalized = raw.toLowerCase();
+  const normalized = raw.toUpperCase();
+  if (VALID_SIGNAL_TYPES.includes(normalized as ValidSignalType)) {
+    return normalized as ValidSignalType;
+  }
+  // Map common LLM variations to canonical types
   const typeMap: Record<string, ValidSignalType> = {
-    procurement: "procurement_intent",
-    procurement_intent: "procurement_intent",
-    staffing: "leadership_change",
-    strategy: "policy_change",
-    financial: "budget_approval",
-    budget_approval: "budget_approval",
-    projects: "digital_transformation",
-    digital_transformation: "digital_transformation",
-    regulatory: "policy_change",
-    policy_change: "policy_change",
-    contract_renewal: "contract_renewal",
-    leadership_change: "leadership_change",
+    BUDGET_APPROVAL: "FINANCIAL",
+    PROCUREMENT_INTENT: "PROCUREMENT",
+    CONTRACT_RENEWAL: "PROCUREMENT",
+    DIGITAL_TRANSFORMATION: "PROJECTS",
+    LEADERSHIP_CHANGE: "STAFFING",
+    POLICY_CHANGE: "REGULATORY",
   };
-  return typeMap[normalized] ?? "digital_transformation";
+  return typeMap[normalized] ?? "PROJECTS";
 }
 
 // ---------------------------------------------------------------------------
