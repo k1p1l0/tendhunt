@@ -17,73 +17,127 @@ const CF_BACKFILL_START = "2016-11-01T00:00:00Z";
 // ---------------------------------------------------------------------------
 // Per-invocation item budgets
 //
-// Total budget ~9 000 items per hourly cron (90 pages * 100 items).
+// Runs every 10 minutes. Budget ~1500 items per run (smaller batches).
 // Split 60/40 so higher-value FaT tenders get priority.
 // ---------------------------------------------------------------------------
 
-/** ~60% of per-invocation budget (90 pages * 60%) */
-const FAT_MAX_ITEMS = 5400;
+/** ~60% of per-invocation budget */
+const FAT_MAX_ITEMS = 900;
 
-/** ~40% of per-invocation budget (90 pages * 40%) */
-const CF_MAX_ITEMS = 3600;
+/** ~40% of per-invocation budget */
+const CF_MAX_ITEMS = 600;
+
+// ---------------------------------------------------------------------------
+// Sync pipeline runner
+// ---------------------------------------------------------------------------
+
+async function runSync(env: Env) {
+  const backfillStart = env.BACKFILL_START_DATE;
+  const fatStart = backfillStart || FAT_BACKFILL_START;
+  const cfStart = backfillStart || CF_BACKFILL_START;
+
+  const db = await getDb(env.MONGODB_URI);
+
+  try {
+    console.log("--- Starting Find a Tender sync ---");
+    const fatFetchPage = createFatFetchPage(fatStart);
+    const fatResult = await processSyncJob(
+      db,
+      "FIND_A_TENDER",
+      fatFetchPage,
+      fatStart,
+      FAT_MAX_ITEMS,
+      env.ENRICHMENT_WORKER_URL
+    );
+    console.log(
+      `FaT: fetched=${fatResult.fetched}, errors=${fatResult.errors}, done=${fatResult.done}`
+    );
+
+    console.log("--- Starting Contracts Finder sync ---");
+    const cfFetchPage = createCfFetchPage(cfStart);
+    const cfResult = await processSyncJob(
+      db,
+      "CONTRACTS_FINDER",
+      cfFetchPage,
+      cfStart,
+      CF_MAX_ITEMS,
+      env.ENRICHMENT_WORKER_URL
+    );
+    console.log(
+      `CF: fetched=${cfResult.fetched}, errors=${cfResult.errors}, done=${cfResult.done}`
+    );
+
+    console.log(
+      `--- Sync complete: FaT=${fatResult.fetched}+CF=${cfResult.fetched} items, ` +
+        `${fatResult.errors + cfResult.errors} errors ---`
+    );
+
+    return { fat: fatResult, cf: cfResult };
+  } finally {
+    await closeDb();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Worker entry point
 // ---------------------------------------------------------------------------
 
 export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/health") {
+      return Response.json({ status: "ok", worker: "tendhunt-data-sync" });
+    }
+
+    if (url.pathname === "/debug") {
+      const db = await getDb(env.MONGODB_URI);
+      try {
+        const syncJobs = await db.collection("syncJobs").find({}).toArray();
+        const contractCount = await db.collection("contracts").estimatedDocumentCount();
+        const buyerCount = await db.collection("buyers").estimatedDocumentCount();
+        return Response.json({
+          contractCount,
+          buyerCount,
+          syncJobs: syncJobs.map((j) => ({
+            source: j.source,
+            status: j.status,
+            totalFetched: j.totalFetched,
+            lastSyncedDate: j.lastSyncedDate,
+            lastRunAt: j.lastRunAt,
+            lastRunFetched: j.lastRunFetched,
+            lastRunErrors: j.lastRunErrors,
+            errorLog: (j.errorLog as string[])?.slice(-5),
+          })),
+        });
+      } finally {
+        await closeDb();
+      }
+    }
+
+    if (url.pathname === "/run") {
+      try {
+        const result = await runSync(env);
+        return Response.json(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return Response.json({ error: msg }, { status: 500 });
+      }
+    }
+
+    return new Response("tendhunt-data-sync worker", { status: 200 });
+  },
+
   async scheduled(
-    controller: ScheduledController,
+    _controller: ScheduledController,
     env: Env,
-    ctx: ExecutionContext
+    _ctx: ExecutionContext
   ): Promise<void> {
-    // Optional override for both sources (limits initial backfill depth)
-    const backfillStart = env.BACKFILL_START_DATE;
-    const fatStart = backfillStart || FAT_BACKFILL_START;
-    const cfStart = backfillStart || CF_BACKFILL_START;
-
-    const db = await getDb(env.MONGODB_URI);
-
     try {
-      // Process Find a Tender (allocate ~60% of budget)
-      console.log("--- Starting Find a Tender sync ---");
-      const fatFetchPage = createFatFetchPage(fatStart);
-      const fatResult = await processSyncJob(
-        db,
-        "FIND_A_TENDER",
-        fatFetchPage,
-        fatStart,
-        FAT_MAX_ITEMS,
-        env.ENRICHMENT_WORKER_URL
-      );
-      console.log(
-        `FaT: fetched=${fatResult.fetched}, errors=${fatResult.errors}, done=${fatResult.done}`
-      );
-
-      // Process Contracts Finder (allocate ~40% of budget)
-      console.log("--- Starting Contracts Finder sync ---");
-      const cfFetchPage = createCfFetchPage(cfStart);
-      const cfResult = await processSyncJob(
-        db,
-        "CONTRACTS_FINDER",
-        cfFetchPage,
-        cfStart,
-        CF_MAX_ITEMS,
-        env.ENRICHMENT_WORKER_URL
-      );
-      console.log(
-        `CF: fetched=${cfResult.fetched}, errors=${cfResult.errors}, done=${cfResult.done}`
-      );
-
-      console.log(
-        `--- Sync complete: FaT=${fatResult.fetched}+CF=${cfResult.fetched} items, ` +
-          `${fatResult.errors + cfResult.errors} errors ---`
-      );
+      await runSync(env);
     } catch (err) {
       console.error("Sync failed:", err);
-      throw err; // Let Cloudflare log the error and trigger cron retry
-    } finally {
-      await closeDb();
+      throw err;
     }
   },
 } satisfies ExportedHandler<Env>;
