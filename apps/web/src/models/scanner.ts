@@ -76,6 +76,8 @@ const scannerSchema = new Schema(
       signalType: { type: String },
       dateFrom: { type: Date },
       dateTo: { type: Date },
+      stage: { type: String },
+      status: { type: String },
     },
     aiColumns: [aiColumnSchema],
     customColumns: [customColumnSchema],

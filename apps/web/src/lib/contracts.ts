@@ -10,6 +10,8 @@ export interface ContractFilters {
   region?: string;
   minValue?: number;
   maxValue?: number;
+  stage?: string;
+  status?: string;
   sort?: "date" | "score";
   page?: number;
   pageSize?: number;
@@ -54,6 +56,14 @@ export async function fetchContracts(filters: ContractFilters) {
 
   if (filters.maxValue) {
     conditions.push({ valueMin: { $lte: filters.maxValue } });
+  }
+
+  if (filters.stage) {
+    conditions.push({ stage: filters.stage });
+  }
+
+  if (filters.status) {
+    conditions.push({ status: filters.status });
   }
 
   const query = conditions.length > 0 ? { $and: conditions } : {};
