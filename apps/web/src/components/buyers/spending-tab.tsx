@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SpendingHero } from "@/components/buyers/spending-hero";
@@ -123,18 +124,38 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
 
   return (
     <div className="space-y-6">
-      <SpendingHero metrics={data.metrics} profileMatch={profileMatch} />
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+      >
+        <SpendingHero
+          metrics={data.metrics}
+          profileMatch={profileMatch}
+          monthlyTotals={data.summary.monthlyTotals}
+        />
+      </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.1, ease: "easeOut" }}
+        className="grid gap-6 lg:grid-cols-3"
+      >
         <SpendCategoriesChart
           data={data.summary.categoryBreakdown}
           onCategoryClick={(category) => setSelectedCategory(category)}
         />
         <SpendTimelineChart data={data.summary.monthlyTotals} />
         <SpendRecurringCard recurringPatterns={opportunities.recurringPatterns} />
-      </div>
+      </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.2, ease: "easeOut" }}
+        className="grid gap-6 lg:grid-cols-2"
+      >
         <SpendVendorsTable
           data={data.summary.vendorBreakdown}
           totalSpend={data.metrics.totalSpend}
@@ -148,7 +169,7 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
           categories={categories}
           vendors={vendors}
         />
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -156,22 +177,21 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
 function SpendingTabSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Hero skeleton */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-6 w-28" />
-                </div>
-              ))}
-            </div>
-            <Skeleton className="h-28 w-full lg:max-w-xs" />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Hero skeleton — 5 stat cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {[...Array(5)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-2 w-2 rounded-full" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="mt-3 h-6 w-24" />
+              {i === 0 && <Skeleton className="mt-2 h-5 w-16 rounded-full" />}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Chart skeletons */}
       <div className="grid gap-6 lg:grid-cols-3">

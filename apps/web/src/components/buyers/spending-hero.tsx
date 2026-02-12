@@ -1,15 +1,23 @@
 "use client";
 
+import { motion } from "motion/react";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import type { SpendMetrics, ProfileMatch } from "@/lib/spend-analytics";
-import { TrendingUp, Users, Calendar, PoundSterling } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, Calendar, PoundSterling, BarChart3 } from "lucide-react";
+
+interface MonthlyTotal {
+  year: number;
+  month: number;
+  total: number;
+}
 
 interface SpendingHeroProps {
   metrics: SpendMetrics;
   profileMatch: ProfileMatch | null;
+  monthlyTotals?: MonthlyTotal[];
 }
 
 const gbpFull = new Intl.NumberFormat("en-GB", {
@@ -36,145 +44,195 @@ function formatDateRange(earliest: string | null, latest: string | null) {
     ];
     return `${months[d.getMonth()]} ${d.getFullYear()}`;
   };
-  return `${fmt(earliest)} - ${fmt(latest)}`;
+  return `${fmt(earliest)} – ${fmt(latest)}`;
 }
 
-export function SpendingHero({ metrics, profileMatch }: SpendingHeroProps) {
-  return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        <div className="bg-gradient-to-r from-blue-500/5 to-transparent p-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            {/* Left: Key metrics grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <MetricItem
-                icon={<PoundSterling className="h-4 w-4" />}
-                label="Total Spend"
-                value={gbpFull.format(metrics.totalSpend)}
-                large
-              />
-              <MetricItem
-                icon={<TrendingUp className="h-4 w-4" />}
-                label="Avg Monthly"
-                value={gbpCompact.format(metrics.avgMonthlySpend)}
-              />
-              <MetricItem
-                icon={<Users className="h-4 w-4" />}
-                label="Unique Vendors"
-                value={String(metrics.uniqueVendors)}
-              />
-              <MetricItem
-                icon={<Calendar className="h-4 w-4" />}
-                label="Date Range"
-                value={formatDateRange(
-                  metrics.dateRange.earliest,
-                  metrics.dateRange.latest
-                )}
-              />
-            </div>
+function computeTrendPercent(monthlyTotals?: MonthlyTotal[]): number | null {
+  if (!monthlyTotals || monthlyTotals.length < 4) return null;
 
-            {/* Right: Profile match */}
-            <div className="w-full lg:max-w-xs">
-              <ProfileMatchCard profileMatch={profileMatch} />
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+  const sorted = [...monthlyTotals].sort(
+    (a, b) => a.year - b.year || a.month - b.month
+  );
+
+  const recent = sorted.slice(-3);
+  const prior = sorted.slice(-6, -3);
+  if (prior.length === 0) return null;
+
+  const recentAvg = recent.reduce((s, m) => s + m.total, 0) / recent.length;
+  const priorAvg = prior.reduce((s, m) => s + m.total, 0) / prior.length;
+
+  if (priorAvg === 0) return null;
+  return ((recentAvg - priorAvg) / priorAvg) * 100;
+}
+
+const ACCENT_COLORS = {
+  blue: "bg-blue-500",
+  green: "bg-emerald-500",
+  violet: "bg-violet-500",
+  amber: "bg-amber-500",
+} as const;
+
+export function SpendingHero({ metrics, profileMatch, monthlyTotals }: SpendingHeroProps) {
+  const trendPercent = computeTrendPercent(monthlyTotals);
+
+  const statCards: {
+    label: string;
+    value: string;
+    accent: keyof typeof ACCENT_COLORS;
+    icon: React.ReactNode;
+    trend?: number | null;
+  }[] = [
+    {
+      label: "Total Spend",
+      value: gbpFull.format(metrics.totalSpend),
+      accent: "blue",
+      icon: <PoundSterling className="h-3.5 w-3.5" />,
+      trend: trendPercent,
+    },
+    {
+      label: "Avg Monthly",
+      value: gbpCompact.format(metrics.avgMonthlySpend),
+      accent: "green",
+      icon: <BarChart3 className="h-3.5 w-3.5" />,
+    },
+    {
+      label: "Unique Vendors",
+      value: String(metrics.uniqueVendors),
+      accent: "violet",
+      icon: <Users className="h-3.5 w-3.5" />,
+    },
+    {
+      label: "Date Range",
+      value: formatDateRange(metrics.dateRange.earliest, metrics.dateRange.latest),
+      accent: "amber",
+      icon: <Calendar className="h-3.5 w-3.5" />,
+    },
+  ];
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {statCards.map((card, i) => (
+        <motion.div
+          key={card.label}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: i * 0.05, ease: "easeOut" }}
+        >
+          <Card className="relative overflow-hidden">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className={`inline-block h-2 w-2 rounded-full ${ACCENT_COLORS[card.accent]}`} />
+                {card.icon}
+                {card.label}
+              </div>
+              <div className="mt-2 text-xl font-bold tracking-tight">
+                {card.value}
+              </div>
+              {card.trend != null && (
+                <TrendBadge value={card.trend} />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+
+      {/* Profile match card — spans remaining column on lg */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: statCards.length * 0.05, ease: "easeOut" }}
+      >
+        <ProfileMatchCard profileMatch={profileMatch} />
+      </motion.div>
+    </div>
+  );
+}
+
+function TrendBadge({ value }: { value: number }) {
+  const isPositive = value >= 0;
+  const formatted = `${isPositive ? "+" : ""}${value.toFixed(1)}%`;
+
+  return (
+    <span
+      className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+        isPositive
+          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          : "bg-red-500/10 text-red-600 dark:text-red-400"
+      }`}
+    >
+      {isPositive ? (
+        <TrendingUp className="h-3 w-3" />
+      ) : (
+        <TrendingDown className="h-3 w-3" />
+      )}
+      {formatted}
+    </span>
   );
 }
 
 function ProfileMatchCard({ profileMatch }: { profileMatch: ProfileMatch | null }) {
-  // Case 1: Has matching categories — show match %
   if (profileMatch && profileMatch.matchedCategories.length > 0) {
     return (
-      <div className="rounded-lg border-l-4 border-l-blue-500 bg-blue-500/5 p-4">
-        <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Profile Match
-        </div>
-        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-          {profileMatch.matchPercentage}%
-        </div>
-        <div className="mt-1 text-sm text-muted-foreground">
-          {gbpCompact.format(profileMatch.totalMatchedSpend)} spent in
-          your sectors
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {profileMatch.matchedCategories.slice(0, 3).map((cat) => (
-            <span
-              key={cat}
-              className="inline-block rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-300"
-            >
-              {cat}
-            </span>
-          ))}
-          {profileMatch.matchedCategories.length > 3 && (
-            <span className="inline-block px-1 text-xs text-muted-foreground">
-              and {profileMatch.matchedCategories.length - 3} more
-            </span>
-          )}
-        </div>
-      </div>
+      <Card className="h-full border-l-4 border-l-blue-500">
+        <CardContent className="p-4">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Profile Match
+          </div>
+          <div className="mt-1 text-3xl font-bold text-blue-600 dark:text-blue-400">
+            {profileMatch.matchPercentage}%
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {gbpCompact.format(profileMatch.totalMatchedSpend)} in your sectors
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {profileMatch.matchedCategories.slice(0, 3).map((cat) => (
+              <span
+                key={cat}
+                className="inline-block rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-300"
+              >
+                {cat}
+              </span>
+            ))}
+            {profileMatch.matchedCategories.length > 3 && (
+              <span className="inline-block px-1 text-xs text-muted-foreground">
+                +{profileMatch.matchedCategories.length - 3} more
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  // Case 2: Profile exists but no category overlap (profileMatch is non-null with empty array)
   if (profileMatch) {
     return (
-      <div className="rounded-lg border-l-4 border-l-muted bg-muted/30 p-4">
-        <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Profile Match
-        </div>
-        <div className="text-3xl font-bold text-muted-foreground">0%</div>
-        <div className="mt-1 text-sm text-muted-foreground">
-          No category overlap with this buyer&apos;s spend
-        </div>
-      </div>
+      <Card className="h-full border-l-4 border-l-muted">
+        <CardContent className="p-4">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Profile Match
+          </div>
+          <div className="mt-1 text-3xl font-bold text-muted-foreground">0%</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            No category overlap with this buyer&apos;s spend
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  // Case 3: No company profile at all
   return (
-    <div className="rounded-lg border border-dashed p-4 text-center">
-      <div className="text-sm text-muted-foreground">
-        Complete your company profile to see spend match
-      </div>
-      <a
-        href="/settings"
-        className="mt-2 inline-block text-sm font-medium text-blue-600 underline-offset-4 hover:underline dark:text-blue-400"
-      >
-        Go to Settings
-      </a>
-    </div>
-  );
-}
-
-function MetricItem({
-  icon,
-  label,
-  value,
-  large,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  large?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <div
-        className={
-          large
-            ? "text-xl font-bold tracking-tight"
-            : "text-lg font-semibold"
-        }
-      >
-        {value}
-      </div>
-    </div>
+    <Card className="flex h-full items-center justify-center border-dashed">
+      <CardContent className="p-4 text-center">
+        <div className="text-sm text-muted-foreground">
+          Complete your company profile to see spend match
+        </div>
+        <a
+          href="/settings"
+          className="mt-2 inline-block text-sm font-medium text-blue-600 underline-offset-4 hover:underline dark:text-blue-400"
+        >
+          Go to Settings
+        </a>
+      </CardContent>
+    </Card>
   );
 }
