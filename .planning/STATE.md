@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 13 COMPLETE -- Buyer Data Enrichment (6/6 plans complete)
+**Current focus:** Phase 14 IN PROGRESS -- Buyer Explorer Filters & Data Visibility (1/3 plans complete)
 
 ## Current Position
 
-Phase: 13 of 13 (Buyer Data Enrichment)
-Plan: 6 of 6 in current phase (ALL COMPLETE: 13-01 Models, 13-02 Worker, 13-03 SOAP, 13-04 Scrape, 13-05 Score, 13-06 UI)
-Status: Phase 13 complete -- 6-stage enrichment pipeline, 4 new collections, Worker, buyer profile UI
-Last activity: 2026-02-11 -- Phase 13 execution complete (6 plans, 23 min)
+Phase: 14 of 14 (Buyer Explorer Filters & Data Visibility)
+Plan: 1 of 3 in current phase (14-01 API Filtering COMPLETE)
+Status: Plan 14-01 complete -- server-side buyer filtering, filters endpoint, credit gating removed
+Last activity: 2026-02-12 -- Plan 14-01 executed (3 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (All phases complete: 1-6, 9-10, 12-13)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~97% (Phases 1-6, 9-10, 12-13 complete; Phase 14 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 33
+- Total plans completed: 34
 - Average duration: 3.6 min
-- Total execution time: 2.07 hours
+- Total execution time: 2.12 hours
 
 **By Phase:**
 
@@ -37,9 +37,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (All phases complete: 1-6, 9-10,
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
 | 13-buyer-data-enrichment | 6/6 | 23 min | 3.8 min |
+| 14-buyer-explorer-filters | 1/3 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 13-06 (3 min), 13-03 (3 min), 13-04 (4 min), 13-05 (2 min), 13-02 (4 min)
+- Last 5 plans: 14-01 (3 min), 13-06 (3 min), 13-03 (3 min), 13-04 (4 min), 13-05 (2 min)
 - Trend: Consistent ~2-7 min per plan
 
 *Updated after each plan completion*
@@ -191,6 +192,9 @@ Recent decisions affecting current work:
 - [13-05]: Score weights sum to exactly 100: orgType(15) + governance(10) + boardPapers(10) + website(5) + description(5) + staff(10) + budget(10) + personnel(20) + docs(15)
 - [13-05]: Batch aggregate queries for keypersonnel/boarddocuments counts instead of per-buyer countDocuments
 - [13-05]: Full Record<EnrichmentStage, StageFn> (not Partial) since all 6 stages are implemented
+- [14-01]: ContactReveal import kept in buyers.ts because fetchBuyerById still uses it -- Plan 02 will simplify
+- [14-01]: Credit gating fully removed from all buyer detail components (isUnlocked, UnlockButton, blur effects)
+- [14-01]: Filter values cleaned (null/empty removed) and sorted alphabetically for dropdown UX
 
 ### Pending Todos
 
@@ -203,6 +207,7 @@ Recent decisions affecting current work:
 - Phase 9 added: Enhance Onboarding: Company Photo Upload + AI Analysis Animations
 - Phase 11 added: Invoice & Spend Data Intelligence (local authority transparency spending CSV data, SME-friendliness scoring)
 - Phase 13 added: Buyer Data Enrichment (6-stage enrichment pipeline, 4 new collections, Cloudflare Worker, 2,368 org DATA_SOURCES spec)
+- Phase 14 added: Buyer Explorer Filters & Data Visibility (filter dropdowns, enrichment columns, remove credit gating, server-side filtering)
 
 ### Blockers/Concerns
 
@@ -210,6 +215,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11
-Stopped at: Phase 13 COMPLETE -- All 6 plans executed (models, worker, SOAP, scraping, scoring, UI)
-Next: Phase 13 complete. Next milestone: Phase 7 (Signals), Phase 8 (Pricing), Phase 11 (Invoice Data), or verify Phase 13
+Last session: 2026-02-12
+Stopped at: Phase 14 Plan 01 complete -- server-side filtering, filters endpoint, credit gating removed
+Next: Plan 14-02 (filter dropdown UI components) and 14-03 (remaining plans)
