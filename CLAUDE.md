@@ -258,6 +258,31 @@ Enum-like values (sectors, regions, signal types) must come from a **single shar
 
 Tool handlers in `apps/web/src/lib/agent/tool-handlers.ts` return `action` objects that are processed by `apps/web/src/hooks/use-agent.ts`. The action `type` field must match between both files. Currently supported: `action.type === "navigate"` with `action.url`.
 
+### SSE scoring streams must handle cancellation
+
+Both scoring API routes (`/api/scanners/[id]/score` and `/api/scanners/[id]/score-column`) use `ReadableStream` for SSE. The stream **must** implement a `cancel()` callback that sets a `cancelled` flag, and every `controller.enqueue()` call must check this flag first.
+
+Without this, when the client disconnects (user navigates away, cancels, or closes the tab), the scoring loop continues running server-side — making Claude API calls and burning credits indefinitely. The `pLimit` concurrency tasks must also check `cancelled` before starting each `scoreOneEntity()` call.
+
+**Pattern:**
+```typescript
+let cancelled = false;
+const stream = new ReadableStream({
+  async start(controller) {
+    function send(data: object) {
+      if (cancelled) return;
+      try { controller.enqueue(...); } catch { cancelled = true; }
+    }
+    // In each pLimit task: if (cancelled) return;
+  },
+  cancel() { cancelled = true; },
+});
+```
+
+### Scoring must respect row pagination
+
+`getVisibleEntityIds()` in the scanner page always returns IDs from the currently loaded `rows` — never `null`. This ensures scoring only processes entities the user can see (respecting both row pagination and column filters). See the "Scoring & Filters Rule" in the Scanner Data Grid section for details.
+
 ## Project Structure
 
 This is a **bun workspaces monorepo** with all deployable units under `apps/`.
