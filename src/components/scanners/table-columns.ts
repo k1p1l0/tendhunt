@@ -69,7 +69,10 @@ export const ENTITY_FIELDS: Record<ScannerType, EntityField[]> = {
     { field: "description", label: "Description", suggestedType: "paragraph" },
     { field: "sector", label: "Sector", suggestedType: "badge" },
     { field: "region", label: "Region", suggestedType: "badge" },
+    { field: "orgType", label: "Org Type", suggestedType: "badge" },
+    { field: "enrichmentScore", label: "Enrichment Score", suggestedType: "number" },
     { field: "website", label: "Website", suggestedType: "url" },
+    { field: "linkedinUrl", label: "LinkedIn", suggestedType: "url" },
     { field: "contractCount", label: "Contract Count", suggestedType: "number" },
     { field: "orgId", label: "Org ID", suggestedType: "text" },
   ],
@@ -194,6 +197,14 @@ const BUYERS_COLUMNS: ColumnDef[] = [
     truncate: true,
   },
   {
+    id: "orgType",
+    header: "Org Type",
+    accessor: "orgType",
+    type: "badge",
+    width: "w-[150px]",
+    widthPx: 150,
+  },
+  {
     id: "description",
     header: "Description",
     accessor: "description",
@@ -211,6 +222,14 @@ const BUYERS_COLUMNS: ColumnDef[] = [
     widthPx: 100,
   },
   {
+    id: "enrichmentScore",
+    header: "Enrichment",
+    accessor: "enrichmentScore",
+    type: "number",
+    width: "w-[110px]",
+    widthPx: 110,
+  },
+  {
     id: "region",
     header: "Region",
     accessor: "region",
@@ -225,6 +244,22 @@ const BUYERS_COLUMNS: ColumnDef[] = [
     type: "badge",
     width: "w-[130px]",
     widthPx: 130,
+  },
+  {
+    id: "website",
+    header: "Website",
+    accessor: "website",
+    type: "url",
+    width: "w-[160px]",
+    widthPx: 160,
+  },
+  {
+    id: "linkedinUrl",
+    header: "LinkedIn",
+    accessor: "linkedinUrl",
+    type: "url",
+    width: "w-[160px]",
+    widthPx: 160,
   },
 ];
 

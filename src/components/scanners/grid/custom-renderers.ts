@@ -323,6 +323,7 @@ interface EntityNameData {
   readonly kind: "entity-name";
   readonly name: string;
   readonly logoSlug: string;
+  readonly logoUrl?: string;
 }
 
 export type EntityNameCell = CustomCell<EntityNameData>;
@@ -339,13 +340,14 @@ function nameToSlug(name: string): string {
 
 export function createEntityNameCell(
   name: string,
-  logoName: string
+  logoName: string,
+  logoUrl?: string
 ): EntityNameCell {
   return {
     kind: GridCellKind.Custom,
     allowOverlay: false,
     copyData: name,
-    data: { kind: "entity-name", name, logoSlug: nameToSlug(logoName) },
+    data: { kind: "entity-name", name, logoSlug: nameToSlug(logoName), logoUrl },
   };
 }
 
@@ -358,22 +360,33 @@ export function setLogoRedrawCallback(cb: () => void) {
   _redrawCallback = cb;
 }
 
-function getLogoImage(slug: string): HTMLImageElement | null {
-  if (!slug) return null;
-  const cached = logoCache.get(slug);
-  if (cached === "loading" || cached === "error") return null;
+function getLogoImage(slug: string, logoUrl?: string): HTMLImageElement | null {
+  // Use logoUrl as primary key if available, otherwise fall back to slug
+  const cacheKey = logoUrl || slug;
+  if (!cacheKey) return null;
+
+  const cached = logoCache.get(cacheKey);
+  if (cached === "loading") return null;
+  if (cached === "error") {
+    // If DB logo failed, try static fallback (only once)
+    if (logoUrl && slug) {
+      return getLogoImage(slug);
+    }
+    return null;
+  }
   if (cached) return cached;
 
   // Start loading
-  logoCache.set(slug, "loading");
+  logoCache.set(cacheKey, "loading");
   const img = new Image();
-  img.src = `/logos/${slug}.png`;
+  img.crossOrigin = "anonymous";
+  img.src = logoUrl || `/logos/${slug}.png`;
   img.onload = () => {
-    logoCache.set(slug, img);
+    logoCache.set(cacheKey, img);
     _redrawCallback?.();
   };
   img.onerror = () => {
-    logoCache.set(slug, "error");
+    logoCache.set(cacheKey, "error");
     _redrawCallback?.();
   };
   return null;
@@ -386,7 +399,7 @@ const entityNameRenderer: CustomRenderer<EntityNameCell> = {
 
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { name, logoSlug } = cell.data;
+    const { name, logoSlug, logoUrl } = cell.data;
     const displayName = name || "--";
 
     const logoSize = 18;
@@ -394,7 +407,7 @@ const entityNameRenderer: CustomRenderer<EntityNameCell> = {
     const logoX = rect.x + logoPad;
     const logoY = rect.y + (rect.height - logoSize) / 2;
 
-    const img = logoSlug ? getLogoImage(logoSlug) : null;
+    const img = (logoSlug || logoUrl) ? getLogoImage(logoSlug, logoUrl) : null;
     let textX = logoX;
     let needsRedraw = false;
 
@@ -418,7 +431,7 @@ const entityNameRenderer: CustomRenderer<EntityNameCell> = {
       ctx.restore();
 
       textX = logoX + logoSize + 8;
-    } else if (logoCache.get(logoSlug) === "loading") {
+    } else if (logoCache.get(logoUrl || logoSlug) === "loading") {
       // Placeholder circle while loading
       ctx.beginPath();
       ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);

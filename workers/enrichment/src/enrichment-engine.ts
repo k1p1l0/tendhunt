@@ -7,6 +7,8 @@ import {
   markJobError,
 } from "./db/enrichment-jobs";
 import { classifyBuyers } from "./stages/01-classify";
+import { discoverWebsites } from "./stages/01b-website-discovery";
+import { enrichLogoLinkedin } from "./stages/01c-logo-linkedin";
 import { mapGovernanceUrls } from "./stages/02-governance-urls";
 import { fetchModernGovData } from "./stages/03-moderngov";
 import { scrapeGovernancePages } from "./stages/04-scrape";
@@ -19,6 +21,8 @@ import { computeEnrichmentScores } from "./stages/06-score";
 
 const STAGE_FUNCTIONS: Record<EnrichmentStage, StageFn> = {
   classify: classifyBuyers,
+  website_discovery: discoverWebsites,
+  logo_linkedin: enrichLogoLinkedin,
   governance_urls: mapGovernanceUrls,
   moderngov: fetchModernGovData,
   scrape: scrapeGovernancePages,
@@ -65,7 +69,7 @@ export async function processEnrichmentPipeline(
     console.log(`Resuming errored job for stage ${currentStage} from cursor ${job.cursor}`);
   }
 
-  // Look up the stage function (all 6 stages are implemented)
+  // Look up the stage function (all 8 stages are implemented)
   const stageFn = STAGE_FUNCTIONS[currentStage];
 
   // Execute the stage

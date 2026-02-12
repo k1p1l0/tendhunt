@@ -12,6 +12,34 @@ import {
   formatCurrency,
   formatNumber,
 } from "./format-utils";
+
+const ORG_TYPE_LABELS: Record<string, string> = {
+  local_council_london: "London Borough",
+  local_council_metro: "Metro Borough",
+  local_council_county: "County Council",
+  local_council_unitary: "Unitary Authority",
+  local_council_district: "District Council",
+  local_council_sui_generis: "Sui Generis",
+  local_council_other: "Council",
+  nhs_trust_acute: "NHS Acute Trust",
+  nhs_trust_mental_health: "NHS Mental Health",
+  nhs_trust_community: "NHS Community",
+  nhs_trust_ambulance: "NHS Ambulance",
+  nhs_icb: "NHS ICB",
+  nhs_other: "NHS Body",
+  fire_rescue: "Fire & Rescue",
+  police_pcc: "Police / PCC",
+  combined_authority: "Combined Authority",
+  national_park: "National Park",
+  mat: "Academy Trust",
+  university: "University",
+  fe_college: "FE College",
+  alb: "Arms-Length Body",
+  central_government: "Central Gov",
+  devolved_government: "Devolved Gov",
+  housing_association: "Housing Assoc",
+  private_company: "Private Company",
+};
 import type { ScoreEntry } from "@/stores/scanner-store";
 import { isTextUseCase } from "@/lib/ai-column-config";
 
@@ -87,7 +115,9 @@ export function createGetCellContent(
         : name;
       const nameStr = name != null ? String(name) : "";
       const logoStr = logoName != null ? String(logoName) : nameStr;
-      return createEntityNameCell(nameStr, logoStr);
+      const logoUrl = resolveAccessor(rowData, "logoUrl");
+      const logoUrlStr = logoUrl != null ? String(logoUrl) : undefined;
+      return createEntityNameCell(nameStr, logoStr, logoUrlStr);
     }
 
     const value = resolveAccessor(rowData, meta.accessor);
@@ -132,7 +162,7 @@ export function createGetCellContent(
       }
 
       case "badge": {
-        const label = value != null ? String(value) : "";
+        let label = value != null ? String(value) : "";
         if (!label) {
           return {
             kind: GridCellKind.Text,
@@ -140,6 +170,10 @@ export function createGetCellContent(
             displayData: "--",
             allowOverlay: false,
           };
+        }
+        // Human-readable labels for orgType values
+        if (meta.id === "orgType" && label in ORG_TYPE_LABELS) {
+          label = ORG_TYPE_LABELS[label];
         }
         return createCategoryBadgeCell(label);
       }

@@ -7,6 +7,8 @@ import type { ObjectId } from "mongodb";
 export interface Env {
   MONGODB_URI: string;
   ANTHROPIC_API_KEY: string;
+  APIFY_API_TOKEN: string;
+  LOGO_DEV_TOKEN: string;
   DOCS: R2Bucket;
 }
 
@@ -16,6 +18,8 @@ export interface Env {
 
 export type EnrichmentStage =
   | "classify"
+  | "website_discovery"
+  | "logo_linkedin"
   | "governance_urls"
   | "moderngov"
   | "scrape"
@@ -24,6 +28,8 @@ export type EnrichmentStage =
 
 export const STAGE_ORDER: EnrichmentStage[] = [
   "classify",
+  "website_discovery",
+  "logo_linkedin",
   "governance_urls",
   "moderngov",
   "scrape",
@@ -98,6 +104,10 @@ export interface BuyerDoc {
   // Financial/size
   staffCount?: number;
   annualBudget?: number;
+
+  // Visual / contact enrichment
+  logoUrl?: string;
+  linkedinUrl?: string;
 
   // Enrichment metadata
   enrichmentScore?: number;

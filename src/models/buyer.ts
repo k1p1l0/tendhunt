@@ -33,6 +33,8 @@ const buyerSchema = new Schema(
     staffCount: { type: Number },
     annualBudget: { type: Number },
     enrichmentScore: { type: Number, min: 0, max: 100 },
+    logoUrl: { type: String },
+    linkedinUrl: { type: String },
     enrichmentSources: [{ type: String }],
     lastEnrichedAt: { type: Date },
     enrichmentVersion: { type: Number, default: 0 },

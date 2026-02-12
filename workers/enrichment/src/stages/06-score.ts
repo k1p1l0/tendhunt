@@ -12,14 +12,16 @@ import { updateJobProgress } from "../db/enrichment-jobs";
  * on data completeness.
  *
  * Scores reflect how much intelligence is available for each buyer:
- * - orgType classification:     15 pts
- * - Democracy portal URL:       10 pts
- * - Board papers URL:           10 pts
- * - Website:                     5 pts
+ * - orgType classification:     12 pts
+ * - Website:                     8 pts
+ * - Logo URL:                    5 pts
+ * - LinkedIn URL:                5 pts
+ * - Democracy portal URL:        8 pts
+ * - Board papers URL:            8 pts
  * - Description:                 5 pts
- * - Staff count:                10 pts
- * - Annual budget:              10 pts
- * - Key personnel (up to 5):   20 pts
+ * - Staff count:                 8 pts
+ * - Annual budget:               8 pts
+ * - Key personnel (up to 5):    18 pts
  * - Board documents (up to 10): 15 pts
  *                         Total: 100 pts
  *
@@ -154,9 +156,9 @@ export async function computeEnrichmentScores(
  * Compute enrichment score (0-100) based on weighted data completeness.
  *
  * Weights sum to exactly 100:
- *   orgType(15) + democracyPortalUrl(10) + boardPapersUrl(10) +
- *   website(5) + description(5) + staffCount(10) + annualBudget(10) +
- *   personnel(20) + documents(15) = 100
+ *   orgType(12) + website(8) + logoUrl(5) + linkedinUrl(5) +
+ *   democracyPortalUrl(8) + boardPapersUrl(8) + description(5) +
+ *   staffCount(8) + annualBudget(8) + personnel(18) + documents(15) = 100
  */
 function computeScore(
   buyer: BuyerDoc,
@@ -166,16 +168,18 @@ function computeScore(
   let score = 0;
 
   // Binary presence fields
-  if (buyer.orgType) score += 15;
-  if (buyer.democracyPortalUrl) score += 10;
-  if (buyer.boardPapersUrl) score += 10;
-  if (buyer.website) score += 5;
+  if (buyer.orgType) score += 12;
+  if (buyer.website) score += 8;
+  if (buyer.logoUrl) score += 5;
+  if (buyer.linkedinUrl) score += 5;
+  if (buyer.democracyPortalUrl) score += 8;
+  if (buyer.boardPapersUrl) score += 8;
   if (buyer.description) score += 5;
-  if (buyer.staffCount) score += 10;
-  if (buyer.annualBudget) score += 10;
+  if (buyer.staffCount) score += 8;
+  if (buyer.annualBudget) score += 8;
 
   // Graduated fields (proportional to count, capped)
-  score += (Math.min(personnelCount, 5) / 5) * 20; // 0-20 pts
+  score += (Math.min(personnelCount, 5) / 5) * 18; // 0-18 pts
   score += (Math.min(docCount, 10) / 10) * 15; // 0-15 pts
 
   return Math.round(score);
