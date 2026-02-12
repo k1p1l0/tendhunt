@@ -35,6 +35,15 @@ interface SpendJobDoc {
   errorLog: string[];
 }
 
+interface SignalJobDoc {
+  stage: string;
+  status: string;
+  totalProcessed: number;
+  totalErrors: number;
+  lastRunAt: Date | null;
+  errorLog: string[];
+}
+
 export interface WorkerStage {
   name: string;
   status: string;
@@ -101,6 +110,7 @@ const WORKER_URLS: Record<string, string> = {
   "data-sync": process.env.DATA_SYNC_WORKER_URL ?? "https://tendhunt-data-sync.kozak-74d.workers.dev",
   "enrichment": process.env.ENRICHMENT_WORKER_URL ?? "https://tendhunt-enrichment.kozak-74d.workers.dev",
   "spend-ingest": process.env.SPEND_INGEST_WORKER_URL ?? "https://tendhunt-spend-ingest.kozak-74d.workers.dev",
+  "board-minutes": process.env.BOARD_MINUTES_WORKER_URL ?? "https://tendhunt-board-minutes.kozak-74d.workers.dev",
 };
 
 const WORKER_SECRET = process.env.WORKER_SECRET ?? "";
@@ -142,7 +152,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
   const db = mongoose.connection.db;
   if (!db) throw new Error("Database connection not available");
 
-  const [syncJobs, enrichmentJobs, spendJobs, dataSyncHealth, enrichmentHealth, spendHealth] = await Promise.all([
+  const [syncJobs, enrichmentJobs, spendJobs, signalJobs, dataSyncHealth, enrichmentHealth, spendHealth, boardMinutesHealth] = await Promise.all([
     db
       .collection("syncJobs")
       .find({})
@@ -180,9 +190,22 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
         errorLog: { $slice: -5 },
       })
       .toArray(),
+    db
+      .collection("signalingestjobs")
+      .find({})
+      .project<SignalJobDoc>({
+        stage: 1,
+        status: 1,
+        totalProcessed: 1,
+        totalErrors: 1,
+        lastRunAt: 1,
+        errorLog: { $slice: -5 },
+      })
+      .toArray(),
     checkWorkerHealth("data-sync"),
     checkWorkerHealth("enrichment"),
     checkWorkerHealth("spend-ingest"),
+    checkWorkerHealth("board-minutes"),
   ]);
 
   const dataSyncWorker: WorkerStatus = {
@@ -248,7 +271,28 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
     health: spendHealth,
   };
 
-  return [dataSyncWorker, enrichmentWorker, spendIngestWorker];
+  const boardMinutesWorker: WorkerStatus = {
+    workerName: "board-minutes",
+    displayName: "Board Minutes",
+    overallStatus: deriveOverallStatus(signalJobs.map((j) => j.status)),
+    lastRunAt: latestDate(signalJobs.map((j) => j.lastRunAt)),
+    totalProcessed: signalJobs.reduce(
+      (sum, j) => sum + (j.totalProcessed || 0),
+      0
+    ),
+    totalErrors: signalJobs.reduce((sum, j) => sum + (j.totalErrors || 0), 0),
+    stages: signalJobs.map((j) => ({
+      name: j.stage,
+      status: j.status,
+      processed: j.totalProcessed || 0,
+      errors: j.totalErrors || 0,
+      lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
+    })),
+    errorLog: collectErrors(signalJobs),
+    health: boardMinutesHealth,
+  };
+
+  return [dataSyncWorker, enrichmentWorker, spendIngestWorker, boardMinutesWorker];
 }
 
 // ---------------------------------------------------------------------------
