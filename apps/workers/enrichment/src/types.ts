@@ -135,6 +135,7 @@ export interface BuyerDoc {
   enrichmentSources?: string[];
   lastEnrichedAt?: Date;
   enrichmentVersion?: number;
+  enrichmentPriority?: number;
 
   createdAt: Date;
   updatedAt: Date;

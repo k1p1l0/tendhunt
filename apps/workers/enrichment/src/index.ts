@@ -1,6 +1,17 @@
-import type { Env } from "./types";
+import { ObjectId } from "mongodb";
+import type { Db } from "mongodb";
+import type { Env, EnrichmentStage, EnrichmentJobDoc, StageFn } from "./types";
+import { STAGE_ORDER } from "./types";
 import { getDb, closeDb } from "./db/client";
 import { processEnrichmentPipeline } from "./enrichment-engine";
+import { classifyBuyers } from "./stages/01-classify";
+import { discoverWebsites } from "./stages/01b-website-discovery";
+import { enrichLogoLinkedin } from "./stages/01c-logo-linkedin";
+import { mapGovernanceUrls } from "./stages/02-governance-urls";
+import { fetchModernGovData } from "./stages/03-moderngov";
+import { scrapeGovernancePages } from "./stages/04-scrape";
+import { extractKeyPersonnel } from "./stages/05-personnel";
+import { computeEnrichmentScores } from "./stages/06-score";
 
 // ---------------------------------------------------------------------------
 // Enrichment Worker entry point
@@ -39,6 +50,52 @@ async function runPipeline(env: Env, maxItems = 500) {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+
+    // Single-buyer enrichment: GET /run-buyer?id=<ObjectId>
+    if (url.pathname === "/run-buyer") {
+      const buyerId = url.searchParams.get("id");
+      if (!buyerId) {
+        return Response.json({ error: "Missing ?id= parameter" }, { status: 400 });
+      }
+
+      let oid: ObjectId;
+      try {
+        oid = new ObjectId(buyerId);
+      } catch {
+        return Response.json({ error: "Invalid ObjectId" }, { status: 400 });
+      }
+
+      const db = await getDb(env.MONGODB_URI);
+      try {
+        const buyer = await db.collection("buyers").findOne({ _id: oid });
+        if (!buyer) {
+          return Response.json({ error: "Buyer not found" }, { status: 404 });
+        }
+
+        // Mark as manually triggered (highest priority)
+        await db.collection("buyers").updateOne(
+          { _id: oid },
+          { $set: { enrichmentPriority: 10, updatedAt: new Date() } }
+        );
+
+        const results = await runSingleBuyerEnrichment(db, env, oid);
+
+        // Reset priority back to tier-based value after processing
+        const updated = await db.collection("buyers").findOne({ _id: oid });
+        const tierPriority = updated?.dataSourceId ? 1 : 0;
+        await db.collection("buyers").updateOne(
+          { _id: oid },
+          { $set: { enrichmentPriority: tierPriority, updatedAt: new Date() } }
+        );
+
+        return Response.json({ buyerId, buyerName: buyer.name, stages: results });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return Response.json({ error: msg }, { status: 500 });
+      } finally {
+        await closeDb();
+      }
+    }
 
     // Manual trigger: GET /run or /run?max=100
     if (url.pathname === "/run") {
@@ -108,3 +165,58 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
+
+// ---------------------------------------------------------------------------
+// Single-buyer enrichment — runs all 8 stages for one buyer
+// ---------------------------------------------------------------------------
+
+const SINGLE_BUYER_STAGES: Record<EnrichmentStage, StageFn> = {
+  classify: classifyBuyers,
+  website_discovery: discoverWebsites,
+  logo_linkedin: enrichLogoLinkedin,
+  governance_urls: mapGovernanceUrls,
+  moderngov: fetchModernGovData,
+  scrape: scrapeGovernancePages,
+  personnel: extractKeyPersonnel,
+  score: computeEnrichmentScores,
+};
+
+async function runSingleBuyerEnrichment(
+  db: Db,
+  env: Env,
+  _buyerId: ObjectId
+): Promise<Record<string, { processed: number; errors: number; skipped?: boolean }>> {
+  const results: Record<string, { processed: number; errors: number; skipped?: boolean }> = {};
+
+  // Create a synthetic job that starts from the very beginning (cursor: null)
+  // with batchSize: 1. Since this buyer has enrichmentPriority: 10, it will
+  // be the first result in priority-sorted queries.
+  const now = new Date();
+  const fakeJob: EnrichmentJobDoc = {
+    _id: new ObjectId(),
+    stage: "classify",
+    status: "running",
+    cursor: null,
+    batchSize: 1,
+    totalProcessed: 0,
+    totalErrors: 0,
+    errorLog: [],
+    startedAt: now,
+    lastRunAt: now,
+    updatedAt: now,
+  };
+
+  for (const stage of STAGE_ORDER) {
+    try {
+      const stageJob = { ...fakeJob, stage, cursor: null };
+      const result = await SINGLE_BUYER_STAGES[stage](db, env, stageJob, 1);
+      results[stage] = { processed: result.processed, errors: result.errors };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Single-buyer stage ${stage} failed: ${msg}`);
+      results[stage] = { processed: 0, errors: 1 };
+    }
+  }
+
+  return results;
+}

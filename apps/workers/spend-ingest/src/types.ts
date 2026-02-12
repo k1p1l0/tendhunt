@@ -118,6 +118,7 @@ export interface BuyerDoc {
   spendDataAvailable?: boolean;
   discoveryMethod?: string;
   lastSpendIngestAt?: Date;
+  enrichmentPriority?: number;
   createdAt: Date;
   updatedAt: Date;
 }

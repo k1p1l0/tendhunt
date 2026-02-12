@@ -21,7 +21,7 @@ export async function getBuyerBatch(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -45,7 +45,7 @@ export async function getFilteredBuyerBatch(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }

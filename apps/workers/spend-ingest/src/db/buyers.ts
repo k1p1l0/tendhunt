@@ -23,7 +23,7 @@ export async function getBuyerBatch(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -49,7 +49,7 @@ export async function getBuyerBatchForDiscovery(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -76,7 +76,7 @@ export async function getBuyerBatchForLinkExtraction(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -102,7 +102,7 @@ export async function getBuyerBatchForDownload(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -128,7 +128,7 @@ export async function getBuyerBatchForAggregation(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }

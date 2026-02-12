@@ -188,6 +188,7 @@ export async function classifyBuyers(
           const fields: Record<string, unknown> = {
             orgType: ds.orgType,
             dataSourceId: ds._id,
+            enrichmentPriority: ds.tier === 0 ? 1 : 0,
           };
 
           if (ds.democracyPortalUrl) {

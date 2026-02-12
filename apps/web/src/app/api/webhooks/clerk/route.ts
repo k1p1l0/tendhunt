@@ -5,7 +5,6 @@ import User from "@/models/user";
 
 export async function POST(req: NextRequest) {
   try {
-    // @ts-expect-error -- NextRequest type mismatch between hoisted next versions in monorepo
     const evt = await verifyWebhook(req);
 
     const eventType = evt.type;
