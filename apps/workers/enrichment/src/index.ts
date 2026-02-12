@@ -62,6 +62,14 @@ async function runPipeline(env: Env, maxItems = 500) {
   }
 }
 
+function requireSecret(url: URL, env: Env): Response | null {
+  if (!env.WORKER_SECRET) return null;
+  if (url.searchParams.get("secret") !== env.WORKER_SECRET) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -136,6 +144,8 @@ export default {
 
     // Manual trigger: GET /run or /run?max=100
     if (url.pathname === "/run") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const max = parseInt(url.searchParams.get("max") ?? "500", 10);
       try {
         const result = await runPipeline(env, max);
@@ -148,6 +158,8 @@ export default {
 
     // Debug: test filtered buyer query
     if (url.pathname === "/debug") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const db = await getDb(env.MONGODB_URI);
       try {
         const total = await db.collection("buyers").countDocuments();

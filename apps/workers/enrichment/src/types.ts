@@ -12,6 +12,7 @@ export interface Env {
   DOCS: R2Bucket;
   SPEND_INGEST_WORKER_URL: string;
   BOARD_MINUTES_WORKER_URL: string;
+  WORKER_SECRET?: string;
 }
 
 // ---------------------------------------------------------------------------

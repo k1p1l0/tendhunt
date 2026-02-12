@@ -124,4 +124,5 @@ export interface Env {
   MONGODB_URI: string;
   BACKFILL_START_DATE?: string;
   ENRICHMENT_WORKER_URL?: string;
+  WORKER_SECRET?: string;
 }

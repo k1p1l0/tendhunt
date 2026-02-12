@@ -110,7 +110,7 @@ async function checkWorkerHealth(workerName: string): Promise<WorkerHealthCheck>
   const healthUrl = `${url}/health`;
   const start = Date.now();
   try {
-    const res = await fetch(healthUrl, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(healthUrl, { signal: AbortSignal.timeout(8000) });
     const latencyMs = Date.now() - start;
     if (!res.ok) return { reachable: false, latencyMs, url: healthUrl, error: `HTTP ${res.status}` };
     return { reachable: true, latencyMs, url: healthUrl };

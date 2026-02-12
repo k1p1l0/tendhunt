@@ -82,6 +82,14 @@ async function runSync(env: Env) {
 // Worker entry point
 // ---------------------------------------------------------------------------
 
+function requireSecret(url: URL, env: Env): Response | null {
+  if (!env.WORKER_SECRET) return null;
+  if (url.searchParams.get("secret") !== env.WORKER_SECRET) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -91,6 +99,8 @@ export default {
     }
 
     if (url.pathname === "/debug") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const db = await getDb(env.MONGODB_URI);
       try {
         const syncJobs = await db.collection("syncJobs").find({}).toArray();
@@ -116,6 +126,8 @@ export default {
     }
 
     if (url.pathname === "/run") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       try {
         const result = await runSync(env);
         return Response.json(result);
