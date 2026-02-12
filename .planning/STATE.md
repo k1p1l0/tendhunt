@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 14 IN PROGRESS -- Buyer Explorer Filters & Data Visibility (1/3 plans complete)
+**Current focus:** Phase 14 IN PROGRESS -- Buyer Explorer Filters & Data Visibility (2/3 plans complete)
 
 ## Current Position
 
 Phase: 14 of 14 (Buyer Explorer Filters & Data Visibility)
-Plan: 1 of 3 in current phase (14-01 API Filtering COMPLETE)
-Status: Plan 14-01 complete -- server-side buyer filtering, filters endpoint, credit gating removed
-Last activity: 2026-02-12 -- Plan 14-01 executed (3 min)
+Plan: 2 of 3 in current phase (14-01 API Filtering COMPLETE, 14-02 UI Columns COMPLETE)
+Status: Plan 14-02 complete -- BuyerTable enrichment columns, credit gating removed from all buyer components
+Last activity: 2026-02-12 -- Plan 14-02 executed (4 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~97% (Phases 1-6, 9-10, 12-13 complete; Phase 14 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~98% (Phases 1-6, 9-10, 12-13 complete; Phase 14: 2/3 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: 3.6 min
-- Total execution time: 2.12 hours
+- Total execution time: 2.18 hours
 
 **By Phase:**
 
@@ -37,10 +37,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~97% (Phases 1-6, 9-10, 12-13 complet
 | 06-buyer-intelligence | 3/3 | 8 min | 2.7 min |
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
 | 13-buyer-data-enrichment | 6/6 | 23 min | 3.8 min |
-| 14-buyer-explorer-filters | 1/3 | 3 min | 3 min |
+| 14-buyer-explorer-filters | 2/3 | 7 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 14-01 (3 min), 13-06 (3 min), 13-03 (3 min), 13-04 (4 min), 13-05 (2 min)
+- Last 5 plans: 14-02 (4 min), 14-01 (3 min), 13-06 (3 min), 13-03 (3 min), 13-04 (4 min)
 - Trend: Consistent ~2-7 min per plan
 
 *Updated after each plan completion*
@@ -195,6 +195,9 @@ Recent decisions affecting current work:
 - [14-01]: ContactReveal import kept in buyers.ts because fetchBuyerById still uses it -- Plan 02 will simplify
 - [14-01]: Credit gating fully removed from all buyer detail components (isUnlocked, UnlockButton, blur effects)
 - [14-01]: Filter values cleaned (null/empty removed) and sorted alphabetically for dropdown UX
+- [14-02]: orgTypeLabel duplicated in buyer-table.tsx (same as buyer-header.tsx) -- keeps components self-contained
+- [14-02]: Score color thresholds 70/40 (green/yellow/red) match enrichment badge convention from Phase 13
+- [14-02]: Website column shows domain-only text via URL parsing (strips protocol + www prefix)
 
 ### Pending Todos
 
@@ -216,5 +219,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Phase 14 Plan 01 complete -- server-side filtering, filters endpoint, credit gating removed
-Next: Plan 14-02 (filter dropdown UI components) and 14-03 (remaining plans)
+Stopped at: Phase 14 Plan 02 complete -- BuyerTable enrichment columns, credit gating fully removed
+Next: Plan 14-03 (filter dropdown UI components or remaining UI work)
