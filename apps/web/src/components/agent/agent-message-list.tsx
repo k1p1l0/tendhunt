@@ -2,16 +2,17 @@
 
 import { useRef, useEffect } from "react";
 import { AnimatePresence } from "motion/react";
-import { useAgentStore, getActiveMessages } from "@/stores/agent-store";
 import { AgentMessage } from "./agent-message";
 import { SuggestedActions } from "./suggested-actions";
 
+import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
+
 interface AgentMessageListProps {
+  messages: AgentMessageType[];
   onSend: (text: string) => void;
 }
 
-export function AgentMessageList({ onSend }: AgentMessageListProps) {
-  const messages = useAgentStore((s) => getActiveMessages(s));
+export function AgentMessageList({ messages, onSend }: AgentMessageListProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

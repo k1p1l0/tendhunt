@@ -28,13 +28,21 @@ function getContextLabel(context: ReturnType<typeof useAgentContext>["context"])
   }
 }
 
-export function AgentPanelHeader() {
+interface AgentPanelHeaderProps {
+  onNewChat?: () => void;
+}
+
+export function AgentPanelHeader({ onNewChat }: AgentPanelHeaderProps) {
   const { context } = useAgentContext();
   const setPanelOpen = useAgentStore((s) => s.setPanelOpen);
   const createConversation = useAgentStore((s) => s.createConversation);
 
   const handleNewChat = () => {
-    createConversation(nanoid());
+    if (onNewChat) {
+      onNewChat();
+    } else {
+      createConversation(nanoid());
+    }
   };
 
   return (

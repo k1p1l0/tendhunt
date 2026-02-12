@@ -5,11 +5,11 @@ import type { KeyboardEvent } from "react";
 import { ArrowUp, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAgentContext } from "./agent-provider";
-import { useAgentStore } from "@/stores/agent-store";
 
 interface AgentInputProps {
   onSend: (text: string) => void;
   onStop?: () => void;
+  isStreaming?: boolean;
 }
 
 function getPlaceholder(
@@ -24,16 +24,19 @@ function getPlaceholder(
       return context.scannerName
         ? `Ask about your ${context.scannerName} scanner...`
         : "Ask about this scanner...";
+    case "contract_detail":
+      return context.contractTitle
+        ? `Ask about ${context.contractTitle}...`
+        : "Ask about this contract...";
     default:
       return "Research UK public sector buyers...";
   }
 }
 
-export function AgentInput({ onSend, onStop }: AgentInputProps) {
+export function AgentInput({ onSend, onStop, isStreaming = false }: AgentInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { context } = useAgentContext();
-  const isStreaming = useAgentStore((s) => s.isStreaming);
 
   const handleInput = useCallback(() => {
     const el = textareaRef.current;
@@ -77,8 +80,9 @@ export function AgentInput({ onSend, onStop }: AgentInputProps) {
           }}
           onKeyDown={handleKeyDown}
           placeholder={getPlaceholder(context)}
+          disabled={isStreaming}
           rows={1}
-          className="resize-none bg-transparent w-full outline-none text-sm leading-relaxed py-1.5 max-h-24 scrollbar-thin"
+          className="resize-none bg-transparent w-full outline-none text-sm leading-relaxed py-1.5 max-h-24 scrollbar-thin disabled:opacity-50"
         />
         {isStreaming ? (
           <Button
