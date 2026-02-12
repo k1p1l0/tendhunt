@@ -414,17 +414,17 @@ const KNOWN_SCHEMAS: KnownSchema[] = [
   {
     name: "govuk_mod_spending_25k",
     detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier name", "transaction number", "payment date"]),
-    map: { date: "Payment Date", amount: "Total", vendor: "Supplier Name", category: "Expense Area", subcategory: "Expense Type", department: "Entity", reference: "Transaction Number" },
+    map: { date: "Payment Date", amount: "Total", vendor: "Supplier Name", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
   },
   {
     name: "govuk_spending_25k",
     detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number"]),
-    map: { date: "Date", amount: "Amount", vendor: "Supplier", category: "Expense Area", subcategory: "Expense Type", department: "Entity", reference: "Transaction Number" },
+    map: { date: "Date", amount: "Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
   },
   {
     name: "devon_pattern",
     detect: (headers) => hasHeaders(headers, ["expense area", "expense type", "supplier name"]),
-    map: { date: "Date", amount: "Amount", vendor: "Supplier Name", category: "Expense Area", subcategory: "Expense Type" },
+    map: { date: "Date", amount: "Amount", vendor: "Supplier Name", category: "Expense Type", subcategory: "Expense Area" },
   },
 ];
 
@@ -1145,13 +1145,24 @@ Return ONLY valid JSON:
       const transactions: TxDoc[] = [];
       let skipped = 0;
 
+      // Case-insensitive row lookup (CSV headers have inconsistent casing)
+      const getCol = (row: Record<string, string>, col: string | undefined): string => {
+        if (!col) return "";
+        if (row[col] !== undefined) return row[col];
+        const colLower = col.toLowerCase();
+        for (const key of Object.keys(row)) {
+          if (key.toLowerCase() === colLower) return row[key];
+        }
+        return "";
+      };
+
       for (const row of parsedData) {
         if (transactions.length >= MAX_TRANSACTIONS) break;
 
-        const dateStr = row[columnMapping.date!] ?? "";
-        const amountStr = row[columnMapping.amount!] ?? "";
-        const vendorStr = row[columnMapping.vendor!] ?? "";
-        const categoryStr = columnMapping.category ? row[columnMapping.category] ?? "" : "";
+        const dateStr = getCol(row, columnMapping.date);
+        const amountStr = getCol(row, columnMapping.amount);
+        const vendorStr = getCol(row, columnMapping.vendor);
+        const categoryStr = getCol(row, columnMapping.category);
 
         const date = parseFlexibleDate(dateStr);
         const amount = parseAmount(amountStr);
@@ -1170,9 +1181,9 @@ Return ONLY valid JSON:
           vendor,
           vendorNormalized: normalizeVendor(vendor),
           category: categoryStr || "Other",
-          subcategory: columnMapping.subcategory ? row[columnMapping.subcategory] || undefined : undefined,
-          department: columnMapping.department ? row[columnMapping.department] || undefined : undefined,
-          reference: columnMapping.reference ? row[columnMapping.reference] || undefined : undefined,
+          subcategory: getCol(row, columnMapping.subcategory) || undefined,
+          department: getCol(row, columnMapping.department) || undefined,
+          reference: getCol(row, columnMapping.reference) || undefined,
           sourceFile: csvUrl,
           createdAt: now,
           updatedAt: now,

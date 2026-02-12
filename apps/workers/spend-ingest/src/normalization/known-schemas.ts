@@ -30,6 +30,7 @@ function hasHeaders(headers: string[], required: string[]): boolean {
  */
 export const KNOWN_SCHEMAS: ColumnMapping[] = [
   // 0a. GOV.UK MoD spending-over-25k (uses "Payment Date", "Total", "Supplier Name")
+  // Same logic: "Expense Type" is the descriptive category, "Expense Area" is the org division
   {
     name: "govuk_mod_spending_25k",
     detect: (headers) =>
@@ -38,14 +39,16 @@ export const KNOWN_SCHEMAS: ColumnMapping[] = [
       date: "Payment Date",
       amount: "Total",
       vendor: "Supplier Name",
-      category: "Expense Area",
-      subcategory: "Expense Type",
+      category: "Expense Type",
+      subcategory: "Expense Area",
       department: "Entity",
       reference: "Transaction Number",
     },
   },
 
   // 0b. GOV.UK central government spending-over-25k (HMRC uses "Date", "Amount", "Supplier")
+  // "Expense Type" = descriptive category (education, legal, maintenance)
+  // "Expense Area" = organisational division (department name) → use as department
   {
     name: "govuk_spending_25k",
     detect: (headers) =>
@@ -54,8 +57,8 @@ export const KNOWN_SCHEMAS: ColumnMapping[] = [
       date: "Date",
       amount: "Amount",
       vendor: "Supplier",
-      category: "Expense Area",
-      subcategory: "Expense Type",
+      category: "Expense Type",
+      subcategory: "Expense Area",
       department: "Entity",
       reference: "Transaction Number",
     },
