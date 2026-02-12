@@ -3,6 +3,8 @@ import { ObjectId } from "mongodb";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import pLimit from "p-limit";
+import Anthropic from "@anthropic-ai/sdk";
+import { extractText } from "unpdf";
 import type { Env, SpendJobDoc, SpendTransactionDoc } from "../types";
 import { getBuyerBatchForDownload, updateBuyerSpendFields } from "../db/buyers";
 import { updateJobProgress } from "../db/spend-jobs";
@@ -23,7 +25,7 @@ const BATCH_SIZE = 10;
 const MAX_TRANSACTIONS_PER_BUYER = 5000;
 const UPSERT_CHUNK_SIZE = 500;
 
-type FileFormat = "csv" | "ods" | "xlsx" | "unknown";
+type FileFormat = "csv" | "ods" | "xlsx" | "pdf" | "unknown";
 
 /**
  * Detect file format from content-type header and URL extension.
@@ -31,6 +33,7 @@ type FileFormat = "csv" | "ods" | "xlsx" | "unknown";
 function detectFileFormat(contentType: string, url: string): FileFormat {
   const ct = contentType.toLowerCase();
 
+  if (ct.includes("application/pdf")) return "pdf";
   if (ct.includes("text/csv") || ct.includes("application/csv")) return "csv";
   if (ct.includes("application/vnd.oasis.opendocument.spreadsheet")) return "ods";
   if (ct.includes("application/vnd.openxmlformats-officedocument.spreadsheetml")) return "xlsx";
@@ -38,6 +41,7 @@ function detectFileFormat(contentType: string, url: string): FileFormat {
   // Fallback to URL extension for octet-stream or generic types
   const urlLower = url.toLowerCase();
   const pathPart = urlLower.split("?")[0];
+  if (pathPart.endsWith(".pdf")) return "pdf";
   if (pathPart.endsWith(".csv")) return "csv";
   if (pathPart.endsWith(".ods")) return "ods";
   if (pathPart.endsWith(".xlsx")) return "xlsx";
@@ -48,6 +52,7 @@ function detectFileFormat(contentType: string, url: string): FileFormat {
 
   // Generic vnd.* or octet-stream — check URL more carefully
   if (ct.includes("application/octet-stream") || ct.includes("application/vnd")) {
+    if (urlLower.includes(".pdf")) return "pdf";
     if (urlLower.includes(".ods")) return "ods";
     if (urlLower.includes(".xlsx") || urlLower.includes(".xls")) return "xlsx";
     if (urlLower.includes(".csv")) return "csv";
@@ -78,6 +83,108 @@ function parseSpreadsheet(buffer: ArrayBuffer): {
 
   const headers = Object.keys(rows[0]);
   return { data: rows, headers };
+}
+
+/**
+ * Simple string hash for generating deterministic R2 keys from URLs.
+ */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + ch) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+/**
+ * Store raw PDF in R2 for reference. Non-blocking — logs warning on failure.
+ */
+async function storePdfInR2(
+  env: Env,
+  buyerId: string,
+  pdfUrl: string,
+  buffer: ArrayBuffer
+): Promise<string> {
+  const key = `spend-pdfs/${buyerId}/${simpleHash(pdfUrl)}.pdf`;
+  try {
+    await env.DOCS.put(key, buffer, {
+      httpMetadata: { contentType: "application/pdf" },
+      customMetadata: { sourceUrl: pdfUrl },
+    });
+  } catch (err) {
+    console.warn(
+      `R2 put failed for ${key}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  return key;
+}
+
+/**
+ * Extract text from PDF buffer and parse tabular spend data via Claude Haiku.
+ * Returns the same shape as CSV/spreadsheet parsing for downstream compatibility.
+ */
+async function parsePdfWithClaude(
+  pdfBuffer: ArrayBuffer,
+  env: Env,
+  buyerId: string,
+  csvUrl: string
+): Promise<{ data: Record<string, string>[]; headers: string[] }> {
+  const { text: pdfText } = await extractText(new Uint8Array(pdfBuffer));
+  const fullText = Array.isArray(pdfText) ? pdfText.join("\n") : String(pdfText);
+
+  if (fullText.length < 50) {
+    console.log(`PDF text too short (${fullText.length} chars) — likely scanned image, skipping`);
+    return { data: [], headers: [] };
+  }
+
+  const truncatedText = fullText.slice(0, 15000);
+
+  const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    system:
+      "You are extracting structured spending transaction data from a UK public sector PDF document. The PDF contains tabular spending data (payments over 25k or 500). Extract each row as a JSON object. If the PDF does not contain tabular spending data, return an empty array [].",
+    messages: [
+      {
+        role: "user",
+        content: `Extract tabular spending data from this PDF text.
+
+PDF text:
+${truncatedText}
+
+Return ONLY a JSON array of objects. Each object must have:
+- "date": payment/transaction date as written
+- "amount": payment amount (number as string, keep original format)
+- "vendor": supplier/payee name
+- "category": spend category or service area (if available, otherwise "")
+- "department": department/directorate (if available, otherwise "")
+- "reference": transaction/invoice reference (if available, otherwise "")
+
+If no tabular spending data found, return []`,
+      },
+    ],
+  });
+
+  const responseText =
+    response.content[0]?.type === "text" ? response.content[0].text : "";
+
+  try {
+    const match = responseText.match(/\[[\s\S]*\]/);
+    if (!match) return { data: [], headers: [] };
+
+    const parsed = JSON.parse(match[0]) as Record<string, string>[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return { data: [], headers: [] };
+    }
+
+    const headers = Object.keys(parsed[0]);
+    return { data: parsed, headers };
+  } catch {
+    console.warn(`Failed to parse Claude PDF response for ${csvUrl}`);
+    return { data: [], headers: [] };
+  }
 }
 
 /**
@@ -197,7 +304,17 @@ export async function downloadAndParseCsvs(
                 );
               }
 
-              if (format === "ods" || format === "xlsx") {
+              if (format === "pdf") {
+                // PDF: extract text via unpdf, parse tabular data via Claude Haiku
+                const buffer = await response.arrayBuffer();
+                await storePdfInR2(env, buyer._id!.toString(), csvUrl, buffer);
+                const result = await parsePdfWithClaude(buffer, env, buyer._id!.toString(), csvUrl);
+                parsedData = result.data;
+                parsedHeaders = result.headers;
+                console.log(
+                  `Parsed PDF file: ${parsedData.length} rows extracted via Claude`
+                );
+              } else if (format === "ods" || format === "xlsx") {
                 // Spreadsheet: read as ArrayBuffer, parse via SheetJS
                 const buffer = await response.arrayBuffer();
                 const result = parseSpreadsheet(buffer);

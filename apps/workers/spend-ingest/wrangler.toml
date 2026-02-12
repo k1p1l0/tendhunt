@@ -6,6 +6,10 @@ compatibility_flags = ["nodejs_compat_v2"]
 [triggers]
 crons = ["0 3 * * 1"]  # Weekly, Mondays at 3 AM UTC
 
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "tendhunt-enrichment-docs"
+
 # Secrets: MONGODB_URI, ANTHROPIC_API_KEY
 # Set via: wrangler secret put MONGODB_URI
 #          wrangler secret put ANTHROPIC_API_KEY
