@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 18 IN PROGRESS (3/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
+**Current focus:** Phase 18 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
 
 ## Current Position
 
 Phase: 11 + 15 + 18 (parallel: Invoice & Spend Data + Contract-Buyer Linking + Admin Panel)
-Plan: 18-02 COMPLETE (3/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Plan 18-02 complete -- Overview dashboard with stats + worker health monitoring + 15s polling
-Last activity: 2026-02-12 -- Plan 18-02 executed (4 min)
+Plan: 18-03 COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Plan 18-03 complete -- Data explorer pages for contracts, buyers, signals with sortable tables and auto-refresh
+Last activity: 2026-02-12 -- Plan 18-03 executed (4 min)
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 41
+- Total plans completed: 42
 - Average duration: 3.5 min
-- Total execution time: 2.50 hours
+- Total execution time: 2.57 hours
 
 **By Phase:**
 
@@ -40,10 +40,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 | 14-buyer-explorer-filters | 3/3 | 9 min | 3 min |
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
-| 18-admin-panel | 3/4 | 11 min | 3.7 min |
+| 18-admin-panel | 4/4 | 15 min | 3.8 min |
 
 **Recent Trend:**
-- Last 5 plans: 18-02 (4 min), 18-04 (2 min), 18-01 (5 min), 11-01 (4 min), 15-01 (3 min)
+- Last 5 plans: 18-03 (4 min), 18-02 (4 min), 18-04 (2 min), 18-01 (5 min), 11-01 (4 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -222,6 +222,9 @@ Recent decisions affecting current work:
 - [18-02]: Collapsible error log on workers detail page to keep UI clean by default
 - [18-04]: Purple badge for admin role, secondary badge for user role -- visual role distinction in user table
 - [18-04]: Summary stats computed client-side via useMemo over fetched users array -- avoids separate API endpoint
+- [18-03]: DataTable uses { _id?: unknown } constraint instead of Record<string, unknown> for typed interface compatibility
+- [18-03]: Client-side sorting sufficient for 100-item dataset -- no server-side sort endpoint
+- [18-03]: Enrichment score thresholds 70/40 (green/yellow/red) match Phase 13 convention
 
 ### Pending Todos
 
@@ -245,5 +248,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 18-02-PLAN.md -- Overview dashboard with stats, worker health, recent activity
-Next: Execute 18-03 (data browsing pages). Also pending: 11-02 and 15-02.
+Stopped at: Completed 18-03-PLAN.md -- Data explorer pages with sortable tables for contracts, buyers, signals
+Next: Phase 18 COMPLETE (all 4 plans done). Pending: 11-02 and 15-02.
