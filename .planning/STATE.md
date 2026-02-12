@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 19 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 20 IN PROGRESS (2/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
-Plan: 19 ALL COMPLETE (4/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Phase 19 Plan 04 complete -- Agent panel polish (Cmd+K shortcut, DOMPurify markdown, error retry, animations, accessibility)
-Last activity: 2026-02-12 - Completed quick task 3: Fix data-sync worker index conflict + trigger enrichment for new buyers
+Phase: 20 IN PROGRESS (2/4), 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
+Plan: 20-02 COMPLETE -- Schema extensions & worker chaining for board-minutes signals
+Status: Phase 20 Plan 02 complete -- Signal/BoardDocument model extensions, enrichment-to-board-minutes chaining, buyerId signal query
+Last activity: 2026-02-12 - Completed 20-02: Schema extensions & worker chaining
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 46
-- Average duration: 3.4 min
-- Total execution time: 2.73 hours
+- Total plans completed: 48
+- Average duration: 3.3 min
+- Total execution time: 2.80 hours
 
 **By Phase:**
 
@@ -42,10 +42,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
 | 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
+| 20-board-minutes-signals | 2/4 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 19-04 (3 min), 19-03 (3 min), 19-02 (2 min), 19-01 (2 min), 18-03 (4 min)
-- Trend: Consistent ~2-4 min per plan
+- Last 5 plans: 20-02 (2 min), 20-01 (2 min), 19-04 (3 min), 19-03 (3 min), 19-02 (2 min)
+- Trend: Consistent ~2-3 min per plan
 
 *Updated after each plan completion*
 
@@ -247,6 +248,9 @@ Recent decisions affecting current work:
 - [19-04]: useReducedMotion from motion/react (not custom hook) for accessibility
 - [19-04]: isError flag on AgentMessage + removeMessage store method for retry flow
 - [19-04]: min-h-[44px] on all interactive buttons for mobile tap target compliance
+- [20-02]: entities subdoc uses _id:false to avoid unnecessary ObjectId generation
+- [20-02]: $or query for signals combines buyerId (new) + organizationName (legacy) for backward compat
+- [20-02]: signalExtractionStatus is independent from extractionStatus (text vs signal extraction)
 
 ### Pending Todos
 
@@ -263,6 +267,7 @@ Recent decisions affecting current work:
 - Phase 15 added: Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement
 - Phase 18 added: Admin Panel (admin app scaffold, overview dashboard, workers management, data/users pages)
 - Phase 19 added: Research Agent Chat Panel (backend tools, SSE streaming, chat UI, conversation persistence)
+- Phase 20 added: Board Minutes Signals (worker scaffold, schema extensions, extraction pipeline, frontend display)
 
 ### Blockers/Concerns
 
@@ -278,5 +283,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed quick-3 -- Fixed data-sync worker index conflict + added enrichment trigger for new buyers
-Next: Phase 19 COMPLETE. Pending: 11-02, 15-02. Deploy data-sync worker.
+Stopped at: Completed 20-02 -- Schema extensions & worker chaining for board-minutes signals
+Next: 20-03 (extraction pipeline), 20-04 (frontend). Also pending: 11-02, 15-02.
