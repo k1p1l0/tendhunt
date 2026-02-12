@@ -233,7 +233,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 14. Buyer Explorer Filters | 3/3 | ✓ Complete | 2026-02-12 |
 | 17. Dashboard Home | 0/? | Not started | - |
 | 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
-| 19. Research Agent Chat Panel | 0/? | Not started | - |
+| 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -388,7 +388,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 19-01-PLAN.md -- ChatConversation model, system prompt builder, 12 tool definitions + handlers, SSE API route with tool-use loop
-- [ ] 19-02-PLAN.md -- AgentProvider context, Zustand store, Sheet panel UI, message components, input, suggested actions, header trigger
-- [ ] 19-03-PLAN.md -- useAgent SSE hook, page context setters (scanner/buyer/contract/dashboard), conversation persistence
-- [ ] 19-04-PLAN.md -- Keyboard shortcut (Cmd+K), animations, typing indicator, safe markdown (DOMPurify), error handling + retry
+- [x] 19-01-PLAN.md -- ChatConversation model, system prompt builder, 12 tool definitions + handlers, SSE API route with tool-use loop
+- [x] 19-02-PLAN.md -- AgentProvider context, Zustand store, Sheet panel UI, message components, input, suggested actions, header trigger
+- [x] 19-03-PLAN.md -- useAgent SSE hook, page context setters (scanner/buyer/contract/dashboard), conversation persistence
+- [x] 19-04-PLAN.md -- Keyboard shortcut (Cmd+K), animations, typing indicator, safe markdown (DOMPurify), error handling + retry
