@@ -19,11 +19,14 @@ export async function GET(request: Request) {
       pageSize: searchParams.get("pageSize")
         ? parseInt(searchParams.get("pageSize")!, 10)
         : undefined,
+      sector: searchParams.get("sector") ?? undefined,
+      orgType: searchParams.get("orgType") ?? undefined,
+      region: searchParams.get("region") ?? undefined,
     };
 
-    const { buyers, total } = await fetchBuyers(userId, filters);
+    const { buyers, total, filteredCount } = await fetchBuyers(filters);
 
-    return Response.json({ buyers, total });
+    return Response.json({ buyers, total, filteredCount });
   } catch (error) {
     console.error("Buyers API error:", error);
     return Response.json(

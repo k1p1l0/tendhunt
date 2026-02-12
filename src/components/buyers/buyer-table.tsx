@@ -11,7 +11,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Building2, Unlock, Lock } from "lucide-react";
+import { ArrowUp, ArrowDown, Building2, ExternalLink } from "lucide-react";
 
 interface BuyerRow {
   _id: string;
@@ -19,8 +19,9 @@ interface BuyerRow {
   sector?: string;
   region?: string;
   contractCount: number;
-  contactCount: number;
-  isUnlocked: boolean;
+  orgType?: string;
+  enrichmentScore?: number;
+  website?: string;
 }
 
 interface BuyerTableProps {
@@ -28,14 +29,67 @@ interface BuyerTableProps {
   total: number;
 }
 
-type SortColumn = "name" | "sector" | "region" | "contracts";
+type SortColumn = "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore";
 
 const columns: { key: SortColumn; label: string }[] = [
   { key: "name", label: "Organization" },
   { key: "sector", label: "Sector" },
   { key: "region", label: "Region" },
   { key: "contracts", label: "Contracts" },
+  { key: "orgType", label: "Org Type" },
+  { key: "enrichmentScore", label: "Score" },
 ];
+
+function orgTypeLabel(orgType: string): string {
+  const labels: Record<string, string> = {
+    local_council_london: "London Borough",
+    local_council_metro: "Metropolitan Borough",
+    local_council_metropolitan: "Metropolitan Borough",
+    local_council_district: "District Council",
+    local_council_county: "County Council",
+    local_council_unitary: "Unitary Authority",
+    local_council_sui_generis: "Sui Generis",
+    local_council_other: "Council",
+    nhs_trust_acute: "NHS Trust (Acute)",
+    nhs_trust_mental_health: "NHS Trust (Mental Health)",
+    nhs_trust_community: "NHS Trust (Community)",
+    nhs_trust_ambulance: "NHS Trust (Ambulance)",
+    nhs_icb: "NHS ICB",
+    nhs_other: "NHS Body",
+    police_pcc: "Police / PCC",
+    police_force: "Police Force",
+    fire_rescue: "Fire & Rescue",
+    fire_service: "Fire & Rescue",
+    university: "University",
+    fe_college: "FE College",
+    further_education: "FE College",
+    mat: "Multi-Academy Trust",
+    multi_academy_trust: "Multi-Academy Trust",
+    central_government: "Central Government",
+    devolved_government: "Devolved Government",
+    housing_association: "Housing Association",
+    combined_authority: "Combined Authority",
+    national_park: "National Park",
+    alb: "Arms-Length Body",
+    private_company: "Private Company",
+  };
+  return labels[orgType] ?? orgType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function scoreColorClass(score: number): string {
+  if (score >= 70) return "text-green-600 dark:text-green-400";
+  if (score >= 40) return "text-yellow-600 dark:text-yellow-400";
+  return "text-red-600 dark:text-red-400";
+}
+
+function displayDomain(url: string): string {
+  try {
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 export function BuyerTable({ buyers, total }: BuyerTableProps) {
   const router = useRouter();
@@ -92,8 +146,7 @@ export function BuyerTable({ buyers, total }: BuyerTableProps) {
                 <SortIcon column={col.key} />
               </TableHead>
             ))}
-            <TableHead>Contacts</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Website</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -120,18 +173,35 @@ export function BuyerTable({ buyers, total }: BuyerTableProps) {
                 )}
               </TableCell>
               <TableCell>{buyer.contractCount}</TableCell>
-              <TableCell>{buyer.contactCount}</TableCell>
               <TableCell>
-                {buyer.isUnlocked ? (
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    <Unlock className="h-3 w-3" />
-                    Unlocked
-                  </Badge>
+                {buyer.orgType ? (
+                  <Badge variant="outline">{orgTypeLabel(buyer.orgType)}</Badge>
                 ) : (
-                  <Badge variant="secondary">
-                    <Lock className="h-3 w-3" />
-                    Locked
-                  </Badge>
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {buyer.enrichmentScore != null ? (
+                  <span className={`font-medium ${scoreColorClass(buyer.enrichmentScore)}`}>
+                    {buyer.enrichmentScore}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {buyer.website ? (
+                  <a
+                    href={buyer.website.startsWith("http") ? buyer.website : `https://${buyer.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-primary hover:underline text-sm"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    {displayDomain(buyer.website)}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
                 )}
               </TableCell>
             </TableRow>
