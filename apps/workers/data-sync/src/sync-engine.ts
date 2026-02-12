@@ -51,7 +51,8 @@ export async function processSyncJob(
   source: SyncJob["source"],
   fetchPage: FetchPageFn,
   backfillStartDate: string,
-  maxItemsPerRun: number
+  maxItemsPerRun: number,
+  enrichmentWorkerUrl?: string
 ): Promise<{ fetched: number; errors: number; done: boolean }> {
   // Step 1: Get or create the sync job
   const job = await getOrCreateSyncJob(db, source, backfillStartDate);
@@ -103,8 +104,16 @@ export async function processSyncJob(
 
       // Extract buyers FIRST (to get IDs), THEN upsert contracts (with IDs)
       if (batch.length > 0) {
-        const { buyerIdMap } = await autoExtractBuyers(db, batch);
+        const { buyerIdMap, newBuyerIds } = await autoExtractBuyers(db, batch);
         await upsertContracts(db, batch, buyerIdMap);
+
+        // Fire-and-forget enrichment for newly discovered buyers
+        if (enrichmentWorkerUrl && newBuyerIds.length > 0) {
+          for (const buyerId of newBuyerIds) {
+            fetch(`${enrichmentWorkerUrl}/run-buyer?id=${buyerId.toHexString()}`)
+              .catch((err) => console.warn(`Enrichment trigger failed for ${buyerId}:`, err));
+          }
+        }
       }
 
       fetched += pageResult.releases.length;
