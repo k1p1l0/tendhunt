@@ -215,9 +215,10 @@ export async function POST(
       column.useCase
     );
 
-    // SSE stream
+    // SSE stream with cancellation support
     const encoder = new TextEncoder();
-    const limit = pLimit(2);
+    const concurrencyLimit = pLimit(2);
+    let cancelled = false;
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -229,25 +230,31 @@ export async function POST(
           reasoning: string;
         }> = [];
 
+        function send(data: Record<string, unknown>) {
+          if (cancelled) return;
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
+            );
+          } catch {
+            cancelled = true;
+          }
+        }
+
         try {
-          // Notify: column starting
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: "column_start",
-                columnId: column.columnId,
-                columnName: column.name,
-                total: entitiesToScore.length,
-              })}\n\n`
-            )
-          );
+          send({
+            type: "column_start",
+            columnId: column.columnId,
+            columnName: column.name,
+            total: entitiesToScore.length,
+          });
 
           let scored = 0;
 
-          // Score entities for this column with p-limit(5)
-          // Stream each result immediately as it completes (no batching)
           const promises = entitiesToScore.map((entity) =>
-            limit(async () => {
+            concurrencyLimit(async () => {
+              if (cancelled) return;
+
               const entityId = String(entity._id || entity.id || "unknown");
 
               try {
@@ -260,6 +267,8 @@ export async function POST(
                   column.useCase
                 );
 
+                if (cancelled) return;
+
                 scored++;
 
                 columnScores.push({
@@ -270,29 +279,25 @@ export async function POST(
                   reasoning: result.reasoning,
                 });
 
-                // Stream progress event immediately
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "progress",
-                      columnId: column.columnId,
-                      entityId,
-                      score: result.score,
-                      reasoning: result.reasoning,
-                      response: result.response,
-                      scored,
-                      total: entitiesToScore.length,
-                    })}\n\n`
-                  )
-                );
+                send({
+                  type: "progress",
+                  columnId: column.columnId,
+                  entityId,
+                  score: result.score,
+                  reasoning: result.reasoning,
+                  response: result.response,
+                  scored,
+                  total: entitiesToScore.length,
+                });
               } catch (err) {
+                if (cancelled) return;
+
                 const errMsg = err instanceof Error ? err.message : String(err);
                 console.error(
                   `Scoring error [${column.columnId}] entity ${entityId}:`,
                   errMsg
                 );
 
-                // Detect fatal errors that affect all entities (billing, auth)
                 const isFatal =
                   errMsg.includes("credit balance is too low") ||
                   errMsg.includes("invalid x-api-key") ||
@@ -301,39 +306,34 @@ export async function POST(
 
                 scored++;
 
-                // Stream error event with message for UI display
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "error",
-                      columnId: column.columnId,
-                      entityId,
-                      message: errMsg,
-                      fatal: isFatal,
-                      scored,
-                      total: entitiesToScore.length,
-                    })}\n\n`
-                  )
-                );
+                send({
+                  type: "error",
+                  columnId: column.columnId,
+                  entityId,
+                  message: errMsg,
+                  fatal: isFatal,
+                  scored,
+                  total: entitiesToScore.length,
+                });
+
+                if (isFatal) {
+                  cancelled = true;
+                }
               }
             })
           );
 
-          // Wait for all concurrent tasks to finish
           await Promise.all(promises);
 
-          // Column complete
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: "column_complete",
-                columnId: column.columnId,
-                scored,
-              })}\n\n`
-            )
-          );
+          if (!cancelled) {
+            send({
+              type: "column_complete",
+              columnId: column.columnId,
+              scored,
+            });
+          }
 
-          // Persist scores for this column
+          // Persist whatever scores we collected (even if cancelled partway)
           if (columnScores.length > 0) {
             await Scanner.updateOne(
               { _id: scanner._id },
@@ -344,28 +344,30 @@ export async function POST(
             );
           }
 
-          // All done
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "complete" })}\n\n`
-            )
-          );
+          if (!cancelled) {
+            send({ type: "complete" });
+          }
         } catch (err) {
           console.error("Single-column scoring error:", err instanceof Error ? err.message : err);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: "error",
-                message:
-                  err instanceof Error
-                    ? err.message
-                    : "Scoring failed",
-              })}\n\n`
-            )
-          );
+          send({
+            type: "error",
+            message:
+              err instanceof Error
+                ? err.message
+                : "Scoring failed",
+          });
         }
 
-        controller.close();
+        if (!cancelled) {
+          try {
+            controller.close();
+          } catch {
+            // Already closed
+          }
+        }
+      },
+      cancel() {
+        cancelled = true;
       },
     });
 
