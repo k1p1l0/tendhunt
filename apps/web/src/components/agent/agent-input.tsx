@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { ArrowUp, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,25 +39,33 @@ function getPlaceholder(
 export function AgentInput({ onSend, onStop, isStreaming = false, textareaRef }: AgentInputProps) {
   const [value, setValue] = useState("");
   const { context } = useAgentContext();
+  const localRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // eslint-disable-next-line react-hooks/refs -- textarea resize in event handler is safe
+  // Sync external ref to local ref
+  useEffect(() => {
+    if (textareaRef?.current) {
+      localRef.current = textareaRef.current;
+    }
+  }, [textareaRef]);
+
   const handleInput = useCallback(() => {
-    const el = textareaRef?.current;
+    const el = localRef.current;
     if (el) {
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight, 96) + "px";
     }
-  }, [textareaRef]);
+  }, []);
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
     if (!trimmed || isStreaming) return;
     onSend(trimmed);
     setValue("");
-    if (textareaRef?.current) {
-      textareaRef.current.style.height = "auto";
+    const el = localRef.current;
+    if (el) {
+      el.style.height = "auto";
     }
-  }, [value, isStreaming, onSend, textareaRef]);
+  }, [value, isStreaming, onSend]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
