@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 18 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 19 IN PROGRESS (2/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 18 COMPLETE, 11 + 15 in progress
-Plan: 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Phase 18 complete -- Admin panel with worker monitoring, data explorer, user management
-Last activity: 2026-02-12 -- Phase 18 executed (4 plans, ~15 min total)
+Phase: 19 IN PROGRESS, 18 COMPLETE, 11 + 15 in progress
+Plan: 19-01 + 19-02 COMPLETE (2/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Phase 19 Plan 02 complete -- Agent panel UI shell (Sheet, Zustand store, context provider, messages, input)
+Last activity: 2026-02-12 -- Phase 19 Plan 02 executed (2 tasks, 2 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11, 15, 19 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 42
-- Average duration: 3.5 min
-- Total execution time: 2.57 hours
+- Total plans completed: 43
+- Average duration: 3.4 min
+- Total execution time: 2.60 hours
 
 **By Phase:**
 
@@ -41,9 +41,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
+| 19-research-agent-chat-panel | 1/? | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 18-03 (4 min), 18-02 (4 min), 18-04 (2 min), 18-01 (5 min), 11-01 (4 min)
+- Last 5 plans: 19-01 (2 min), 18-03 (4 min), 18-02 (4 min), 18-04 (2 min), 18-01 (5 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -225,6 +226,11 @@ Recent decisions affecting current work:
 - [18-03]: DataTable uses { _id?: unknown } constraint instead of Record<string, unknown> for typed interface compatibility
 - [18-03]: Client-side sorting sufficient for 100-item dataset -- no server-side sort endpoint
 - [18-03]: Enrichment score thresholds 70/40 (green/yellow/red) match Phase 13 convention
+- [19-01]: Reuse existing fetchBuyers/fetchContracts/fetchBuyerById/fetchContractById for agent tool handlers -- zero query duplication
+- [19-01]: Sliding window of last 10 messages to manage Sonnet token budget
+- [19-01]: Max 5 tool-use iterations to prevent infinite agent loops
+- [19-01]: Web search returns stub for MVP -- internal data tools are the priority
+- [19-01]: EnrichmentScore filter applied client-side since fetchBuyers interface doesn't support it natively
 
 ### Pending Todos
 
@@ -240,6 +246,7 @@ Recent decisions affecting current work:
 - Phase 14 added: Buyer Explorer Filters & Data Visibility (filter dropdowns, enrichment columns, remove credit gating, server-side filtering)
 - Phase 15 added: Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement
 - Phase 18 added: Admin Panel (admin app scaffold, overview dashboard, workers management, data/users pages)
+- Phase 19 added: Research Agent Chat Panel (backend tools, SSE streaming, chat UI, conversation persistence)
 
 ### Blockers/Concerns
 
@@ -248,5 +255,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 18-03-PLAN.md -- Data explorer pages with sortable tables for contracts, buyers, signals
-Next: Phase 18 COMPLETE (all 4 plans done). Pending: 11-02 and 15-02.
+Stopped at: Completed 19-01-PLAN.md -- Research agent backend (ChatConversation model, system prompt, 12 tools, SSE API route)
+Next: Phase 19 Plan 02 (chat panel UI). Pending: 11-02, 15-02.
