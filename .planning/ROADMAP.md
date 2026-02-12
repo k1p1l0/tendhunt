@@ -230,6 +230,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 7. Buying Signals | 0/1 | Not started | - |
 | 8. Landing & Pricing | 0/2 | Not started | - |
 | 13. Buyer Data Enrichment | 6/6 | ✓ Complete | 2026-02-11 |
+| 14. Buyer Explorer Filters | 3/3 | ✓ Complete | 2026-02-12 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -315,6 +316,6 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md -- Server-side filtering backend: extend BuyerFilters, MongoDB query conditions, filters API endpoint, remove ContactReveal dependency
-- [ ] 14-02-PLAN.md -- Remove credit gating UI + add enrichment columns: drop Locked/Unlocked status, remove blur/unlock from contacts, add orgType/score/website table columns
-- [ ] 14-03-PLAN.md -- Filter dropdowns UI + page wiring: BuyerFilters component, pass filter params through page, serialize enrichment fields, filtered count display
+- [x] 14-01-PLAN.md -- Server-side filtering backend: extend BuyerFilters, MongoDB query conditions, filters API endpoint, remove ContactReveal dependency
+- [x] 14-02-PLAN.md -- Remove credit gating UI + add enrichment columns: drop Locked/Unlocked status, remove blur/unlock from contacts, add orgType/score/website table columns
+- [x] 14-03-PLAN.md -- Filter dropdowns UI + page wiring: BuyerFilters component, pass filter params through page, serialize enrichment fields, filtered count display
