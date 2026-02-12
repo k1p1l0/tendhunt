@@ -291,9 +291,10 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 1 | Add PDF spend file parsing to spend-ingest worker pipeline with R2 storage | 2026-02-12 | dcf5616 | [1-add-pdf-spend-file-parsing-to-spend-inge](./quick/1-add-pdf-spend-file-parsing-to-spend-inge/) |
 | 3 | Fix data-sync worker: remove index conflict + trigger enrichment for new buyers | 2026-02-12 | 6d11175 | [3-fix-data-sync-worker-remove-index-confli](./quick/3-fix-data-sync-worker-remove-index-confli/) |
+| 4 | Add stage and status filter options to scanner grid for RFP scanners | 2026-02-12 | e281a7c | [4-add-stage-and-status-filter-options-to-s](./quick/4-add-stage-and-status-filter-options-to-s/) |
 
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 20-04 -- Phase 20 (Board Minutes Signals) fully complete
+Stopped at: Completed quick task 4 -- Stage/status filter dropdowns in RFP scanner edit dialog
 Next: Pending: 11-02 (spend intelligence), 15-02 (entity linking).
