@@ -76,6 +76,8 @@ export async function PATCH(
       columnRenames?: Record<string, string>;
       columnFilters?: Record<string, string[]>;
       autoRun?: boolean;
+      rowOffset?: number;
+      rowLimit?: number;
     };
 
     const setFields: Record<string, unknown> = {};
@@ -113,6 +115,14 @@ export async function PATCH(
     // Auto-run toggle
     if (typeof body.autoRun === "boolean") {
       setFields.autoRun = body.autoRun;
+    }
+
+    // Row pagination
+    if (typeof body.rowOffset === "number") {
+      setFields.rowOffset = Math.max(0, Math.floor(body.rowOffset));
+    }
+    if (typeof body.rowLimit === "number") {
+      setFields.rowLimit = Math.max(0, Math.floor(body.rowLimit));
     }
 
     if (Object.keys(setFields).length === 0) {

@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   XAxis,
   YAxis,
 } from "recharts";
@@ -11,15 +11,14 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from "@/components/ui/chart";
-import type { ChartConfig } from "@/components/ui/chart";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface MonthlyData {
   year: number;
@@ -34,7 +33,7 @@ interface SpendTimelineChartProps {
 const chartConfig = {
   total: {
     label: "Monthly Spend",
-    color: "#3B82F6",
+    color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
 
@@ -57,24 +56,14 @@ const shortMonths = [
 ];
 
 function formatMonthLabel(label: string) {
+  // label is "YYYY-MM"
   const [y, m] = label.split("-");
   const monthIdx = parseInt(m, 10) - 1;
-  return `${shortMonths[monthIdx]} '${y.slice(2)}`;
-}
-
-function computeTimelineTrend(data: MonthlyData[]): number | null {
-  if (data.length < 4) return null;
-  const sorted = [...data].sort((a, b) => a.year - b.year || a.month - b.month);
-  const mid = Math.floor(sorted.length / 2);
-  const firstHalf = sorted.slice(0, mid);
-  const secondHalf = sorted.slice(mid);
-  const firstAvg = firstHalf.reduce((s, m) => s + m.total, 0) / firstHalf.length;
-  const secondAvg = secondHalf.reduce((s, m) => s + m.total, 0) / secondHalf.length;
-  if (firstAvg === 0) return null;
-  return ((secondAvg - firstAvg) / firstAvg) * 100;
+  return `${shortMonths[monthIdx]} ${y.slice(2)}`;
 }
 
 export function SpendTimelineChart({ data }: SpendTimelineChartProps) {
+  // Sort chronologically and transform to chart format
   const sorted = [...data].sort(
     (a, b) => a.year - b.year || a.month - b.month
   );
@@ -84,53 +73,25 @@ export function SpendTimelineChart({ data }: SpendTimelineChartProps) {
     total: d.total,
   }));
 
-  const trend = computeTimelineTrend(data);
-
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Spend Over Time</CardTitle>
-          {trend != null && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                trend >= 0
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-red-500/10 text-red-600 dark:text-red-400"
-              }`}
-            >
-              {trend >= 0 ? (
-                <TrendingUp className="h-3 w-3" />
-              ) : (
-                <TrendingDown className="h-3 w-3" />
-              )}
-              {trend >= 0 ? "+" : ""}{trend.toFixed(1)}%
-            </span>
-          )}
-        </div>
+        <CardTitle>Spend Over Time</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-          <AreaChart
+          <LineChart
             data={chartData}
             margin={{ left: 0, right: 16, top: 8, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" strokeOpacity={0.4} />
+            <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
               tickFormatter={formatMonthLabel}
               interval="preserveStartEnd"
-              tick={{ fontSize: 12 }}
             />
             <YAxis
               tickFormatter={(v: number) => gbpCompact.format(v)}
-              tick={{ fontSize: 12 }}
             />
             <ChartTooltip
               content={
@@ -140,16 +101,14 @@ export function SpendTimelineChart({ data }: SpendTimelineChartProps) {
                 />
               }
             />
-            <Area
+            <Line
               type="monotone"
               dataKey="total"
-              stroke="#3B82F6"
+              stroke="var(--color-total)"
               strokeWidth={2}
-              fill="url(#spendGradient)"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2 }}
             />
-          </AreaChart>
+          </LineChart>
         </ChartContainer>
       </CardContent>
     </Card>
