@@ -1,6 +1,7 @@
 import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import pLimit from "p-limit";
 import type { Env, SpendJobDoc, SpendTransactionDoc } from "../types";
 import { getBuyerBatchForDownload, updateBuyerSpendFields } from "../db/buyers";
@@ -21,6 +22,63 @@ import type { ColumnMapping } from "../normalization/known-schemas";
 const BATCH_SIZE = 10;
 const MAX_TRANSACTIONS_PER_BUYER = 5000;
 const UPSERT_CHUNK_SIZE = 500;
+
+type FileFormat = "csv" | "ods" | "xlsx" | "unknown";
+
+/**
+ * Detect file format from content-type header and URL extension.
+ */
+function detectFileFormat(contentType: string, url: string): FileFormat {
+  const ct = contentType.toLowerCase();
+
+  if (ct.includes("text/csv") || ct.includes("application/csv")) return "csv";
+  if (ct.includes("application/vnd.oasis.opendocument.spreadsheet")) return "ods";
+  if (ct.includes("application/vnd.openxmlformats-officedocument.spreadsheetml")) return "xlsx";
+
+  // Fallback to URL extension for octet-stream or generic types
+  const urlLower = url.toLowerCase();
+  const pathPart = urlLower.split("?")[0];
+  if (pathPart.endsWith(".csv")) return "csv";
+  if (pathPart.endsWith(".ods")) return "ods";
+  if (pathPart.endsWith(".xlsx")) return "xlsx";
+  if (pathPart.endsWith(".xls")) return "xlsx";
+
+  // text/plain often used for CSV
+  if (ct.includes("text/plain")) return "csv";
+
+  // Generic vnd.* or octet-stream — check URL more carefully
+  if (ct.includes("application/octet-stream") || ct.includes("application/vnd")) {
+    if (urlLower.includes(".ods")) return "ods";
+    if (urlLower.includes(".xlsx") || urlLower.includes(".xls")) return "xlsx";
+    if (urlLower.includes(".csv")) return "csv";
+  }
+
+  return "unknown";
+}
+
+/**
+ * Parse ODS/XLSX spreadsheet buffer into rows with headers.
+ * Returns the same shape as PapaParse output for downstream compatibility.
+ */
+function parseSpreadsheet(buffer: ArrayBuffer): {
+  data: Record<string, string>[];
+  headers: string[];
+} {
+  const wb = XLSX.read(new Uint8Array(buffer), { type: "array" });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return { data: [], headers: [] };
+
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
+    raw: false,
+    defval: "",
+  });
+
+  if (rows.length === 0) return { data: [], headers: [] };
+
+  const headers = Object.keys(rows[0]);
+  return { data: rows, headers };
+}
 
 /**
  * Get the value from a CSV row using the column mapping.
@@ -103,8 +161,9 @@ export async function downloadAndParseCsvs(
               .findOne({ buyerId: buyer._id!, sourceFile: csvUrl });
             if (existing) continue;
 
-            // Download the CSV
-            let csvText: string;
+            // Download the file
+            let parsedData: Record<string, string>[];
+            let parsedHeaders: string[];
             try {
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 15000);
@@ -121,55 +180,70 @@ export async function downloadAndParseCsvs(
                 throw new Error(`HTTP ${response.status}`);
               }
 
-              // Check content type
               const contentType = response.headers.get("content-type") ?? "";
-              if (
-                !contentType.includes("text/csv") &&
-                !contentType.includes("text/plain") &&
-                !contentType.includes("application/csv") &&
-                !contentType.includes("application/octet-stream") &&
-                !contentType.includes("application/vnd")
-              ) {
+              const format = detectFileFormat(contentType, csvUrl);
+
+              if (format === "unknown") {
+                // Accept text/html only if it looks like it might be a redirect
+                if (contentType.includes("text/html")) {
+                  console.warn(
+                    `Skipping HTML content-type for ${csvUrl}`
+                  );
+                  continue;
+                }
+                // Try as CSV for unknown types
                 console.warn(
-                  `Skipping non-CSV content-type "${contentType}" for ${csvUrl}`
+                  `Unknown format "${contentType}" for ${csvUrl}, trying as CSV`
                 );
-                continue;
               }
 
-              csvText = await response.text();
+              if (format === "ods" || format === "xlsx") {
+                // Spreadsheet: read as ArrayBuffer, parse via SheetJS
+                const buffer = await response.arrayBuffer();
+                const result = parseSpreadsheet(buffer);
+                parsedData = result.data;
+                parsedHeaders = result.headers;
+                console.log(
+                  `Parsed ${format.toUpperCase()} file: ${parsedData.length} rows, ${parsedHeaders.length} cols`
+                );
+              } else {
+                // CSV: read as text, parse via PapaParse
+                const csvText = await response.text();
+                const parseResult = Papa.parse<Record<string, string>>(csvText, {
+                  header: true,
+                  skipEmptyLines: true,
+                  dynamicTyping: false,
+                });
+
+                // Skip files with > 50% error rate
+                if (
+                  parseResult.data.length > 0 &&
+                  parseResult.errors.length / parseResult.data.length > 0.5
+                ) {
+                  console.warn(
+                    `Skipping CSV ${csvUrl}: ${parseResult.errors.length}/${parseResult.data.length} rows have errors`
+                  );
+                  continue;
+                }
+
+                parsedData = parseResult.data;
+                parsedHeaders = parseResult.meta.fields ?? [];
+              }
             } catch (err) {
               console.warn(
-                `Download failed for CSV ${csvUrl}: ${
+                `Download failed for ${csvUrl}: ${
                   err instanceof Error ? err.message : String(err)
                 }`
               );
               continue;
             }
 
-            // Parse with PapaParse
-            const parseResult = Papa.parse<Record<string, string>>(csvText, {
-              header: true,
-              skipEmptyLines: true,
-              dynamicTyping: false,
-            });
-
-            // Skip files with > 50% error rate
-            if (
-              parseResult.data.length > 0 &&
-              parseResult.errors.length / parseResult.data.length > 0.5
-            ) {
-              console.warn(
-                `Skipping CSV ${csvUrl}: ${parseResult.errors.length}/${parseResult.data.length} rows have errors`
-              );
-              continue;
-            }
-
-            if (parseResult.data.length === 0) continue;
+            if (parsedData.length === 0) continue;
 
             // Get column mapping (cache per buyer — most councils reuse format)
             if (!columnMapping) {
-              const headers = parseResult.meta.fields ?? [];
-              const sampleRows = parseResult.data
+              const headers = parsedHeaders;
+              const sampleRows = parsedData
                 .slice(0, 3)
                 .map((row) => headers.map((h) => row[h] ?? ""));
 
@@ -190,7 +264,7 @@ export async function downloadAndParseCsvs(
             // Normalize rows
             const transactions: SpendTransactionDoc[] = [];
 
-            for (const row of parseResult.data) {
+            for (const row of parsedData) {
               if (buyerTransactionCount + transactions.length >= MAX_TRANSACTIONS_PER_BUYER) {
                 capReached = true;
                 console.log(

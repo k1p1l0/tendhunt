@@ -18,6 +18,70 @@ import { decodeHtmlEntities } from "../patterns/html-extractor";
 
 const BATCH_SIZE = 20;
 
+// Common abbreviations for UK government departments (slug → full name patterns)
+const DEPT_ABBREVIATION_MAP: Record<string, string[]> = {
+  "ministry of defence": ["mod", "ministry-of-defence", "defence"],
+  "hm revenue": ["hmrc", "hm-revenue", "revenue-customs"],
+  "hm treasury": ["hmt", "hm-treasury", "treasury"],
+  "home office": ["home-office"],
+  "ministry of justice": ["moj", "ministry-of-justice", "justice"],
+  "department for education": ["dfe", "department-for-education", "education"],
+  "department of health": ["dhsc", "department-of-health", "health-social-care"],
+  "department for transport": ["dft", "department-for-transport", "transport"],
+  "department for work": ["dwp", "department-for-work", "work-pensions"],
+  "department for environment": ["defra", "department-for-environment", "environment-food"],
+  "department for business": ["dbt", "department-for-business", "business-trade"],
+  "department for science": ["dsit", "department-for-science", "science-innovation"],
+  "department for levelling up": ["dluhc", "department-for-levelling", "levelling-up"],
+  "department for digital": ["dcms", "department-for-digital", "digital-culture"],
+  "foreign commonwealth": ["fcdo", "foreign-commonwealth"],
+  "cabinet office": ["cabinet-office"],
+  "hm courts": ["hmcts", "hm-courts", "courts-tribunals"],
+  "crown prosecution": ["cps", "crown-prosecution"],
+  "nhs england": ["nhs-england", "nhse"],
+};
+
+/**
+ * Filter GOV.UK collection page links to the current buyer's department.
+ * Collection pages list ALL departments, so we filter to only keep
+ * links relevant to this buyer.
+ */
+function filterLinksToBuyer(links: string[], buyerName: string): string[] {
+  const nameLower = buyerName.toLowerCase();
+
+  // Build keywords from buyer name
+  const keywords: string[] = [];
+
+  // Slugified full name parts
+  const slug = nameLower.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  keywords.push(slug);
+
+  // Individual significant words (skip short/common ones)
+  const skipWords = new Set(["the", "of", "and", "for", "in", "hm", "her", "his", "majesty"]);
+  for (const word of nameLower.split(/\s+/)) {
+    if (word.length > 2 && !skipWords.has(word)) {
+      keywords.push(word);
+    }
+  }
+
+  // Add known abbreviations
+  for (const [pattern, abbrs] of Object.entries(DEPT_ABBREVIATION_MAP)) {
+    if (nameLower.includes(pattern)) {
+      keywords.push(...abbrs);
+      break;
+    }
+  }
+
+  const filtered = links.filter((url) => {
+    const urlLower = url.toLowerCase();
+    return keywords.some((kw) => urlLower.includes(kw));
+  });
+
+  // Fallback: if nothing matched, return all links (buyer name might not appear in URLs)
+  if (filtered.length === 0) return links;
+  return filtered;
+}
+
 /**
  * Parse Claude's JSON response for transparency page discovery.
  */
@@ -130,10 +194,15 @@ export async function discoverTransparencyPages(
                 const result = await validateTransparencyUrl(candidateUrl);
                 if (result.valid && result.html) {
                   // Extract CSV links from the validated page
-                  const csvLinks = extractCsvLinksFromHtml(
+                  let csvLinks = extractCsvLinksFromHtml(
                     result.html,
                     candidateUrl
                   );
+
+                  // Filter GOV.UK collection links to this buyer's department
+                  if (candidateUrl.includes("gov.uk/government/")) {
+                    csvLinks = filterLinksToBuyer(csvLinks, buyer.name);
+                  }
 
                   await updateBuyerTransparencyInfo(db, buyer._id!, {
                     transparencyPageUrl: candidateUrl,

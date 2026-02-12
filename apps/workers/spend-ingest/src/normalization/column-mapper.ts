@@ -84,7 +84,7 @@ export async function mapColumns(
     const anthropic = new Anthropic({ apiKey: anthropicApiKey });
 
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20250401",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
       messages: [
         {

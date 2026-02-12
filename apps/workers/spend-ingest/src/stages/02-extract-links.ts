@@ -16,6 +16,94 @@ import { decodeHtmlEntities } from "../patterns/html-extractor";
 // ---------------------------------------------------------------------------
 
 const BATCH_SIZE = 20;
+const MAX_PUBLICATION_PAGES = 24;
+
+/**
+ * Follow GOV.UK publication pages to resolve actual download URLs.
+ * GOV.UK collection pages link to /government/publications/ HTML pages,
+ * which in turn contain the actual ODS/CSV download links on
+ * assets.publishing.service.gov.uk/media/.
+ */
+async function followGovukPublicationPages(
+  csvLinks: string[]
+): Promise<string[]> {
+  const publicationUrls = csvLinks.filter((url) =>
+    url.includes("/government/publications/")
+  );
+  const nonPublicationUrls = csvLinks.filter(
+    (url) => !url.includes("/government/publications/")
+  );
+
+  if (publicationUrls.length === 0) return csvLinks;
+
+  console.log(
+    `Following ${Math.min(publicationUrls.length, MAX_PUBLICATION_PAGES)} GOV.UK publication pages...`
+  );
+
+  const resolvedDownloads: string[] = [];
+
+  for (const pubUrl of publicationUrls.slice(0, MAX_PUBLICATION_PAGES)) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const response = await fetchWithDomainDelay(pubUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; TendHunt/1.0; link-extraction)",
+        },
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) continue;
+
+      const html = await response.text();
+      const decoded = decodeHtmlEntities(html);
+
+      // Extract download URLs from the publication page
+      const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+      let match: RegExpExecArray | null;
+
+      while ((match = hrefRegex.exec(decoded)) !== null) {
+        const href = match[1];
+        // Match assets.publishing.service.gov.uk/media/ or /government/uploads/
+        if (
+          href.includes("assets.publishing.service.gov.uk/media/") ||
+          href.includes("/government/uploads/")
+        ) {
+          try {
+            const resolved = new URL(href, pubUrl).href;
+            if (
+              resolved.startsWith("http://") ||
+              resolved.startsWith("https://")
+            ) {
+              resolvedDownloads.push(resolved);
+            }
+          } catch {
+            // skip invalid URL
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(
+        `Failed to follow publication page ${pubUrl}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
+  }
+
+  // Deduplicate
+  const allLinks = Array.from(
+    new Set([...nonPublicationUrls, ...resolvedDownloads])
+  );
+
+  console.log(
+    `Resolved ${resolvedDownloads.length} download URLs from ${Math.min(publicationUrls.length, MAX_PUBLICATION_PAGES)} publication pages`
+  );
+
+  return allLinks;
+}
 
 /**
  * Enhanced link extraction using all 12+ patterns with scoring.
@@ -181,6 +269,18 @@ export async function extractCsvLinks(
       batch.map((buyer) =>
         limit(async () => {
           const transparencyUrl = buyer.transparencyPageUrl!;
+
+          // Follow GOV.UK publication pages → resolve to actual download URLs
+          if (buyer.csvLinks && buyer.csvLinks.length > 0) {
+            const hasPublicationUrls = buyer.csvLinks.some((url: string) =>
+              url.includes("/government/publications/")
+            );
+            if (hasPublicationUrls) {
+              buyer.csvLinks = await followGovukPublicationPages(
+                buyer.csvLinks
+              );
+            }
+          }
 
           // Fetch the transparency page
           let html: string;

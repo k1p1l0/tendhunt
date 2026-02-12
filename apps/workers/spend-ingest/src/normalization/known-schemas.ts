@@ -25,10 +25,27 @@ function hasHeaders(headers: string[], required: string[]): boolean {
 }
 
 /**
- * 10 known UK council CSV column mapping patterns.
+ * Known UK public sector CSV/ODS column mapping patterns.
  * Ordered by specificity — more specific patterns first.
  */
 export const KNOWN_SCHEMAS: ColumnMapping[] = [
+  // 0. GOV.UK central government spending-over-25k (MoD, HMRC, etc.)
+  // More specific than devon_pattern: requires "transaction number" + "supplier" (not "supplier name")
+  {
+    name: "govuk_spending_25k",
+    detect: (headers) =>
+      hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number"]),
+    map: {
+      date: "Date",
+      amount: "Amount",
+      vendor: "Supplier",
+      category: "Expense Area",
+      subcategory: "Expense Type",
+      department: "Entity",
+      reference: "Transaction Number",
+    },
+  },
+
   // 1. Devon pattern
   {
     name: "devon_pattern",
