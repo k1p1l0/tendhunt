@@ -82,10 +82,90 @@ Pattern: requirement ID (e.g. `AUTH-01`) → Linear identifier (e.g. `HAC-1`).
 - **Database**: MongoDB Atlas (free tier)
 - **Auth**: Clerk
 - **UI**: shadcn/ui + Tailwind CSS 4.1
-- **AI**: Claude API (Haiku) for Vibe Scanner scoring
+- **AI**: Claude API (Haiku) for Vibe Scanner scoring + enrichment personnel extraction
 - **Scrapers**: Python (Scrapy + Playwright) — run on Cloudflare Workers or standalone
 - **Hosting**: Cloudflare (Pages for app, Workers for scrapers/cron, R2 for storage)
 - **Domains**: `tendhunt.com` = landing/marketing page, `app.tendhunt.com` = authenticated app
+
+## Buyer Data Enrichment Pipeline
+
+### Overview
+
+A 6-stage Cloudflare Worker (`workers/enrichment/`) enriches 2,384 UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron (`0 * * * *`), processing 500 buyers per invocation with cursor-based resume.
+
+**Worker URL**: `https://tendhunt-enrichment.kozak-74d.workers.dev`
+**Secrets**: `MONGODB_URI`, `ANTHROPIC_API_KEY` (set via `wrangler secret put`)
+
+### DataSource Seeding
+
+The `DataSource` collection is seeded from an external spec file:
+- **Source**: `/Users/kirillkozak/Projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
+- **Script**: `scripts/seed-data-sources.ts`
+- **Run**: `DOTENV_CONFIG_PATH=.env.local npx tsx --require dotenv/config scripts/seed-data-sources.ts`
+- **Result**: ~2,361 documents (672 Tier 0, 1,693 Tier 1), idempotent via bulkWrite upsert on `name`
+
+The seed script parses markdown tables from DATA_SOURCES.md covering **20 categories** of UK public sector organisations:
+
+| Category | orgType | Count (approx) |
+|----------|---------|-----------------|
+| London Borough Councils | `local_council_london` | 33 |
+| Metropolitan Borough Councils | `local_council_metro` | 36 |
+| County Councils | `local_council_county` | 21 |
+| Unitary Authorities | `local_council_unitary` | 59 |
+| District Councils | `local_council_district` | 164 |
+| Sui Generis Councils | `local_council_sui_generis` | 4 |
+| NHS Ambulance Trusts | `nhs_trust_ambulance` | 10 |
+| NHS Acute Trusts (7 regions) | `nhs_trust_acute` | ~130 |
+| NHS Mental Health Trusts | `nhs_trust_mental_health` | 44 |
+| NHS Community Healthcare | `nhs_trust_community` | 11 |
+| NHS ICBs (7 regions) | `nhs_icb` | 42 |
+| Fire & Rescue Services | `fire_rescue` | 44 |
+| Police & Crime Commissioners | `police_pcc` | 40 |
+| Combined Authorities | `combined_authority` | 11 |
+| National Park Authorities | `national_park` | 10 |
+| Multi-Academy Trusts | `mat` | ~1,400 |
+| Universities | `university` | ~170 |
+| FE Colleges | `fe_college` | ~90 |
+| Healthcare Regulators | `alb` | ~15 |
+| Arms-Length Bodies | `alb` | ~30 |
+
+Each DataSource record includes: `name`, `orgType`, `region`, `democracyPortalUrl`, `boardPapersUrl`, `platform` (ModernGov/CMIS/Custom/Jadu/None), `website`, `tier`, `status`.
+
+### 6-Stage Pipeline
+
+Stages run sequentially. Each stage processes all buyers before the next begins. The `EnrichmentJob` collection tracks cursor position per stage for crash-safe resume.
+
+| Stage | File | What it does |
+|-------|------|-------------|
+| 1. `classify` | `stages/01-classify.ts` | Fuzzy-match buyer names → DataSource via Fuse.js (threshold 0.3, 16 strip patterns for UK org name normalization). Sets `orgType`, `dataSourceId`, governance URLs. |
+| 2. `governance_urls` | `stages/02-governance-urls.ts` | Propagate `democracyPortalUrl`, `boardPapersUrl`, `platform` from DataSource to matched buyers. |
+| 3. `moderngov` | `stages/03-moderngov.ts` | Call ModernGov SOAP API for buyers on ModernGov platform. Fetch recent meetings + committees, upsert `BoardDocument` records. Uses double XML parse (SOAP envelope → inner result). |
+| 4. `scrape` | `stages/04-scrape.ts` | HTML scrape governance pages for non-ModernGov orgs. Extract board document links, descriptions, meeting dates. |
+| 5. `personnel` | `stages/05-personnel.ts` | Claude Haiku (`claude-haiku-4-5-20250401`) extracts key personnel from scraped content. p-limit(2) concurrency. Upserts `KeyPersonnel` records with role, confidence score. |
+| 6. `score` | `stages/06-score.ts` | Compute weighted enrichment score (0–100): orgType(15) + governance(10) + boardPapers(10) + website(5) + description(5) + staff(10) + budget(10) + personnel(20) + docs(15). |
+
+### Rate Limiting
+
+Per-domain rate limiter (`api-clients/rate-limiter.ts`) with exponential backoff:
+- `moderngov` domains: 2s delay
+- `nhs.uk`: 2s delay
+- `gov.uk`: 1s delay
+- Default: 3s delay
+- Retries on 429/503/network errors (max 3, respects `Retry-After` header)
+
+### MongoDB Collections (Enrichment)
+
+| Collection | Model File | Purpose |
+|------------|-----------|---------|
+| `DataSource` | `src/models/data-source.ts` | Seed data — UK public sector orgs with governance URLs |
+| `BoardDocument` | `src/models/board-document.ts` | Scraped board papers/meeting docs per buyer |
+| `KeyPersonnel` | `src/models/key-personnel.ts` | Extracted key people (CEO, CFO, etc.) per buyer |
+| `EnrichmentJob` | `src/models/enrichment-job.ts` | Pipeline state — cursor, stage, progress tracking |
+
+### Buyer Schema Extensions
+
+The `Buyer` model (`src/models/buyer.ts`) was extended with 12 enrichment fields:
+`orgType`, `orgSubType`, `dataSourceId`, `democracyPortalUrl`, `democracyPlatform`, `boardPapersUrl`, `staffCount`, `annualBudget`, `enrichmentScore`, `enrichmentSources`, `lastEnrichedAt`, `enrichmentVersion`
 
 ## Git Rules
 

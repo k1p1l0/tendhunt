@@ -27,6 +27,30 @@ export async function getBuyerBatch(
 }
 
 /**
+ * Fetch a filtered batch of buyers sorted by _id, starting after the given cursor.
+ * Allows stages to only query buyers matching specific criteria (e.g. missing fields).
+ */
+export async function getFilteredBuyerBatch(
+  db: Db,
+  cursor: string | null,
+  batchSize: number,
+  extraFilter: Record<string, unknown>
+): Promise<BuyerDoc[]> {
+  const collection = db.collection<BuyerDoc>(COLLECTION);
+
+  const filter: Record<string, unknown> = { ...extraFilter };
+  if (cursor) {
+    filter._id = { $gt: new ObjectId(cursor) };
+  }
+
+  return collection
+    .find(filter)
+    .sort({ _id: 1 })
+    .limit(batchSize)
+    .toArray();
+}
+
+/**
  * Update a single buyer with enrichment fields.
  */
 export async function updateBuyerEnrichment(

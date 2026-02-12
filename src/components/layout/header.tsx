@@ -1,6 +1,5 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { useBreadcrumb } from "./breadcrumb-context";
@@ -19,7 +18,6 @@ export function Header() {
           </span>
         )}
       </div>
-      <UserButton afterSignOutUrl="/sign-in" />
     </header>
   );
 }

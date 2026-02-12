@@ -52,6 +52,41 @@ export default {
       }
     }
 
+    // Debug: test filtered buyer query
+    if (url.pathname === "/debug") {
+      const db = await getDb(env.MONGODB_URI);
+      try {
+        const total = await db.collection("buyers").countDocuments();
+        const noWebsite = await db.collection("buyers").countDocuments({
+          orgType: { $ne: null },
+          $or: [{ website: null }, { website: { $exists: false } }],
+        });
+        const noLogo = await db.collection("buyers").countDocuments({
+          $or: [{ logoUrl: null }, { logoUrl: { $exists: false } }],
+        });
+        const jobs = await db.collection("enrichmentjobs").find({}).toArray();
+        const collections = await db.listCollections().toArray();
+        return Response.json({
+          total,
+          noWebsite,
+          noLogo,
+          dbName: db.databaseName,
+          uriHost: env.MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, "//***:***@").split("?")[0],
+          collections: collections.map((c) => c.name),
+          hasApify: Boolean(env.APIFY_API_TOKEN),
+          hasLogoDev: Boolean(env.LOGO_DEV_TOKEN),
+          jobs: jobs.map((j) => ({
+            stage: j.stage,
+            status: j.status,
+            processed: j.totalProcessed,
+            cursor: j.cursor,
+          })),
+        });
+      } finally {
+        await closeDb();
+      }
+    }
+
     // Health check
     if (url.pathname === "/health") {
       return Response.json({ status: "ok", worker: "tendhunt-enrichment" });

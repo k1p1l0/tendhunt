@@ -48,6 +48,59 @@ function normalizeName(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Heuristic classification for unmatched buyers
+// ---------------------------------------------------------------------------
+
+/**
+ * Name/sector keyword rules to assign orgType when Fuse.js finds no match.
+ * Checked in order — first match wins.
+ */
+const HEURISTIC_RULES: Array<{
+  test: (name: string, sector: string) => boolean;
+  orgType: string;
+}> = [
+  // Central government
+  { test: (n) => /\b(department for|department of|ministry of|hm treasury|cabinet office|home office|foreign|hmrc)\b/i.test(n), orgType: "central_government" },
+  { test: (n) => /\b(government digital|crown commercial|government property|government legal)\b/i.test(n), orgType: "central_government" },
+  // Devolved government
+  { test: (n) => /\b(scottish government|welsh government|northern ireland|stormont)\b/i.test(n), orgType: "devolved_government" },
+  // Scottish/Welsh/NI councils (not in England-focused DataSource)
+  { test: (n) => /\bcouncil\b/i.test(n), orgType: "local_council_other" },
+  // NHS bodies
+  { test: (n) => /\bnhs\b/i.test(n), orgType: "nhs_other" },
+  { test: (n, s) => s === "Health & Social" && /\b(trust|hospital|health)\b/i.test(n), orgType: "nhs_other" },
+  // Universities
+  { test: (n) => /\buniversity\b/i.test(n), orgType: "university" },
+  // Academies / schools / MATs
+  { test: (n) => /\b(academy|academies|trust|multi.?academy|MAT)\b/i.test(n) && /\b(school|learning|education|academy)\b/i.test(n), orgType: "mat" },
+  // FE colleges
+  { test: (n) => /\bcollege\b/i.test(n), orgType: "fe_college" },
+  // Police
+  { test: (n) => /\b(police|constabulary)\b/i.test(n), orgType: "police_pcc" },
+  // Fire & rescue
+  { test: (n) => /\b(fire|rescue)\b/i.test(n), orgType: "fire_rescue" },
+  // Housing associations
+  { test: (n) => /\b(housing|homes|habitation)\b/i.test(n), orgType: "housing_association" },
+  // Regulators & ALBs
+  { test: (n) => /\b(ofsted|ofcom|ofgem|ofwat|cqc|fca|hmcts|hse|environment agency)\b/i.test(n), orgType: "alb" },
+  // Transport
+  { test: (n) => /\b(transport for|network rail|highways|tfl)\b/i.test(n), orgType: "alb" },
+  // Private companies — water, energy, defence
+  { test: (n) => /\b(limited|ltd|plc|group|services|solutions)\b/i.test(n), orgType: "private_company" },
+];
+
+/**
+ * Attempt to classify a buyer by name/sector heuristics.
+ * Returns orgType string or null if no rule matches.
+ */
+function classifyByHeuristic(name: string, sector: string): string | null {
+  for (const rule of HEURISTIC_RULES) {
+    if (rule.test(name, sector)) return rule.orgType;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Stage 1: Classify buyers via Fuse.js fuzzy matching
 // ---------------------------------------------------------------------------
 
@@ -154,9 +207,20 @@ export async function classifyBuyers(
           updates.push({ buyerId: buyer._id!, fields });
           matched++;
         } else {
-          // No match found -- log for review
-          unmatchedNames.push(buyer.name);
-          unmatched++;
+          // No DataSource match — try heuristic classification
+          const heuristicType = classifyByHeuristic(buyer.name, buyer.sector ?? "");
+          if (heuristicType) {
+            const fields: Record<string, unknown> = {
+              orgType: heuristicType,
+              enrichmentSources: ["heuristic"],
+              lastEnrichedAt: new Date(),
+            };
+            updates.push({ buyerId: buyer._id!, fields });
+            matched++;
+          } else {
+            unmatchedNames.push(buyer.name);
+            unmatched++;
+          }
         }
       } catch (err) {
         errors++;

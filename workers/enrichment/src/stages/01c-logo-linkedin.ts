@@ -1,6 +1,6 @@
 import type { Db } from "mongodb";
 import type { Env, EnrichmentJobDoc, BuyerDoc } from "../types";
-import { getBuyerBatch, bulkUpdateBuyerEnrichment } from "../db/buyers";
+import { getFilteredBuyerBatch, bulkUpdateBuyerEnrichment } from "../db/buyers";
 import { updateJobProgress } from "../db/enrichment-jobs";
 import { callApifyActor } from "../api-clients/apify";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
@@ -171,8 +171,23 @@ export async function enrichLogoLinkedin(
   const hasApify = Boolean(env.APIFY_API_TOKEN);
   const hasLogoDev = Boolean(env.LOGO_DEV_TOKEN);
 
+  // Only query buyers that still need logo or LinkedIn enrichment
+  const stageFilter = {
+    $or: [
+      { logoUrl: null },
+      { logoUrl: { $exists: false } },
+      { linkedinUrl: null },
+      { linkedinUrl: { $exists: false } },
+    ],
+  };
+
   while (processed < maxItems) {
-    const batch = await getBuyerBatch(db, currentCursor, batchSize);
+    const batch = await getFilteredBuyerBatch(
+      db,
+      currentCursor,
+      batchSize,
+      stageFilter
+    );
 
     if (batch.length === 0) {
       console.log(

@@ -229,6 +229,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 6. Buyer Intelligence & Credits | 3/3 | ✓ Complete | 2026-02-11 |
 | 7. Buying Signals | 0/1 | Not started | - |
 | 8. Landing & Pricing | 0/2 | Not started | - |
+| 13. Buyer Data Enrichment | 6/6 | ✓ Complete | 2026-02-11 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -278,3 +279,31 @@ Plans:
 - [ ] 12-01-PLAN.md — API infrastructure: profile GET/PATCH, logo upload/re-extract, document delete, sonner toasts
 - [ ] 12-02-PLAN.md — Settings page: auto-save form with 3 sections (Company Info, AI Profile, Documents), TagInput extraction, logo upload component
 - [ ] 12-03-PLAN.md — Sidebar restructure: company header with logo/name at top, TendHunt branding in footer, event-driven logo refresh
+
+### Phase 13: Buyer Data Enrichment
+
+**Goal:** Enrich 2,384 UK public sector buyers with deep intelligence data via a 6-stage pipeline (classification, governance URLs, ModernGov API, website scraping, key personnel, financial data). Creates 4 new MongoDB collections (DataSource, BoardDocument, KeyPersonnel, EnrichmentJob), extends Buyer schema with enrichment fields, and builds a Cloudflare Worker enrichment pipeline with cursor-based resumability
+**Depends on:** Phase 2, Phase 6
+**Success Criteria** (what must be TRUE):
+  1. DataSource collection seeded with 2,368 UK public sector orgs from DATA_SOURCES spec (councils, NHS trusts, ICBs, fire/rescue, police, combined authorities, national parks)
+  2. Fuzzy name matching classifies all 2,384 buyers by orgType (local_council, nhs_trust_acute, nhs_trust_mental_health, icb, fire_rescue, police, university, etc.)
+  3. Buyer model extended with enrichment fields (orgType, democracyPortalUrl, democracyPlatform, boardPapersUrl, staffCount, annualBudget, enrichmentScore, enrichmentSources, lastEnrichedAt)
+  4. Governance portal URLs mapped for 676+ Tier 0 orgs (councils, NHS trusts, ICBs) with URL verification
+  5. ModernGov SOAP API client retrieves committees, meetings, and board minutes for councils with moderngov platform
+  6. BoardDocument collection stores downloaded documents with R2 storage URLs and text extraction status
+  7. KeyPersonnel collection stores board members and procurement leads extracted from governance pages via Claude Haiku
+  8. EnrichmentJob collection tracks pipeline progress with cursor-based resumability, batch processing, and error logs
+  9. Cloudflare Worker runs enrichment pipeline on daily cron with rate limiting per domain
+  10. Buyer profile UI displays enrichmentScore, enrichmentSources, board documents tab, and key personnel
+**Plans**: 6 plans
+
+**Reference specs:** `/Users/kirillkozak/Projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
+**Research notes:** `files/research_notes/uk_public_sector_data_sources.md`, `files/research_notes/scraping_enrichment_strategies.md`, `files/research_notes/enrichment_pipeline_best_practices.md`
+
+Plans:
+- [x] 13-01-PLAN.md — Models + DataSource seeding: 4 new Mongoose models, Buyer schema extension, seed script for 2,368 orgs
+- [x] 13-02-PLAN.md — Enrichment Worker scaffold + Stage 1 (classification): Worker project, MongoDB client, Fuse.js fuzzy matching
+- [x] 13-03-PLAN.md — Stage 2 (governance URLs) + Stage 3 (ModernGov SOAP): URL propagation, SOAP client, meeting discovery
+- [x] 13-04-PLAN.md — Stage 4 (website scraping) + Stage 5 (key personnel): NHS/ICB governance scraping, Claude Haiku extraction
+- [x] 13-05-PLAN.md — Stage 6 (enrichment scoring) + pipeline wiring: enrichment score computation, all 6 stages wired
+- [x] 13-06-PLAN.md — Buyer profile UI enhancement: enrichment badge, Board Documents tab, Key Personnel tab, extended header

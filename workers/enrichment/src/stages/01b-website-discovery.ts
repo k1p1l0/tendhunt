@@ -1,6 +1,6 @@
 import type { Db } from "mongodb";
 import type { Env, EnrichmentJobDoc, BuyerDoc } from "../types";
-import { getBuyerBatch, bulkUpdateBuyerEnrichment } from "../db/buyers";
+import { getFilteredBuyerBatch, bulkUpdateBuyerEnrichment } from "../db/buyers";
 import { updateJobProgress } from "../db/enrichment-jobs";
 import { callApifyActor } from "../api-clients/apify";
 
@@ -75,8 +75,19 @@ export async function discoverWebsites(
   // Use smaller batch size since each item triggers an external API call
   const batchSize = Math.min(job.batchSize, 20);
 
+  // Only query buyers that need website discovery
+  const stageFilter = {
+    orgType: { $ne: null },
+    $or: [{ website: null }, { website: { $exists: false } }],
+  };
+
   while (processed < maxItems) {
-    const batch = await getBuyerBatch(db, currentCursor, batchSize);
+    const batch = await getFilteredBuyerBatch(
+      db,
+      currentCursor,
+      batchSize,
+      stageFilter
+    );
 
     if (batch.length === 0) {
       console.log(
@@ -92,9 +103,6 @@ export async function discoverWebsites(
     const errorMessages: string[] = [];
 
     for (const buyer of batch) {
-      // Skip buyers that already have a website or have no orgType
-      if (buyer.website || !buyer.orgType) continue;
-
       try {
         const query = `"${buyer.name}" official website site:*.gov.uk OR site:*.nhs.uk OR site:*.ac.uk OR site:*.org.uk`;
 
