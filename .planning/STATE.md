@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 19 IN PROGRESS (3/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 19 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 19 IN PROGRESS, 18 COMPLETE, 11 + 15 in progress
-Plan: 19-01 + 19-02 + 19-03 COMPLETE (3/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Phase 19 Plan 03 complete -- SSE API wiring (useAgent hook, page context setters, conversation persistence)
-Last activity: 2026-02-12 -- Phase 19 Plan 03 executed (2 tasks, 3 min)
+Phase: 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
+Plan: 19 ALL COMPLETE (4/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Phase 19 Plan 04 complete -- Agent panel polish (Cmd+K shortcut, DOMPurify markdown, error retry, animations, accessibility)
+Last activity: 2026-02-12 -- Phase 19 Plan 04 executed (2 tasks, 3 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11, 15, 19 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 45
+- Total plans completed: 46
 - Average duration: 3.4 min
-- Total execution time: 2.68 hours
+- Total execution time: 2.73 hours
 
 **By Phase:**
 
@@ -41,10 +41,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11, 15, 19 in progress)
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
-| 19-research-agent-chat-panel | 3/4 | 7 min | 2.3 min |
+| 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 19-03 (3 min), 19-02 (2 min), 19-01 (2 min), 18-03 (4 min), 18-02 (4 min)
+- Last 5 plans: 19-04 (3 min), 19-03 (3 min), 19-02 (2 min), 19-01 (2 min), 18-03 (4 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -242,6 +242,11 @@ Recent decisions affecting current work:
 - [19-03]: Conversation persistence happens server-side after stream completion, not fire-and-forget from client
 - [19-03]: conversation_id SSE event sent back to client so subsequent messages update the same MongoDB document
 - [19-03]: AgentInput gets isStreaming as prop (not from store) for explicit prop-driven control
+- [19-04]: DOMPurify with explicit ALLOWED_TAGS whitelist for safe markdown rendering (no raw HTML injection)
+- [19-04]: marked link renderer override for target=_blank and rel=noopener noreferrer on all links
+- [19-04]: useReducedMotion from motion/react (not custom hook) for accessibility
+- [19-04]: isError flag on AgentMessage + removeMessage store method for retry flow
+- [19-04]: min-h-[44px] on all interactive buttons for mobile tap target compliance
 
 ### Pending Todos
 
@@ -266,5 +271,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 19-03-PLAN.md -- SSE API wiring (useAgent hook, page context setters, conversation persistence)
-Next: Phase 19 Plan 04 (refinements/polish). Pending: 19-04, 11-02, 15-02.
+Stopped at: Completed 19-04-PLAN.md -- Agent panel polish (Cmd+K shortcut, DOMPurify markdown, error retry, animations, accessibility)
+Next: Phase 19 COMPLETE. Pending: 11-02, 15-02.
