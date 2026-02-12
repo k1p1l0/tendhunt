@@ -71,7 +71,7 @@ async function generateGhostJWT(): Promise<string> {
 
   const key = await crypto.subtle.importKey(
     "raw",
-    hexToUint8Array(secret),
+    hexToUint8Array(secret).buffer as ArrayBuffer,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
