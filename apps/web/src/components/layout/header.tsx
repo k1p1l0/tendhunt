@@ -1,8 +1,11 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "./breadcrumb-context";
+import { useAgentStore } from "@/stores/agent-store";
 
 export function Header() {
   const { breadcrumb } = useBreadcrumb();
@@ -18,6 +21,15 @@ export function Header() {
           </span>
         )}
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        onClick={() => useAgentStore.getState().setPanelOpen(true)}
+        aria-label="Open research agent"
+      >
+        <Sparkles className="h-4 w-4" />
+      </Button>
     </header>
   );
 }
