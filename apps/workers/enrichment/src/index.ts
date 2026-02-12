@@ -38,7 +38,14 @@ async function runPipeline(env: Env, maxItems = 500) {
       `Enrichment: stage=${result.stage}, processed=${result.processed}, errors=${result.errors}, done=${result.done}`
     );
     if (result.stage === "all_complete") {
-      console.log("All enrichment stages complete. Pipeline finished.");
+      console.log("All enrichment stages complete. Triggering spend ingest...");
+      try {
+        const spendRes = await fetch(`${env.SPEND_INGEST_WORKER_URL}/run`);
+        const spendResult = await spendRes.json();
+        console.log("Spend ingest result:", JSON.stringify(spendResult));
+      } catch (err) {
+        console.error("Spend ingest trigger failed:", err);
+      }
     }
     console.log("--- Enrichment pipeline run complete ---");
     return result;
@@ -88,7 +95,15 @@ export default {
           { $set: { enrichmentPriority: tierPriority, updatedAt: new Date() } }
         );
 
-        return Response.json({ buyerId, buyerName: buyer.name, stages: results });
+        let spendResults = {};
+        try {
+          const spendRes = await fetch(`${env.SPEND_INGEST_WORKER_URL}/run-buyer?id=${buyerId}`);
+          spendResults = await spendRes.json();
+        } catch (err) {
+          spendResults = { error: err instanceof Error ? err.message : String(err) };
+        }
+
+        return Response.json({ buyerId, buyerName: buyer.name, enrichment: results, spend: spendResults });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return Response.json({ error: msg }, { status: 500 });

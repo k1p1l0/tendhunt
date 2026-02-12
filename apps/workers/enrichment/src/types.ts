@@ -10,6 +10,7 @@ export interface Env {
   APIFY_API_TOKEN: string;
   LOGO_DEV_TOKEN: string;
   DOCS: R2Bucket;
+  SPEND_INGEST_WORKER_URL: string;
 }
 
 // ---------------------------------------------------------------------------
