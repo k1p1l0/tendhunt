@@ -119,7 +119,7 @@ export function BuyerTabs(props: BuyerTabsProps) {
       </TabsContent>
 
       <TabsContent value="signals" className="mt-4">
-        <SignalsTab signals={props.signals} />
+        <SignalsTab signals={props.signals} hasBoardDocuments={props.boardDocuments.length > 0} />
       </TabsContent>
 
       <TabsContent value="board-documents" className="mt-4">
