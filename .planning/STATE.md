@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 14 COMPLETE -- Buyer Explorer Filters & Data Visibility (3/3 plans complete)
+**Current focus:** Phase 15 IN PROGRESS -- Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement (1/2 plans complete)
 
 ## Current Position
 
-Phase: 14 of 14 (Buyer Explorer Filters & Data Visibility)
-Plan: 3 of 3 in current phase (14-01 API Filtering COMPLETE, 14-02 UI Columns COMPLETE, 14-03 Filter Dropdowns COMPLETE)
-Status: Phase 14 complete -- All buyer explorer features shipped (filtering, enrichment columns, filter dropdowns)
-Last activity: 2026-02-12 -- Plan 14-03 executed (2 min)
+Phase: 15 of 15 (Contract-Buyer Entity Linking)
+Plan: 1 of 2 in current phase (15-01 Data Foundation COMPLETE)
+Status: Plan 15-01 complete -- buyerId on contracts, NUTS mapping, data-sync forward-write, backfill script ready
+Last activity: 2026-02-12 -- Plan 15-01 executed (3 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (All phases complete)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~95% (Phase 15 in progress, 1/2 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 36
-- Average duration: 3.6 min
-- Total execution time: 2.21 hours
+- Total plans completed: 37
+- Average duration: 3.5 min
+- Total execution time: 2.26 hours
 
 **By Phase:**
 
@@ -38,9 +38,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (All phases complete)
 | 12-settings-profile | 3/3 | 11 min | 3.7 min |
 | 13-buyer-data-enrichment | 6/6 | 23 min | 3.8 min |
 | 14-buyer-explorer-filters | 3/3 | 9 min | 3 min |
+| 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 14-03 (2 min), 14-02 (4 min), 14-01 (3 min), 13-06 (3 min), 13-03 (3 min)
+- Last 5 plans: 15-01 (3 min), 14-03 (2 min), 14-02 (4 min), 14-01 (3 min), 13-06 (3 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -201,6 +202,10 @@ Recent decisions affecting current work:
 - [14-03]: Dynamic dropdown population via Buyer.distinct() queries -- not hardcoded filter values
 - [14-03]: fetchBuyerById simplified: removed ContactReveal query and userId param (credit gating fully removed from data layer)
 - [14-03]: filteredCount drives pagination; footer shows filtered vs total count when filters active
+- [15-01]: autoExtractBuyers returns buyerIdMap via follow-up find() after bulkWrite -- bulkWrite only returns upsertedIds for new docs
+- [15-01]: Sync engine order reversed: extract buyers FIRST (get IDs), THEN upsert contracts (with IDs)
+- [15-01]: Static NUTS mapping includes both 2016 and 2021 codes for Scotland (UKM2/M3 + UKM5-M9) and London (UKI1/I2 + UKI3-I7)
+- [15-01]: buyerId stored as indexed ObjectId with ref on Contract schema for O(1) buyer detail page queries
 
 ### Pending Todos
 
@@ -214,6 +219,7 @@ Recent decisions affecting current work:
 - Phase 11 added: Invoice & Spend Data Intelligence (local authority transparency spending CSV data, SME-friendliness scoring)
 - Phase 13 added: Buyer Data Enrichment (6-stage enrichment pipeline, 4 new collections, Cloudflare Worker, 2,368 org DATA_SOURCES spec)
 - Phase 14 added: Buyer Explorer Filters & Data Visibility (filter dropdowns, enrichment columns, remove credit gating, server-side filtering)
+- Phase 15 added: Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement
 
 ### Blockers/Concerns
 
@@ -222,5 +228,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Phase 14 complete -- All 3 plans executed, buyer explorer fully featured
-Next: All phases complete. Consider cleanup (remove orphaned unlock-button.tsx) or next feature phase.
+Stopped at: Completed 15-01-PLAN.md -- Data foundation for contract-buyer entity linking
+Next: Execute 15-02-PLAN.md (contract detail page enhancement with buyer intelligence). Run backfill script before deploying.
