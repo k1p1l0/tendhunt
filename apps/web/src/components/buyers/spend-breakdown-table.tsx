@@ -42,6 +42,7 @@ interface TransactionsResponse {
 interface SpendBreakdownTableProps {
   buyerId: string;
   initialCategory?: string;
+  initialVendor?: string;
   categories: string[];
   vendors: string[];
 }
@@ -49,6 +50,7 @@ interface SpendBreakdownTableProps {
 export function SpendBreakdownTable({
   buyerId,
   initialCategory,
+  initialVendor,
   categories,
   vendors,
 }: SpendBreakdownTableProps) {
@@ -66,6 +68,14 @@ export function SpendBreakdownTable({
       setPage(1);
     }
   }, [initialCategory, filters.category]);
+
+  // Update filters when initialVendor changes (vendor table click)
+  useEffect(() => {
+    if (initialVendor !== undefined && initialVendor !== filters.vendor) {
+      setFilters((prev) => ({ ...prev, vendor: initialVendor || undefined }));
+      setPage(1);
+    }
+  }, [initialVendor, filters.vendor]);
 
   // Fetch transactions
   useEffect(() => {

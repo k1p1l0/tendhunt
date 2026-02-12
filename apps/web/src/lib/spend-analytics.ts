@@ -20,7 +20,7 @@ export interface ProfileMatch {
   matchPercentage: number;
 }
 
-interface RecurringPattern {
+export interface RecurringPattern {
   vendor: string;
   category: string;
   frequency: "monthly" | "quarterly";

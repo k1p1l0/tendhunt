@@ -25,9 +25,11 @@ interface VendorData {
 interface SpendVendorsTableProps {
   data: VendorData[];
   totalSpend: number;
+  selectedVendor?: string;
+  onVendorClick?: (vendor: string) => void;
 }
 
-export function SpendVendorsTable({ data, totalSpend }: SpendVendorsTableProps) {
+export function SpendVendorsTable({ data, totalSpend, selectedVendor, onVendorClick }: SpendVendorsTableProps) {
   const top20 = [...data]
     .sort((a, b) => b.total - a.total)
     .slice(0, 20);
@@ -64,7 +66,10 @@ export function SpendVendorsTable({ data, totalSpend }: SpendVendorsTableProps) 
                 return (
                   <TableRow
                     key={vendor.vendor}
-                    className="transition-colors hover:bg-muted/50"
+                    className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                      selectedVendor === vendor.vendor ? "bg-accent" : ""
+                    }`}
+                    onClick={() => onVendorClick?.(vendor.vendor)}
                   >
                     <TableCell className="font-medium text-muted-foreground">
                       {index + 1}
