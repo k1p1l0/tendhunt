@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { ToolCallIndicator } from "./tool-call-indicator";
 
@@ -12,6 +13,25 @@ marked.setOptions({
   gfm: true,
 });
 
+// Override link renderer to add target="_blank" and rel="noopener noreferrer"
+const renderer = new marked.Renderer();
+renderer.link = ({ href, text }) => {
+  return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+};
+marked.use({ renderer });
+
+function renderMarkdown(content: string): string {
+  const html = marked.parse(content, { async: false }) as string;
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p", "br", "strong", "em", "ul", "ol", "li", "a", "code", "pre",
+      "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
+      "blockquote", "del", "hr", "span", "sup", "sub",
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+  });
+}
+
 interface AgentMessageProps {
   message: AgentMessageType;
 }
@@ -21,7 +41,7 @@ export function AgentMessage({ message }: AgentMessageProps) {
 
   const htmlContent = useMemo(() => {
     if (message.role !== "assistant" || !message.content) return "";
-    return marked.parse(message.content, { async: false }) as string;
+    return renderMarkdown(message.content);
   }, [message.content, message.role]);
 
   const motionProps = prefersReducedMotion

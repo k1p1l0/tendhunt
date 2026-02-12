@@ -21,6 +21,7 @@
     "@glideapps/glide-data-grid": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.3.1",
     "fast-xml-parser": "^5.2.0",
     "lodash": "^4.17.23",
     "lucide-react": "^0.563.0",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/dompurify": "^3.2.0",
     "@types/lodash": "^4.17.23",
     "@types/node": "^20",
     "@types/react": "^19",
