@@ -1,9 +1,10 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { useAgentContext } from "./agent-provider";
+
 import type { AgentPageContext } from "./agent-provider";
 
 function getPrompts(context: AgentPageContext): string[] {
@@ -56,6 +57,7 @@ interface SuggestedActionsProps {
 
 export function SuggestedActions({ onSend }: SuggestedActionsProps) {
   const { context } = useAgentContext();
+  const prefersReducedMotion = useReducedMotion();
   const prompts = getPrompts(context);
 
   return (
@@ -73,13 +75,17 @@ export function SuggestedActions({ onSend }: SuggestedActionsProps) {
         {prompts.map((prompt, index) => (
           <motion.div
             key={prompt}
-            initial={{ opacity: 0, y: 6 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: index * 0.05 }}
+            transition={
+              prefersReducedMotion
+                ? { duration: 0 }
+                : { duration: 0.15, delay: index * 0.05, ease: "easeOut" }
+            }
           >
             <Button
               variant="ghost"
-              className="w-full justify-start text-left h-auto py-2.5 px-3 text-sm font-normal border hover:bg-muted/50 whitespace-normal"
+              className="w-full justify-start text-left h-auto min-h-[44px] py-2.5 px-3 text-sm font-normal border hover:bg-muted/50 whitespace-normal"
               onClick={() => onSend(prompt)}
             >
               {prompt}

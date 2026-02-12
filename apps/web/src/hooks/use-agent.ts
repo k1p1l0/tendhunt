@@ -25,6 +25,7 @@ export interface UseAgentReturn {
   isStreaming: boolean;
   messages: AgentMessage[];
   startNewConversation: () => void;
+  retryLastMessage: () => void;
 }
 
 export function useAgent(): UseAgentReturn {
@@ -101,12 +102,9 @@ export function useAgent(): UseAgentReturn {
         }
         case "error": {
           useAgentStore.getState().setIsStreaming(false);
-          const current = getActiveMessages(useAgentStore.getState());
-          const msg = current.find((m) => m.id === messageId);
           updateMessage(convId, messageId, {
-            content:
-              (msg?.content ?? "") +
-              `\n\n*Error: ${event.message ?? "Something went wrong"}*`,
+            content: event.message ?? "Something went wrong. Please try again.",
+            isError: true,
           });
           break;
         }
@@ -127,7 +125,6 @@ export function useAgent(): UseAgentReturn {
         store.createConversation(convId, content.slice(0, 60));
       }
 
-      // Add user message
       store.addMessage(convId, {
         id: nanoid(),
         role: "user",
@@ -135,7 +132,6 @@ export function useAgent(): UseAgentReturn {
         timestamp: new Date(),
       });
 
-      // Add placeholder assistant message
       const assistantMessageId = nanoid();
       store.addMessage(convId, {
         id: assistantMessageId,
@@ -151,10 +147,9 @@ export function useAgent(): UseAgentReturn {
       abortControllerRef.current = abortController;
 
       try {
-        // Build messages array from the conversation (exclude empty placeholder)
         const allMessages = getActiveMessages(useAgentStore.getState());
         const apiMessages = allMessages
-          .filter((m) => m.id !== assistantMessageId)
+          .filter((m) => m.id !== assistantMessageId && !m.isError)
           .map((m) => ({ role: m.role, content: m.content }));
 
         const response = await fetch("/api/agent/chat", {
@@ -197,7 +192,6 @@ export function useAgent(): UseAgentReturn {
           }
         }
 
-        // Ensure streaming ends
         useAgentStore.getState().setIsStreaming(false);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
@@ -206,12 +200,9 @@ export function useAgent(): UseAgentReturn {
         }
         useAgentStore.getState().setIsStreaming(false);
         const { updateMessage: update } = useAgentStore.getState();
-        const current = getActiveMessages(useAgentStore.getState());
-        const msg = current.find((m) => m.id === assistantMessageId);
         update(convId, assistantMessageId, {
-          content:
-            (msg?.content ?? "") +
-            `\n\n*Error: ${err instanceof Error ? err.message : "Connection lost"}*`,
+          content: err instanceof Error ? err.message : "Connection lost. Please try again.",
+          isError: true,
         });
       } finally {
         abortControllerRef.current = null;
@@ -231,11 +222,36 @@ export function useAgent(): UseAgentReturn {
     conversationIdRef.current = null;
   }, []);
 
+  const retryLastMessage = useCallback(() => {
+    const allMessages = getActiveMessages(useAgentStore.getState());
+    const convId = useAgentStore.getState().activeConversationId;
+    if (!convId || allMessages.length < 2) return;
+
+    const errorMessage = allMessages[allMessages.length - 1];
+    if (!errorMessage?.isError) return;
+
+    // Find the last user message before the error
+    const lastUserMessage = [...allMessages]
+      .reverse()
+      .find((m) => m.role === "user");
+    if (!lastUserMessage) return;
+
+    // Remove the error assistant message
+    useAgentStore.getState().removeMessage(convId, errorMessage.id);
+
+    // Remove the last user message (sendMessage will re-add it)
+    useAgentStore.getState().removeMessage(convId, lastUserMessage.id);
+
+    // Re-send
+    sendMessage(lastUserMessage.content);
+  }, [sendMessage]);
+
   return {
     sendMessage,
     stopStreaming,
     isStreaming,
     messages,
     startNewConversation,
+    retryLastMessage,
   };
 }

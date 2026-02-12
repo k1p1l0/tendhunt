@@ -32,7 +32,7 @@ export function ToolCallIndicator({ toolCall }: { toolCall: ToolCall }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="mb-2">
+    <div className="mb-2" role="status" aria-live="polite">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}

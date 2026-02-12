@@ -11,6 +11,7 @@ export interface AgentMessage {
     summary?: string;
     isLoading?: boolean;
   }>;
+  isError?: boolean;
   timestamp: Date;
 }
 
@@ -37,6 +38,7 @@ interface AgentStore {
   createConversation: (id: string, title?: string) => void;
   setActiveConversation: (id: string | null) => void;
   setIsStreaming: (streaming: boolean) => void;
+  removeMessage: (conversationId: string, messageId: string) => void;
   clearConversation: (conversationId: string) => void;
 }
 
@@ -92,6 +94,15 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   setActiveConversation: (id) => set({ activeConversationId: id }),
 
   setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+
+  removeMessage: (conversationId, messageId) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId
+          ? { ...c, messages: c.messages.filter((m) => m.id !== messageId) }
+          : c
+      ),
+    })),
 
   clearConversation: (conversationId) =>
     set((state) => {
