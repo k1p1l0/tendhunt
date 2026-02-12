@@ -189,15 +189,17 @@ export function ScannerDataGrid({
 
   // Store columnMeta + columnFilters in refs so drawHeader can access without re-creating
   const columnMetaRef = useRef(columnMeta);
-  columnMetaRef.current = columnMeta;
   const columnFiltersRef = useRef(columnFilters);
-  columnFiltersRef.current = columnFilters;
   const isScoringRef = useRef(isScoring);
-  isScoringRef.current = isScoring;
   const scoringProgressRef = useRef(scoringProgress);
-  scoringProgressRef.current = scoringProgress;
   const columnScoringProgressRef = useRef(columnScoringProgress);
-  columnScoringProgressRef.current = columnScoringProgress;
+  useEffect(() => {
+    columnMetaRef.current = columnMeta;
+    columnFiltersRef.current = columnFilters;
+    isScoringRef.current = isScoring;
+    scoringProgressRef.current = scoringProgress;
+    columnScoringProgressRef.current = columnScoringProgress;
+  }, [columnMeta, columnFilters, isScoring, scoringProgress, columnScoringProgress]);
 
   // Draw a small type icon — all centered at (x, cy), ~10px wide
   const drawTypeIcon = useCallback(
