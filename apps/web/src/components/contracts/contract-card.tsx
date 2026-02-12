@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -69,6 +70,7 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export function ContractCard({ contract }: { contract: ContractCardData }) {
+  const router = useRouter();
   const value = formatValue(contract.valueMin, contract.valueMax);
   const published = formatDate(contract.publishedDate);
   const deadline = formatDate(contract.deadlineDate);
@@ -81,13 +83,25 @@ export function ContractCard({ contract }: { contract: ContractCardData }) {
             {contract.title}
           </CardTitle>
           {contract.buyerId ? (
-            <Link
-              href={`/buyers/${contract.buyerId}`}
-              className="text-sm text-primary hover:underline truncate block"
-              onClick={(e) => e.stopPropagation()}
+            <span
+              role="link"
+              tabIndex={0}
+              className="text-sm text-primary hover:underline truncate block cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/buyers/${contract.buyerId}`);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push(`/buyers/${contract.buyerId}`);
+                }
+              }}
             >
               {contract.buyerName}
-            </Link>
+            </span>
           ) : (
             <p className="text-sm text-muted-foreground truncate">
               {contract.buyerName}

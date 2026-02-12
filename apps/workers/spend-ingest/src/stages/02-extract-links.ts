@@ -1,53 +1,170 @@
 import type { Db } from "mongodb";
 import Anthropic from "@anthropic-ai/sdk";
 import pLimit from "p-limit";
+
 import type { Env, SpendJobDoc } from "../types";
 import { getBuyerBatchForLinkExtraction, updateBuyerCsvLinks } from "../db/buyers";
 import { updateJobProgress } from "../db/spend-jobs";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
+import { scoreLink, FILE_EXT_PATTERN } from "../patterns/csv-patterns";
+import type { ScoredLink } from "../patterns/csv-patterns";
+import { decodeHtmlEntities } from "../patterns/html-extractor";
 
 // ---------------------------------------------------------------------------
 // Stage 2: Extract CSV/Excel download links from transparency pages
+// Enhanced with 12+ patterns, anchor text scoring, HTML entity decoding
 // ---------------------------------------------------------------------------
 
 const BATCH_SIZE = 20;
-
-/** File extension pattern for spending data files */
-const FILE_EXT_PATTERN = /\.(?:csv|xls|xlsx)$/i;
-
-/** URL pattern for download/export links with CSV context */
-const DOWNLOAD_PATTERN = /(?:download|export).*csv|csv.*(?:download|export)/i;
+const MAX_PUBLICATION_PAGES = 24;
 
 /**
- * Extract CSV/Excel download links from HTML using regex.
- * Finds href attributes ending in common data file extensions.
+ * Follow GOV.UK publication pages to resolve actual download URLs.
+ * GOV.UK collection pages link to /government/publications/ HTML pages,
+ * which in turn contain the actual ODS/CSV download links on
+ * assets.publishing.service.gov.uk/media/.
  */
-function extractLinksViaRegex(html: string, baseUrl: string): string[] {
-  const links: string[] = [];
-  const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
-  let match: RegExpExecArray | null;
+async function followGovukPublicationPages(
+  csvLinks: string[]
+): Promise<string[]> {
+  const publicationUrls = csvLinks.filter((url) =>
+    url.includes("/government/publications/")
+  );
+  const nonPublicationUrls = csvLinks.filter(
+    (url) => !url.includes("/government/publications/")
+  );
 
-  while ((match = hrefRegex.exec(html)) !== null) {
-    const href = match[1];
+  if (publicationUrls.length === 0) return csvLinks;
 
-    // Direct file extension match
-    if (FILE_EXT_PATTERN.test(href)) {
-      links.push(href);
-      continue;
-    }
+  console.log(
+    `Following ${Math.min(publicationUrls.length, MAX_PUBLICATION_PAGES)} GOV.UK publication pages...`
+  );
 
-    // Download/export URL with CSV context
-    if (DOWNLOAD_PATTERN.test(href)) {
-      links.push(href);
+  const resolvedDownloads: string[] = [];
+
+  for (const pubUrl of publicationUrls.slice(0, MAX_PUBLICATION_PAGES)) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const response = await fetchWithDomainDelay(pubUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; TendHunt/1.0; link-extraction)",
+        },
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) continue;
+
+      const html = await response.text();
+      const decoded = decodeHtmlEntities(html);
+
+      // Extract download URLs from the publication page
+      const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+      let match: RegExpExecArray | null;
+
+      while ((match = hrefRegex.exec(decoded)) !== null) {
+        const href = match[1];
+        // Match assets.publishing.service.gov.uk/media/ or /government/uploads/
+        if (
+          href.includes("assets.publishing.service.gov.uk/media/") ||
+          href.includes("/government/uploads/")
+        ) {
+          try {
+            const resolved = new URL(href, pubUrl).href;
+            if (
+              resolved.startsWith("http://") ||
+              resolved.startsWith("https://")
+            ) {
+              resolvedDownloads.push(resolved);
+            }
+          } catch {
+            // skip invalid URL
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(
+        `Failed to follow publication page ${pubUrl}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     }
   }
 
-  // Resolve relative URLs and deduplicate
-  return resolveAndDedup(links, baseUrl);
+  // Deduplicate
+  const allLinks = Array.from(
+    new Set([...nonPublicationUrls, ...resolvedDownloads])
+  );
+
+  console.log(
+    `Resolved ${resolvedDownloads.length} download URLs from ${Math.min(publicationUrls.length, MAX_PUBLICATION_PAGES)} publication pages`
+  );
+
+  return allLinks;
 }
 
 /**
- * Resolve relative URLs against base and deduplicate.
+ * Enhanced link extraction using all 12+ patterns with scoring.
+ * Extracts full <a> tags to capture anchor text for keyword scoring.
+ */
+function extractLinksEnhanced(html: string, baseUrl: string): ScoredLink[] {
+  const decoded = decodeHtmlEntities(html);
+  const scored: ScoredLink[] = [];
+  const seen = new Set<string>();
+
+  // Extract full <a> tags with anchor text
+  const anchorRegex = /<a\s[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = anchorRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    const anchorText = match[2].replace(/<[^>]*>/g, "").trim();
+
+    const result = scoreLink(href, anchorText);
+    if (result) {
+      try {
+        const resolved = new URL(href, baseUrl).href;
+        if (
+          (resolved.startsWith("http://") || resolved.startsWith("https://")) &&
+          !seen.has(resolved)
+        ) {
+          seen.add(resolved);
+          scored.push({ ...result, url: resolved });
+        }
+      } catch {
+        // skip invalid URL
+      }
+    }
+  }
+
+  // Also check bare hrefs not captured by anchor regex (e.g., in <link>, <area>)
+  const bareHrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+  while ((match = bareHrefRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    try {
+      const resolved = new URL(href, baseUrl).href;
+      if (seen.has(resolved)) continue;
+
+      const result = scoreLink(href);
+      if (result) {
+        if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
+          seen.add(resolved);
+          scored.push({ ...result, url: resolved });
+        }
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  // Sort by score descending
+  return scored.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Resolve relative URLs and deduplicate.
  */
 function resolveAndDedup(urls: string[], baseUrl: string): string[] {
   const seen = new Set<string>();
@@ -92,11 +209,35 @@ function parseLinkExtractionResponse(text: string): string[] {
 }
 
 /**
+ * Check if a URL looks like a valid download/data link.
+ * Enhanced to accept any pattern-matched URL, not just file extensions.
+ */
+function isValidDownloadLink(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname.toLowerCase();
+    const full = parsed.href.toLowerCase();
+
+    // Direct file extension
+    if (FILE_EXT_PATTERN.regex.test(path)) return true;
+
+    // Score the full URL — if any pattern matches, it's valid
+    const result = scoreLink(full);
+    return result !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Stage 2: Extract CSV/Excel download links from transparency pages.
  *
- * For buyers with a transparencyPageUrl (not "none"), visits the page and
- * extracts all CSV download links via regex. If regex finds fewer than 3 links,
- * falls back to Claude Haiku for deeper extraction.
+ * Enhanced extraction:
+ * 1. Decode HTML entities before matching
+ * 2. Use all 12+ patterns with weight scoring
+ * 3. Extract anchor text for keyword scoring
+ * 4. AI fallback when < 3 links found
+ * 5. Merge, dedup, filter
  */
 export async function extractCsvLinks(
   db: Db,
@@ -129,6 +270,18 @@ export async function extractCsvLinks(
         limit(async () => {
           const transparencyUrl = buyer.transparencyPageUrl!;
 
+          // Follow GOV.UK publication pages → resolve to actual download URLs
+          if (buyer.csvLinks && buyer.csvLinks.length > 0) {
+            const hasPublicationUrls = buyer.csvLinks.some((url: string) =>
+              url.includes("/government/publications/")
+            );
+            if (hasPublicationUrls) {
+              buyer.csvLinks = await followGovukPublicationPages(
+                buyer.csvLinks
+              );
+            }
+          }
+
           // Fetch the transparency page
           let html: string;
           try {
@@ -154,15 +307,15 @@ export async function extractCsvLinks(
                 err instanceof Error ? err.message : String(err)
               }`
             );
-            // Mark as extracted with empty links so we don't retry
             await updateBuyerCsvLinks(db, buyer._id!, buyer.csvLinks ?? []);
             return { error: false, linksFound: 0 };
           }
 
-          // Pass 1: Regex extraction
-          let csvLinks = extractLinksViaRegex(html, transparencyUrl);
+          // Enhanced extraction with all 12+ patterns
+          const scoredLinks = extractLinksEnhanced(html, transparencyUrl);
+          let csvLinks = scoredLinks.map((s) => s.url);
 
-          // Pass 2: Claude Haiku fallback if regex found < 3 links
+          // AI fallback if enhanced regex found < 3 links
           if (csvLinks.length < 3) {
             try {
               const strippedHtml = html
@@ -172,7 +325,7 @@ export async function extractCsvLinks(
                 .slice(0, 15000);
 
               const response = await anthropic.messages.create({
-                model: "claude-haiku-4-5-20250401",
+                model: "claude-haiku-4-5-20251001",
                 max_tokens: 1024,
                 messages: [
                   {
@@ -203,7 +356,6 @@ Return ONLY valid JSON:
               const aiLinks = parseLinkExtractionResponse(responseText);
               if (aiLinks.length > 0) {
                 const resolvedAiLinks = resolveAndDedup(aiLinks, transparencyUrl);
-                // Merge with regex links, deduplicate
                 const allLinks = new Set([...csvLinks, ...resolvedAiLinks]);
                 csvLinks = Array.from(allLinks);
               }
@@ -213,7 +365,6 @@ Return ONLY valid JSON:
               }`;
               console.error(msg);
               errorMessages.push(msg);
-              // Continue with regex-only links
             }
           }
 
@@ -223,20 +374,8 @@ Return ONLY valid JSON:
             new Set([...existingLinks, ...csvLinks])
           );
 
-          // Filter: keep only valid download links
-          const filteredLinks = mergedLinks.filter((link) => {
-            try {
-              const url = new URL(link);
-              const path = url.pathname.toLowerCase();
-              return (
-                FILE_EXT_PATTERN.test(path) ||
-                path.includes("download") ||
-                path.includes("export")
-              );
-            } catch {
-              return false;
-            }
-          });
+          // Filter: keep only valid download links (enhanced check)
+          const filteredLinks = mergedLinks.filter(isValidDownloadLink);
 
           await updateBuyerCsvLinks(db, buyer._id!, filteredLinks);
           totalLinksFound += filteredLinks.length;

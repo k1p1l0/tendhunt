@@ -160,28 +160,18 @@ export function ScannerList({
     }
   });
 
-  function SortableHead({
-    field,
-    children,
-    className,
-  }: {
-    field: SortField;
-    children: React.ReactNode;
-    className?: string;
-  }) {
-    return (
-      <TableHead className={className}>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-          onClick={() => toggleSort(field)}
-        >
-          {children}
-          <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
-        </button>
-      </TableHead>
-    );
-  }
+  const renderSortableHead = (field: SortField, children: React.ReactNode, className?: string) => (
+    <TableHead className={className}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        onClick={() => toggleSort(field)}
+      >
+        {children}
+        <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
+      </button>
+    </TableHead>
+  );
 
   return (
     <div className="space-y-4">
@@ -206,14 +196,12 @@ export function ScannerList({
         <Table>
           <TableHeader>
             <TableRow>
-              <SortableHead field="name" className="min-w-[280px]">
-                Name
-              </SortableHead>
-              <SortableHead field="type">Type</SortableHead>
-              <SortableHead field="updatedAt">Last Modified</SortableHead>
-              <SortableHead field="createdAt">Created</SortableHead>
-              <SortableHead field="creditsUsed">Credits Used</SortableHead>
-              <SortableHead field="totalEntries">Total Entries</SortableHead>
+              {renderSortableHead("name", "Name", "min-w-[280px]")}
+              {renderSortableHead("type", "Type")}
+              {renderSortableHead("updatedAt", "Last Modified")}
+              {renderSortableHead("createdAt", "Created")}
+              {renderSortableHead("creditsUsed", "Credits Used")}
+              {renderSortableHead("totalEntries", "Total Entries")}
               <TableHead className="w-[50px]" />
             </TableRow>
           </TableHeader>

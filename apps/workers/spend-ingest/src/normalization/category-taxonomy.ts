@@ -104,13 +104,16 @@ const CATEGORY_KEYWORDS: Array<[string[], string]> = [
 /**
  * Normalize a raw category string to one of ~25 high-level categories.
  * Uses keyword matching (case-insensitive).
- * Returns "Other" if no keyword matches.
+ * If no keyword matches, preserves the original value (title-cased)
+ * instead of discarding it as "Other".
  */
 export function normalizeCategory(raw: string): string {
   if (!raw || typeof raw !== "string") return "Other";
 
-  const lower = raw.toLowerCase().trim();
-  if (lower.length === 0) return "Other";
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return "Other";
+
+  const lower = trimmed.toLowerCase();
 
   for (const [keywords, category] of CATEGORY_KEYWORDS) {
     for (const keyword of keywords) {
@@ -120,5 +123,9 @@ export function normalizeCategory(raw: string): string {
     }
   }
 
-  return "Other";
+  // Preserve original value with title case instead of losing it as "Other"
+  return trimmed
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
 }

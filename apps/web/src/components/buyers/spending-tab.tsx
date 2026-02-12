@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SpendingHero } from "@/components/buyers/spending-hero";
 import { SpendCategoriesChart } from "@/components/buyers/spend-categories-chart";
 import { SpendTimelineChart } from "@/components/buyers/spend-timeline-chart";
-import { SpendOpportunities } from "@/components/buyers/spend-opportunities";
+import { SpendRecurringCard } from "@/components/buyers/spend-recurring-card";
 import { SpendVendorsTable } from "@/components/buyers/spend-vendors-table";
 import { SpendBreakdownTable } from "@/components/buyers/spend-breakdown-table";
 import type { SpendMetrics, ProfileMatch, SpendOpportunities as SpendOpportunitiesType } from "@/lib/spend-analytics";
@@ -33,6 +33,7 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [selectedVendor, setSelectedVendor] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,28 +117,34 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
   const categories = data.summary.categoryBreakdown.map((c) => c.category);
   const vendors = data.summary.vendorBreakdown.map((v) => v.vendor);
 
+  const handleVendorClick = (vendor: string) => {
+    setSelectedVendor((prev) => (prev === vendor ? undefined : vendor));
+  };
+
   return (
     <div className="space-y-6">
       <SpendingHero metrics={data.metrics} profileMatch={profileMatch} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <SpendCategoriesChart
           data={data.summary.categoryBreakdown}
           onCategoryClick={(category) => setSelectedCategory(category)}
         />
         <SpendTimelineChart data={data.summary.monthlyTotals} />
+        <SpendRecurringCard recurringPatterns={opportunities.recurringPatterns} />
       </div>
-
-      <SpendOpportunities opportunities={opportunities} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SpendVendorsTable
           data={data.summary.vendorBreakdown}
           totalSpend={data.metrics.totalSpend}
+          selectedVendor={selectedVendor}
+          onVendorClick={handleVendorClick}
         />
         <SpendBreakdownTable
           buyerId={buyerId}
           initialCategory={selectedCategory}
+          initialVendor={selectedVendor}
           categories={categories}
           vendors={vendors}
         />
@@ -167,7 +174,7 @@ function SpendingTabSkeleton() {
       </Card>
 
       {/* Chart skeletons */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardContent className="p-6">
             <Skeleton className="mb-4 h-5 w-40" />
@@ -178,6 +185,12 @@ function SpendingTabSkeleton() {
           <CardContent className="p-6">
             <Skeleton className="mb-4 h-5 w-32" />
             <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <Skeleton className="mb-4 h-5 w-36" />
+            <Skeleton className="h-[350px] w-full" />
           </CardContent>
         </Card>
       </div>

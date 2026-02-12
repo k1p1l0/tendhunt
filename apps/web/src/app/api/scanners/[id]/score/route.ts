@@ -110,8 +110,10 @@ export async function POST(
     // Clear existing scores for a fresh re-score
     await Scanner.updateOne({ _id: scanner._id }, { $set: { scores: [] } });
 
-    // SSE stream
+    // SSE stream with cancellation support
     const encoder = new TextEncoder();
+    let cancelled = false;
+
     const stream = new ReadableStream({
       async start(controller) {
         const allScores: Array<{
@@ -121,6 +123,17 @@ export async function POST(
           value: string;
           reasoning: string;
         }> = [];
+
+        function send(data: object) {
+          if (cancelled) return;
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
+            );
+          } catch {
+            cancelled = true;
+          }
+        }
 
         try {
           for await (const event of scoreEntities(
@@ -138,10 +151,9 @@ export async function POST(
             entities,
             baseScoringPrompt
           )) {
-            // Stream each event to the client
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
-            );
+            if (cancelled) break;
+
+            send(event);
 
             // Collect scores for persistence
             if (event.type === "progress" && event.entityId) {
@@ -155,62 +167,71 @@ export async function POST(
             }
           }
 
-          // Persist all scores to MongoDB (Scanner.scores array)
-          await Scanner.updateOne(
-            { _id: scanner._id },
-            {
-              $set: {
-                scores: allScores,
-                lastScoredAt: new Date(),
-              },
-            }
-          );
+          // Persist whatever scores we collected (even if cancelled partway)
+          if (allScores.length > 0) {
+            await Scanner.updateOne(
+              { _id: scanner._id },
+              {
+                $set: {
+                  scores: allScores,
+                  lastScoredAt: new Date(),
+                },
+              }
+            );
+          }
 
           // Update source documents' vibeScore/vibeReasoning for the primary
           // AI column (first column) -- only for types that have these fields
-          const firstColumn = scanner.aiColumns[0];
-          if (firstColumn && scanner.type !== "meetings") {
-            const primaryScores = allScores.filter(
-              (s) =>
-                s.columnId === (firstColumn as { columnId: string }).columnId &&
-                s.score != null
-            );
+          if (!cancelled) {
+            const firstColumn = scanner.aiColumns[0];
+            if (firstColumn && scanner.type !== "meetings") {
+              const primaryScores = allScores.filter(
+                (s) =>
+                  s.columnId === (firstColumn as { columnId: string }).columnId &&
+                  s.score != null
+              );
 
-            if (primaryScores.length > 0) {
-              const Model =
-                scanner.type === "rfps" ? Contract : Buyer;
+              if (primaryScores.length > 0) {
+                const Model =
+                  scanner.type === "rfps" ? Contract : Buyer;
 
-              const bulkOps = primaryScores.map((s) => ({
-                updateOne: {
-                  filter: { _id: s.entityId },
-                  update: {
-                    $set: {
-                      vibeScore: s.score,
-                      vibeReasoning: s.reasoning,
+                const bulkOps = primaryScores.map((s) => ({
+                  updateOne: {
+                    filter: { _id: s.entityId },
+                    update: {
+                      $set: {
+                        vibeScore: s.score,
+                        vibeReasoning: s.reasoning,
+                      },
                     },
                   },
-                },
-              }));
+                }));
 
-              await Model.bulkWrite(bulkOps);
+                await Model.bulkWrite(bulkOps);
+              }
             }
           }
         } catch (err) {
           console.error("Scoring stream error:", err);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: "error",
-                message:
-                  err instanceof Error
-                    ? err.message
-                    : "Scoring failed",
-              })}\n\n`
-            )
-          );
+          send({
+            type: "error",
+            message:
+              err instanceof Error
+                ? err.message
+                : "Scoring failed",
+          });
         }
 
-        controller.close();
+        if (!cancelled) {
+          try {
+            controller.close();
+          } catch {
+            // Already closed
+          }
+        }
+      },
+      cancel() {
+        cancelled = true;
       },
     });
 

@@ -44,6 +44,13 @@ interface ContactData {
   linkedIn?: string;
 }
 
+const VALID_TABS = [
+  "spending", "contracts", "contacts", "signals",
+  "board-documents", "key-personnel", "attributes",
+] as const;
+
+type BuyerTab = typeof VALID_TABS[number];
+
 interface BuyerTabsProps {
   contracts: ContractData[];
   signals: SignalData[];
@@ -64,25 +71,29 @@ interface BuyerTabsProps {
   keyPersonnel: KeyPersonnelData[];
   hasSpendData?: boolean;
   spendTransactionCount?: number;
+  initialTab?: string;
 }
 
 export function BuyerTabs(props: BuyerTabsProps) {
   const contactCount = props.contacts.length;
+  const activeTab: BuyerTab = VALID_TABS.includes(props.initialTab as BuyerTab)
+    ? (props.initialTab as BuyerTab)
+    : "spending";
 
   return (
-    <Tabs defaultValue="contracts" className="w-full">
+    <Tabs defaultValue={activeTab} className="w-full">
       <TabsList>
+        <TabsTrigger value="spending">
+          Spending{props.spendTransactionCount ? ` (${props.spendTransactionCount.toLocaleString()})` : ""}
+        </TabsTrigger>
         <TabsTrigger value="contracts">
-          Contracts ({props.contracts.length})
+          Contracts ({props.buyer.contractCount || props.contracts.length})
         </TabsTrigger>
         <TabsTrigger value="contacts">
           Key Contacts ({contactCount})
         </TabsTrigger>
         <TabsTrigger value="signals">
           Buying Signals ({props.signals.length})
-        </TabsTrigger>
-        <TabsTrigger value="spending">
-          Spending{props.spendTransactionCount ? ` (${props.spendTransactionCount.toLocaleString()})` : ""}
         </TabsTrigger>
         <TabsTrigger value="board-documents">
           Board Documents ({props.boardDocuments.length})
@@ -94,6 +105,10 @@ export function BuyerTabs(props: BuyerTabsProps) {
           Buyer Attributes
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="spending" className="mt-4">
+        <SpendingTab buyerId={props.buyer._id} buyerName={props.buyerName} />
+      </TabsContent>
 
       <TabsContent value="contracts" className="mt-4">
         <ContractsTab contracts={props.contracts} />
@@ -117,10 +132,6 @@ export function BuyerTabs(props: BuyerTabsProps) {
 
       <TabsContent value="attributes" className="mt-4">
         <AttributesTab buyer={props.buyer} />
-      </TabsContent>
-
-      <TabsContent value="spending" className="mt-4">
-        <SpendingTab buyerId={props.buyer._id} buyerName={props.buyerName} />
       </TabsContent>
     </Tabs>
   );

@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { SearchQueryInput } from "@/components/scanners/search-query-display";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -27,6 +27,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import type { ScannerType } from "@/models/scanner";
+import { SECTORS } from "@/lib/constants/sectors";
 
 interface EditScannerDialogProps {
   open: boolean;
@@ -52,29 +53,6 @@ const TYPE_LABELS: Record<ScannerType, string> = {
   meetings: "Meetings",
   buyers: "Buyers",
 };
-
-const SECTORS = [
-  "Health & Social",
-  "Construction",
-  "Business Services",
-  "Transport",
-  "IT Services",
-  "Software",
-  "Architecture & Engineering",
-  "Education & Training",
-  "Research & Development",
-  "Defence",
-  "Environmental Services",
-  "Utilities",
-  "Legal Services",
-  "Financial Services",
-  "Facilities Management",
-  "Food & Catering",
-  "Telecommunications",
-  "Publishing & Printing",
-  "Industrial Equipment",
-  "Medical Equipment",
-] as const;
 
 const REGIONS: Record<string, string> = {
   UKC: "North East England",
@@ -270,13 +248,11 @@ export function EditScannerDialog({
           {/* Search Query */}
           <div className="space-y-2">
             <Label htmlFor="edit-scanner-query">Search Query</Label>
-            <Textarea
+            <SearchQueryInput
               id="edit-scanner-query"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="AI-generated OR-joined conditions..."
-              rows={6}
-              className="font-mono text-sm"
+              onChange={setSearchQuery}
+              placeholder="e.g. cloud migration OR IT infrastructure OR digital transformation"
             />
           </div>
 

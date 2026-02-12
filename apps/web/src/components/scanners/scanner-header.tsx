@@ -1,10 +1,18 @@
 "use client";
 
-import { Pencil, Loader2, RefreshCw, ChevronDown, Columns3, Rows3, Filter, Play, Square } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Loader2, RefreshCw, ChevronDown, Rows3, Filter, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ScannerType } from "@/models/scanner";
 
+interface RowPagination {
+  offset: number;
+  limit: number;
+}
+
 interface ScannerHeaderProps {
   scanner: {
     name: string;
@@ -22,9 +35,11 @@ interface ScannerHeaderProps {
     autoRun?: boolean;
   };
   rowCount: number;
-  columnCount: number;
+  totalRowCount: number;
   activeFilterCount: number;
   isScoring: boolean;
+  rowPagination: RowPagination;
+  onRowPaginationChange: (offset: number, limit: number) => void;
   onToggleAutoRun: (enabled: boolean) => void;
   onRunNow: () => void;
   onCancelScoring: () => void;
@@ -45,18 +60,62 @@ const TYPE_LABELS: Record<ScannerType, string> = {
   buyers: "Buyers",
 };
 
+const ENTITY_LABELS: Record<ScannerType, [string, string]> = {
+  rfps: ["contract", "contracts"],
+  meetings: ["signal", "signals"],
+  buyers: ["buyer", "buyers"],
+};
+
+function formatNumber(n: number): string {
+  return n.toLocaleString();
+}
+
 export function ScannerHeader({
   scanner,
   rowCount,
-  columnCount,
+  totalRowCount,
   activeFilterCount,
   isScoring,
+  rowPagination,
+  onRowPaginationChange,
   onToggleAutoRun,
   onRunNow,
   onCancelScoring,
   onEditScanner,
 }: ScannerHeaderProps) {
   const autoRun = scanner.autoRun ?? false;
+
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [localOffset, setLocalOffset] = useState(rowPagination.offset);
+  const [localLimit, setLocalLimit] = useState(rowPagination.limit);
+
+  const isPaginated = rowPagination.limit > 0 || rowPagination.offset > 0;
+
+  function handlePopoverOpenChange(open: boolean) {
+    if (open) {
+      setLocalOffset(rowPagination.offset);
+      setLocalLimit(rowPagination.limit);
+    }
+    setPopoverOpen(open);
+  }
+
+  function handleSave() {
+    onRowPaginationChange(localOffset, localLimit);
+    setPopoverOpen(false);
+  }
+
+  function handleShowAll() {
+    setLocalOffset(0);
+    setLocalLimit(0);
+    onRowPaginationChange(0, 0);
+    setPopoverOpen(false);
+  }
+
+  const [entitySingular, entityPlural] = ENTITY_LABELS[scanner.type];
+  const entityLabel = rowCount === 1 ? entitySingular : entityPlural;
+  const rowLabel = isPaginated
+    ? `${formatNumber(rowCount)}/${formatNumber(totalRowCount)} ${entityPlural}`
+    : `${formatNumber(rowCount)} ${entityLabel}`;
 
   return (
     <div className="space-y-3">
@@ -135,14 +194,71 @@ export function ScannerHeader({
 
         {/* Stats bar */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Columns3 className="h-3.5 w-3.5" />
-            {columnCount} {columnCount === 1 ? "column" : "columns"}
-          </span>
-          <span className="flex items-center gap-1">
-            <Rows3 className="h-3.5 w-3.5" />
-            {rowCount} {rowCount === 1 ? "row" : "rows"}
-          </span>
+          {/* Row count — clickable popover */}
+          <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
+            <PopoverTrigger asChild>
+              <button
+                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 text-foreground transition-colors hover:bg-muted cursor-pointer"
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+                {rowLabel}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 space-y-3">
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium">Row pagination</h4>
+                <p className="text-xs text-muted-foreground">
+                  Control how many rows load into the grid.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label htmlFor="row-offset" className="text-xs">Starting row</Label>
+                  <Input
+                    id="row-offset"
+                    type="number"
+                    min={0}
+                    value={localOffset || ""}
+                    onChange={(e) => setLocalOffset(e.target.value ? parseInt(e.target.value, 10) : 0)}
+                    placeholder="0"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="row-limit" className="text-xs">Row limit</Label>
+                  <Input
+                    id="row-limit"
+                    type="number"
+                    min={0}
+                    value={localLimit || ""}
+                    onChange={(e) => setLocalLimit(e.target.value ? parseInt(e.target.value, 10) : 0)}
+                    placeholder="No limit"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs h-7"
+                  onClick={handleShowAll}
+                >
+                  Show all rows
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 text-xs h-7"
+                  onClick={handleSave}
+                >
+                  Save changes
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           {activeFilterCount > 0 && (
             <span className="flex items-center gap-1">
               <Filter className="h-3.5 w-3.5" />

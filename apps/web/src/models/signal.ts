@@ -30,6 +30,8 @@ const signalSchema = new Schema(
   { timestamps: true }
 );
 
+signalSchema.index({ title: "text", insight: "text" });
+
 export type ISignal = InferSchemaType<typeof signalSchema>;
 
 const Signal =

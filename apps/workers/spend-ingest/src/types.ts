@@ -7,6 +7,7 @@ import type { ObjectId } from "mongodb";
 export interface Env {
   MONGODB_URI: string;
   ANTHROPIC_API_KEY: string;
+  DOCS: R2Bucket;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +117,9 @@ export interface BuyerDoc {
   csvLinksExtracted?: boolean;
   spendDataIngested?: boolean;
   spendDataAvailable?: boolean;
+  discoveryMethod?: string;
   lastSpendIngestAt?: Date;
+  enrichmentPriority?: number;
   createdAt: Date;
   updatedAt: Date;
 }

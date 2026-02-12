@@ -13,6 +13,7 @@
  */
 import { MongoClient, ObjectId } from "mongodb";
 import Anthropic from "@anthropic-ai/sdk";
+import * as XLSX from "xlsx";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -78,28 +79,6 @@ function parseLinkExtractionResponse(text: string): string[] {
   }
 }
 
-const FILE_EXT_PATTERN = /\.(?:csv|xls|xlsx)$/i;
-const DOWNLOAD_PATTERN = /(?:download|export).*csv|csv.*(?:download|export)/i;
-
-function extractLinksViaRegex(html: string, baseUrl: string): string[] {
-  const links: string[] = [];
-  const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
-  let match: RegExpExecArray | null;
-
-  while ((match = hrefRegex.exec(html)) !== null) {
-    const href = match[1];
-    if (FILE_EXT_PATTERN.test(href)) {
-      links.push(href);
-      continue;
-    }
-    if (DOWNLOAD_PATTERN.test(href)) {
-      links.push(href);
-    }
-  }
-
-  return resolveAndDedup(links, baseUrl);
-}
-
 function resolveAndDedup(urls: string[], baseUrl: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -119,6 +98,391 @@ function resolveAndDedup(urls: string[], baseUrl: string): string[] {
   }
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Pattern-based discovery (inlined from worker patterns/)
+// ---------------------------------------------------------------------------
+
+interface TransparencyUrlPattern {
+  name: string;
+  paths: string[];
+  priority: number;
+}
+
+const PATTERN_REGISTRY: Record<string, TransparencyUrlPattern[]> = {
+  local_council: [
+    { name: "council_transparency_spending", priority: 1, paths: [
+      "/council/transparency/spending", "/transparency/spending", "/about-the-council/transparency/spending-and-procurement",
+      "/council-and-mayor/council-spending-and-performance/spending-over-500", "/council/council-spending-and-performance/spending-over-500",
+      "/about-the-council/finance-and-budget/spending", "/about-the-council/finance-and-budget/spending/invoices-over-250",
+      "/performance-and-spending/our-financial-plans/spending-over-500", "/your-council/performance-and-spending/our-financial-plans/spending-over-500",
+    ] },
+    { name: "council_payments", priority: 2, paths: [
+      "/payments-over-500", "/spending-over-500", "/spending-over-250", "/payments-over-250",
+      "/your-council/finance/payments-suppliers", "/about-the-council/budgets-and-spending/spending-and-payments",
+      "/council-spending-and-performance", "/your-council/budgets-and-spending", "/about-us/what-we-spend",
+    ] },
+    { name: "council_open_data", priority: 3, paths: ["/open-data/spending", "/open-data/council-spending", "/opendata/spending", "/publication-scheme"] },
+    { name: "council_transparency_generic", priority: 4, paths: ["/transparency", "/transparency-and-open-data", "/your-council/transparency", "/about-the-council/transparency"] },
+  ],
+  nhs_trust: [
+    { name: "nhs_spending_25k", priority: 1, paths: [
+      "/about-us/freedom-of-information/spending-over-25000", "/about-us/spending-over-25-000", "/about-us/spending-over-25000",
+      "/about-us/information-governance/freedom-information/spending-over-25000",
+      "/about-us/freedom-of-information/expenditure-over-25-000", "/about-us/freedom-of-information/expenditure-over-25000",
+      "/spending-over-25k",
+    ] },
+    { name: "nhs_spending_money", priority: 2, paths: [
+      "/about-us/how-we-spend-our-money", "/about-us/spending", "/about-us/our-spending",
+      "/about-us/guide-information-publication-scheme/transparency-spending",
+      "/about-us/key-documents/investing-money-in-your-care", "/about-us/corporate-publications/financial-transparency",
+      "/what-we-spend", "/what-we-spend-and-how-we-spend-it",
+    ] },
+    { name: "nhs_publications", priority: 3, paths: ["/publications/spending", "/about-us/publications/spending"] },
+  ],
+  nhs_icb: [
+    { name: "icb_spending", priority: 1, paths: ["/about-us/how-we-spend-public-money", "/about-us/spending-reports", "/about-us/spending-over-25000"] },
+    { name: "icb_transparency", priority: 2, paths: ["/about-us/transparency", "/transparency/spending"] },
+  ],
+  central_government: [
+    { name: "govuk_spending_25k", priority: 1, paths: ["/government/collections/spending-over-25-000", "/government/publications/spending-over-25-000"] },
+    { name: "govuk_transparency", priority: 2, paths: ["/government/collections/transparency-data", "/transparency"] },
+  ],
+  fire_rescue: [{ name: "fire_transparency", priority: 1, paths: [
+    "/about-us/transparency", "/transparency/spending", "/about-us/transparency/spending-over-500",
+    "/your-service/transparency/what-we-spend", "/about-us/what-we-spend", "/about-us/what-we-spend/spend-over-ps500",
+  ] }],
+  police_pcc: [{ name: "police_spending", priority: 1, paths: ["/transparency/spending", "/about-us/what-we-spend", "/transparency/payments-over-500"] }],
+  combined_authority: [{ name: "combined_authority_spending", priority: 1, paths: [
+    "/transparency/spending", "/about-us/how-we-spend-public-money", "/about-us/transparency",
+    "/about-us/democracy-funding-transparency/financial-information", "/what-we-do/budget-spending-transparency",
+  ] }],
+  university: [{ name: "university_spending", priority: 1, paths: ["/about/transparency", "/about-us/transparency", "/governance/transparency", "/about/spending"] }],
+  fe_college: [{ name: "fe_spending", priority: 1, paths: ["/about-us/transparency", "/about/transparency", "/transparency"] }],
+  mat: [{ name: "mat_spending", priority: 1, paths: ["/about-us/transparency", "/transparency", "/about/spending"] }],
+  national_park: [{ name: "national_park_spending", priority: 1, paths: ["/about-us/transparency", "/transparency", "/about-us/spending"] }],
+  alb: [{ name: "alb_spending", priority: 1, paths: ["/about-us/transparency", "/transparency/spending", "/about-us/spending", "/spending"] }],
+};
+
+const GOVUK_DEPT_SLUG_MAP: Record<string, string> = {
+  "ministry of defence": "mod",
+  "hm revenue & customs": "hmrc",
+  "hm revenue and customs": "hmrc",
+  "hm treasury": "hm-treasury",
+  "home office": "home-office",
+  "ministry of justice": "ministry-of-justice",
+  "department for education": "department-for-education-dfe",
+  "department of health and social care": "dhsc",
+  "department for transport": "department-for-transport",
+  "department for work and pensions": "dwp",
+  "cabinet office": "cabinet-office",
+  "nhs england": "nhs-england",
+};
+
+function getGovukDeptPaths(buyerName: string): string[] {
+  const nameLower = buyerName.toLowerCase();
+  for (const [pattern, slug] of Object.entries(GOVUK_DEPT_SLUG_MAP)) {
+    if (nameLower.includes(pattern)) {
+      const year = new Date().getFullYear();
+      return [
+        `/government/publications/${slug}-spending-over-25000-january-to-december-${year}`,
+        `/government/publications/${slug}-spending-over-25000-${year}`,
+        `/government/publications/${slug}-spending-over-25000-january-to-december-${year - 1}`,
+        `/government/publications/${slug}-spending-over-25-000`,
+        `/government/publications/${slug}-spending-over-25000`,
+      ];
+    }
+  }
+  return [];
+}
+
+function getPatternsForOrgType(orgType: string | undefined): TransparencyUrlPattern[] {
+  if (!orgType) return [];
+  if (PATTERN_REGISTRY[orgType]) return PATTERN_REGISTRY[orgType];
+  const segments = orgType.split("_");
+  for (let i = segments.length - 1; i >= 1; i--) {
+    const parentType = segments.slice(0, i).join("_");
+    if (PATTERN_REGISTRY[parentType]) return PATTERN_REGISTRY[parentType];
+  }
+  return [];
+}
+
+const SPEND_KEYWORDS = [
+  "spending", "expenditure", "transparency", "payments over",
+  "spend over", "csv", ".csv", ".xls", "download",
+  "freedom of information", "publication scheme",
+  "invoices over", "payments to suppliers", "payment data",
+  "spend data", "monthly spend", "financial transparency",
+  "open government licence", "open data", "25,000", "£25", "£500", "procurement",
+];
+
+function containsSpendKeywords(html: string): boolean {
+  const lower = html.toLowerCase();
+  return SPEND_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+function extractNavAndFooter(html: string, maxChars = 20000): string {
+  const sections: string[] = [];
+  sections.push(...(html.match(/<nav[\s\S]*?<\/nav>/gi) ?? []));
+  sections.push(...(html.match(/<header[\s\S]*?<\/header>/gi) ?? []));
+  sections.push(...(html.match(/<footer[\s\S]*?<\/footer>/gi) ?? []));
+  sections.push(...(html.match(/<aside[\s\S]*?<\/aside>/gi) ?? []));
+  const sidebarMatches =
+    html.match(/<div[^>]*class="[^"]*(?:sidebar|side-nav|subnav)[^"]*"[\s\S]*?<\/div>/gi) ?? [];
+  sections.push(...sidebarMatches);
+  const combined = sections.join("\n");
+  if (combined.length > 2000) return stripHtml(combined).slice(0, maxChars);
+  return stripHtml(html).slice(0, maxChars);
+}
+
+function extractMainContent(html: string, maxChars = 30000): string {
+  const mainMatches = html.match(/<main[\s\S]*?<\/main>/gi) ?? [];
+  if (mainMatches.length > 0) {
+    const content = stripHtml(mainMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+  const articleMatches = html.match(/<article[\s\S]*?<\/article>/gi) ?? [];
+  if (articleMatches.length > 0) {
+    const content = stripHtml(articleMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+  const contentDivMatches =
+    html.match(/<div[^>]*(?:id="content"|class="[^"]*content[^"]*")[^>]*>[\s\S]*?<\/div>/gi) ?? [];
+  if (contentDivMatches.length > 0) {
+    const content = stripHtml(contentDivMatches.join("\n"));
+    if (content.length > 1000) return content.slice(0, maxChars);
+  }
+  return stripHtml(html).slice(0, maxChars);
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x2F;/g, "/")
+    .replace(/&#(\d+);/g, (_m, code) => String.fromCharCode(parseInt(code, 10)));
+}
+
+// Enhanced CSV patterns (12+)
+interface CsvPattern { name: string; regex: RegExp; weight: number; }
+const ALL_CSV_PATTERNS: CsvPattern[] = [
+  { name: "file_extension", regex: /\.(?:csv|xls|xlsx|ods)(?:\?[^"'\s]*)?$/i, weight: 10 },
+  { name: "download_export", regex: /(?:download|export|attachment).*(?:csv|xls|xlsx|spending|payment)|(?:csv|xls|xlsx).*(?:download|export|attachment)/i, weight: 8 },
+  { name: "govuk_attachment", regex: /\/government\/(?:publications|uploads)\//i, weight: 7 },
+  { name: "data_gov_uk", regex: /data\.gov\.uk\/dataset\//i, weight: 9 },
+  { name: "document_mgmt", regex: /(?:Document\.ashx\?Id=|mgDocument\.aspx\?i=)/i, weight: 5 },
+  { name: "wp_uploads", regex: /\/wp-content\/uploads\/.*(?:spend|payment|expenditure|transparency|csv|xls)/i, weight: 7 },
+  { name: "drupal_files", regex: /\/sites\/default\/files\/.*(?:spend|payment|expenditure|transparency|csv|xls)/i, weight: 7 },
+  { name: "period_named", regex: /(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q[1-4]|quarter|20[12]\d).*\.(?:csv|xls|xlsx)/i, weight: 9 },
+  { name: "stream_download", regex: /(?:streamfile|filedownload|getfile|openfile|documentdownload)/i, weight: 5 },
+  { name: "file_id", regex: /[?&](?:file_?id|doc_?id|document_?id|attachment_?id)=\d+/i, weight: 4 },
+  { name: "sharepoint", regex: /\/(?:Shared%20Documents|Documents|_layouts\/15\/download\.aspx)/i, weight: 5 },
+  { name: "content_download", regex: /\/download\/(?:file|attachment|document)\/\d+/i, weight: 6 },
+];
+
+const SPEND_ANCHOR_KEYWORDS = [
+  "spending", "expenditure", "payments over", "spend over",
+  "transparency", "csv", "download", "quarter", "monthly",
+];
+
+interface ScoredLink { url: string; score: number; matchedPatterns: string[]; anchorText?: string; }
+
+function scoreLink(href: string, anchorText?: string): ScoredLink | null {
+  let totalScore = 0;
+  const matchedPatterns: string[] = [];
+  for (const p of ALL_CSV_PATTERNS) {
+    if (p.regex.test(href)) { totalScore += p.weight; matchedPatterns.push(p.name); }
+  }
+  if (matchedPatterns.length === 0) return null;
+  if (anchorText) {
+    const lower = anchorText.toLowerCase();
+    for (const kw of SPEND_ANCHOR_KEYWORDS) {
+      if (lower.includes(kw)) { totalScore += 3; break; }
+    }
+  }
+  return { url: href, score: totalScore, matchedPatterns, anchorText };
+}
+
+function extractLinksEnhanced(html: string, baseUrl: string): ScoredLink[] {
+  const decoded = decodeHtmlEntities(html);
+  const scored: ScoredLink[] = [];
+  const seen = new Set<string>();
+
+  const anchorRegex = /<a\s[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = anchorRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    const anchorText = match[2].replace(/<[^>]*>/g, "").trim();
+    const result = scoreLink(href, anchorText);
+    if (result) {
+      try {
+        const resolved = new URL(href, baseUrl).href;
+        if ((resolved.startsWith("http://") || resolved.startsWith("https://")) && !seen.has(resolved)) {
+          seen.add(resolved);
+          scored.push({ ...result, url: resolved });
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  const bareHrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+  while ((match = bareHrefRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    try {
+      const resolved = new URL(href, baseUrl).href;
+      if (seen.has(resolved)) continue;
+      const result = scoreLink(href);
+      if (result && (resolved.startsWith("http://") || resolved.startsWith("https://"))) {
+        seen.add(resolved);
+        scored.push({ ...result, url: resolved });
+      }
+    } catch { /* skip */ }
+  }
+
+  return scored.sort((a, b) => b.score - a.score);
+}
+
+function isValidDownloadLink(url: string): boolean {
+  try {
+    const full = new URL(url).href.toLowerCase();
+    return scoreLink(full) !== null;
+  } catch { return false; }
+}
+
+// GOV.UK buyer filtering
+const DEPT_ABBREVIATION_MAP: Record<string, string[]> = {
+  "ministry of defence": ["mod", "ministry-of-defence", "defence"],
+  "hm revenue": ["hmrc", "hm-revenue", "revenue-customs"],
+  "hm treasury": ["hmt", "hm-treasury", "treasury"],
+  "home office": ["home-office"],
+  "ministry of justice": ["moj", "ministry-of-justice", "justice"],
+  "department for education": ["dfe", "department-for-education", "education"],
+  "department of health": ["dhsc", "department-of-health", "health-social-care"],
+  "department for transport": ["dft", "department-for-transport", "transport"],
+  "department for work": ["dwp", "department-for-work", "work-pensions"],
+  "department for environment": ["defra", "department-for-environment", "environment-food"],
+  "department for business": ["dbt", "department-for-business", "business-trade"],
+  "foreign commonwealth": ["fcdo", "foreign-commonwealth"],
+  "cabinet office": ["cabinet-office"],
+  "hm courts": ["hmcts", "hm-courts", "courts-tribunals"],
+  "nhs england": ["nhs-england", "nhse"],
+};
+
+function filterLinksToBuyer(links: string[], buyerName: string): string[] {
+  const nameLower = buyerName.toLowerCase();
+  const keywords: string[] = [];
+  const slug = nameLower.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  keywords.push(slug);
+  const skipWords = new Set(["the", "of", "and", "for", "in", "hm", "her", "his", "majesty"]);
+  for (const word of nameLower.split(/\s+/)) {
+    if (word.length > 2 && !skipWords.has(word)) keywords.push(word);
+  }
+  for (const [pattern, abbrs] of Object.entries(DEPT_ABBREVIATION_MAP)) {
+    if (nameLower.includes(pattern)) { keywords.push(...abbrs); break; }
+  }
+  const filtered = links.filter((url) => {
+    const urlLower = url.toLowerCase();
+    return keywords.some((kw) => urlLower.includes(kw));
+  });
+  return filtered.length === 0 ? links : filtered;
+}
+
+// GOV.UK publication page following
+async function followGovukPublicationPages(csvLinks: string[]): Promise<string[]> {
+  const pubUrls = csvLinks.filter((u) => u.includes("/government/publications/"));
+  const nonPubUrls = csvLinks.filter((u) => !u.includes("/government/publications/"));
+  if (pubUrls.length === 0) return csvLinks;
+
+  console.log(`  Following ${pubUrls.length} GOV.UK publication pages...`);
+  const downloads: string[] = [];
+  for (const pubUrl of pubUrls.slice(0, 24)) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(pubUrl, {
+        signal: controller.signal,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+      });
+      clearTimeout(timeout);
+      if (!response.ok) continue;
+
+      const html = await response.text();
+      const decoded = decodeHtmlEntities(html);
+      const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+      let match: RegExpExecArray | null;
+      while ((match = hrefRegex.exec(decoded)) !== null) {
+        const href = match[1];
+        if (href.includes("assets.publishing.service.gov.uk/media/") || href.includes("/government/uploads/")) {
+          try {
+            const resolved = new URL(href, pubUrl).href;
+            if (resolved.startsWith("http")) downloads.push(resolved);
+          } catch { /* skip */ }
+        }
+      }
+    } catch (err) {
+      console.warn(`  Failed to follow ${pubUrl}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  const all = Array.from(new Set([...nonPubUrls, ...downloads]));
+  console.log(`  Resolved ${downloads.length} download URLs from publication pages`);
+  return all;
+}
+
+// ODS/XLSX parsing via SheetJS
+function parseSpreadsheet(buffer: ArrayBuffer): { data: Record<string, string>[]; fields: string[] } {
+  const wb = XLSX.read(new Uint8Array(buffer), { type: "array" });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return { data: [], fields: [] };
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { raw: false, defval: "" });
+  if (rows.length === 0) return { data: [], fields: [] };
+  return { data: rows, fields: Object.keys(rows[0]) };
+}
+
+type FileFormat = "csv" | "ods" | "xlsx" | "unknown";
+function detectFileFormat(contentType: string, url: string): FileFormat {
+  const ct = contentType.toLowerCase();
+  if (ct.includes("text/csv") || ct.includes("application/csv")) return "csv";
+  if (ct.includes("application/vnd.oasis.opendocument.spreadsheet")) return "ods";
+  if (ct.includes("application/vnd.openxmlformats-officedocument.spreadsheetml")) return "xlsx";
+  const pathPart = url.toLowerCase().split("?")[0];
+  if (pathPart.endsWith(".csv")) return "csv";
+  if (pathPart.endsWith(".ods")) return "ods";
+  if (pathPart.endsWith(".xlsx") || pathPart.endsWith(".xls")) return "xlsx";
+  if (ct.includes("text/plain")) return "csv";
+  if (ct.includes("application/octet-stream") || ct.includes("application/vnd")) {
+    if (url.toLowerCase().includes(".ods")) return "ods";
+    if (url.toLowerCase().includes(".xls")) return "xlsx";
+  }
+  return "unknown";
+}
+
+// Known schema matching (inlined from worker)
+interface KnownSchema {
+  name: string;
+  detect: (headers: string[]) => boolean;
+  map: Record<string, string | undefined>;
+}
+function hasHeaders(headers: string[], required: string[]): boolean {
+  const lower = headers.map((h) => h.toLowerCase().trim());
+  return required.every((r) => lower.some((h) => h.includes(r.toLowerCase())));
+}
+const KNOWN_SCHEMAS: KnownSchema[] = [
+  {
+    name: "govuk_mod_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier name", "transaction number", "payment date"]),
+    map: { date: "Payment Date", amount: "Total", vendor: "Supplier Name", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
+  },
+  {
+    name: "govuk_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number"]),
+    map: { date: "Date", amount: "Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
+  },
+  {
+    name: "devon_pattern",
+    detect: (headers) => hasHeaders(headers, ["expense area", "expense type", "supplier name"]),
+    map: { date: "Date", amount: "Amount", vendor: "Supplier Name", category: "Expense Type", subcategory: "Expense Area" },
+  },
+];
 
 // Simple CSV parser (avoids papaparse dependency in root)
 function parseCSV(text: string): { data: Record<string, string>[]; fields: string[] } {
@@ -175,13 +539,14 @@ function parseCSVLine(line: string): string[] {
 }
 
 // Normalization helpers (simplified versions from worker)
+const MONTH_MAP: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
 function parseFlexibleDate(s: string): Date | null {
   if (!s) return null;
   const trimmed = s.trim();
-  // Try ISO
-  const iso = new Date(trimmed);
-  if (!isNaN(iso.getTime())) return iso;
-  // Try DD/MM/YYYY
+  // Try DD/MM/YYYY first (UK format — must come before new Date() which uses US format)
   const ukMatch = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
   if (ukMatch) {
     const day = parseInt(ukMatch[1]);
@@ -191,6 +556,21 @@ function parseFlexibleDate(s: string): Date | null {
     const d = new Date(year, month, day);
     if (!isNaN(d.getTime())) return d;
   }
+  // Try DD-Mon-YY / DD-Mon-YYYY (e.g., 21-Jan-25)
+  const monMatch = trimmed.match(/^(\d{1,2})[\/\-.]([A-Za-z]{3})[\/\-.](\d{2,4})$/);
+  if (monMatch) {
+    const day = parseInt(monMatch[1]);
+    const monthIdx = MONTH_MAP[monMatch[2].toLowerCase()];
+    if (monthIdx !== undefined) {
+      let year = parseInt(monMatch[3]);
+      if (year < 100) year += 2000;
+      const d = new Date(year, monthIdx, day);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  // Try ISO / general Date parse as fallback
+  const iso = new Date(trimmed);
+  if (!isNaN(iso.getTime())) return iso;
   return null;
 }
 
@@ -260,116 +640,266 @@ async function main() {
       return;
     } else {
       const websiteUrl = buyer.website as string;
-      console.log(`Fetching homepage: ${websiteUrl}`);
+      let discoveryMethod = "none";
 
-      let html: string;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        const response = await fetch(websiteUrl, {
-          signal: controller.signal,
-          headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)",
-          },
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        html = await response.text();
-        console.log(`Fetched ${html.length} chars`);
-      } catch (err) {
-        console.error(`Fetch failed: ${err instanceof Error ? err.message : String(err)}`);
-        console.log("Marking as 'none' and stopping.");
-        await db.collection("buyers").updateOne(
-          { _id: buyerId },
-          { $set: { transparencyPageUrl: "none", updatedAt: new Date() } }
-        );
-        return;
+      // ─── GOV.UK DEPT-SPECIFIC ─────────────────────────────────────
+      const deptPaths = getGovukDeptPaths(buyer.name as string);
+      if (deptPaths.length > 0) {
+        console.log(`GOV.UK dept-specific: trying ${deptPaths.length} paths for "${buyer.name}"...`);
+        for (const path of deptPaths) {
+          let candidateUrl: string;
+          try { candidateUrl = new URL(path, "https://www.gov.uk").href; } catch { continue; }
+          process.stdout.write(`  dept: ${candidateUrl} ... `);
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(candidateUrl, {
+              signal: controller.signal,
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+            });
+            clearTimeout(timeout);
+            if (!response.ok) { console.log(`${response.status}`); continue; }
+            const ct = response.headers.get("content-type") ?? "";
+            if (!ct.includes("text/html") && !ct.includes("application/xhtml")) { console.log(`non-HTML (${ct})`); continue; }
+            const html = await response.text();
+            const hasKeywords = containsSpendKeywords(html);
+            console.log(`${html.length} chars, keywords=${hasKeywords}`);
+            if (hasKeywords) {
+              transparencyUrl = candidateUrl;
+              discoveryMethod = "pattern_match";
+              const csvLinksFromDept = extractLinksEnhanced(html, candidateUrl).map((s) => s.url);
+              console.log(`\n  ✓ DEPT MATCH: ${candidateUrl}`);
+              console.log(`  CSV links found: ${csvLinksFromDept.length}`);
+              csvLinksFromDept.slice(0, 5).forEach((l, i) => console.log(`    ${i + 1}. ${l}`));
+              if (csvLinksFromDept.length > 5) console.log(`    ... and ${csvLinksFromDept.length - 5} more`);
+              await db.collection("buyers").updateOne(
+                { _id: buyerId },
+                { $set: { transparencyPageUrl: transparencyUrl, discoveryMethod, ...(csvLinksFromDept.length > 0 ? { csvLinks: csvLinksFromDept } : {}), updatedAt: new Date() } }
+              );
+              break;
+            }
+          } catch (err) { console.log(`error: ${err instanceof Error ? err.message : String(err)}`); }
+        }
       }
 
-      const strippedHtml = stripHtml(html).slice(0, 12000);
+      // ─── PATTERN PHASE ───────────────────────────────────────────
+      const patterns = getPatternsForOrgType(buyer.orgType as string | undefined);
+      console.log(`orgType: ${buyer.orgType ?? "unknown"} → ${patterns.length} pattern groups`);
 
-      console.log("Calling Claude Haiku for transparency page analysis...");
-      const aiResponse = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        messages: [
-          {
-            role: "user",
-            content: `You are analyzing a UK public sector website to find spending transparency data.
+      if (discoveryMethod !== "pattern_match" && patterns.length > 0) {
+        const sorted = [...patterns].sort((a, b) => a.priority - b.priority);
+        console.log(`Trying ${sorted.reduce((n, p) => n + p.paths.length, 0)} candidate URLs...`);
+
+        for (const pattern of sorted) {
+          for (const path of pattern.paths) {
+            let candidateUrl: string;
+            try {
+              candidateUrl = new URL(path, websiteUrl).href;
+            } catch { continue; }
+
+            process.stdout.write(`  ${pattern.name}: ${candidateUrl} ... `);
+
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 8000);
+              const response = await fetch(candidateUrl, {
+                signal: controller.signal,
+                headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+              });
+              clearTimeout(timeout);
+
+              if (!response.ok) {
+                console.log(`${response.status}`);
+                continue;
+              }
+
+              const ct = response.headers.get("content-type") ?? "";
+              if (!ct.includes("text/html") && !ct.includes("application/xhtml")) {
+                console.log(`non-HTML (${ct})`);
+                continue;
+              }
+
+              const html = await response.text();
+              const hasKeywords = containsSpendKeywords(html);
+              console.log(`${html.length} chars, keywords=${hasKeywords}`);
+
+              if (hasKeywords) {
+                transparencyUrl = candidateUrl;
+                discoveryMethod = "pattern_match";
+
+                // Extract CSV links from validated page
+                let csvLinksFromPattern = extractLinksEnhanced(html, candidateUrl)
+                  .map((s) => s.url);
+
+                // Filter to buyer's department for GOV.UK collection pages
+                if (candidateUrl.includes("gov.uk/government/")) {
+                  const beforeCount = csvLinksFromPattern.length;
+                  csvLinksFromPattern = filterLinksToBuyer(csvLinksFromPattern, buyer.name as string);
+                  console.log(`\n  Filtered ${beforeCount} → ${csvLinksFromPattern.length} links for "${buyer.name}"`);
+                }
+
+                console.log(`\n  ✓ PATTERN MATCH: ${pattern.name}`);
+                console.log(`  Transparency URL: ${transparencyUrl}`);
+                console.log(`  CSV links found: ${csvLinksFromPattern.length}`);
+                csvLinksFromPattern.forEach((l, i) => console.log(`    ${i + 1}. ${l}`));
+
+                await db.collection("buyers").updateOne(
+                  { _id: buyerId },
+                  {
+                    $set: {
+                      transparencyPageUrl: transparencyUrl,
+                      discoveryMethod,
+                      ...(csvLinksFromPattern.length > 0 ? { csvLinks: csvLinksFromPattern } : {}),
+                      updatedAt: new Date(),
+                    },
+                  }
+                );
+                break;
+              }
+            } catch (err) {
+              console.log(`error: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }
+          if (discoveryMethod === "pattern_match") break;
+        }
+      }
+
+      // ─── AI FALLBACK ─────────────────────────────────────────────
+      if (discoveryMethod !== "pattern_match") {
+        console.log(`\nNo pattern match. Falling back to AI discovery...`);
+        console.log(`Fetching homepage: ${websiteUrl}`);
+
+        let html: string;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          const response = await fetch(websiteUrl, {
+            signal: controller.signal,
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+          });
+          clearTimeout(timeout);
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          html = await response.text();
+          console.log(`Fetched ${html.length} chars`);
+        } catch (err) {
+          console.error(`Fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+          console.log("Marking as 'none' and stopping.");
+          await db.collection("buyers").updateOne(
+            { _id: buyerId },
+            { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
+          );
+          return;
+        }
+
+        // Smart content extraction: try nav/footer first, fall back to main content
+        const navFooterHtml = extractNavAndFooter(html, 15000);
+        const hasSpendInNav = containsSpendKeywords(navFooterHtml);
+        const hasSpendInBody = containsSpendKeywords(html);
+
+        let extractedHtml: string;
+        if (hasSpendInNav) {
+          extractedHtml = navFooterHtml;
+          console.log(`Extracted ${extractedHtml.length} chars (nav/footer — has spend keywords)`);
+        } else if (hasSpendInBody) {
+          const mainContent = extractMainContent(html, 20000);
+          extractedHtml = navFooterHtml.slice(0, 10000) + "\n<!-- main content -->\n" + mainContent;
+          extractedHtml = extractedHtml.slice(0, 30000);
+          console.log(`Extracted ${extractedHtml.length} chars (nav/footer + main content — spend keywords in body)`);
+        } else {
+          const mainContent = extractMainContent(html, 15000);
+          extractedHtml = navFooterHtml.slice(0, 10000) + "\n" + mainContent;
+          extractedHtml = extractedHtml.slice(0, 30000);
+          console.log(`Extracted ${extractedHtml.length} chars (combined — no spend keywords found)`);
+        }
+
+        console.log("Calling Claude Haiku for transparency page analysis...");
+        const aiResponse = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 512,
+          messages: [
+            {
+              role: "user",
+              content: `You are analyzing a UK public sector website to find their spending/transparency data page.
 
 Organization: ${buyer.name}
 Website: ${websiteUrl}
 Organization type: ${buyer.orgType ?? "unknown"}
 
-HTML content:
-<html>${strippedHtml}</html>
+HTML content (navigation + main body):
+<html>${extractedHtml}</html>
 
-Find links to:
-1. "transparency", "spending", "payments over 500", "expenditure", "open data" pages
-2. Direct CSV/Excel file download links containing spending/payment data
-3. Links to external open data portals (data.gov.uk, etc.)
+Find links to pages about:
+1. Spending data, transparency reports, payments over £500/£25,000
+2. "Publication scheme", "What we spend", "Financial transparency"
+3. Direct CSV/Excel file download links for spending/payment data
+4. External open data portals (data.gov.uk, etc.)
 
-Look in navigation menus, footer links, and body content.
+IMPORTANT: UK public sector sites often use deep CMS paths like:
+- /about-the-council/finance-and-budget/spending
+- /your-council/budgets-and-spending
+- /about-us/freedom-of-information/spending-over-25000
+- /council-and-mayor/council-spending-and-performance
+- /performance-and-spending/our-financial-plans
+
+Look for ANY link containing words like: spending, transparency, payments, expenditure, invoices, financial, budget, procurement, open data.
 
 Return ONLY valid JSON (no markdown):
 {
-  "transparencyUrl": "full URL or null if not found",
+  "transparencyUrl": "full URL to spending/transparency page, or null if not found",
   "csvLinks": ["array of direct CSV/XLS download URLs found, empty if none"],
   "confidence": "HIGH|MEDIUM|LOW|NONE"
 }`,
-          },
-        ],
-      });
+            },
+          ],
+        });
 
-      const responseText =
-        aiResponse.content[0]?.type === "text" ? aiResponse.content[0].text : "";
-      console.log(`\nClaude response:\n${responseText}`);
+        const responseText =
+          aiResponse.content[0]?.type === "text" ? aiResponse.content[0].text : "";
+        console.log(`\nClaude response:\n${responseText}`);
 
-      const parsed = parseDiscoveryResponse(responseText);
+        const parsed = parseDiscoveryResponse(responseText);
 
-      if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
-        console.log("No transparency page found. Marking as 'none'.");
+        if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
+          console.log("No transparency page found. Marking as 'none'.");
+          await db.collection("buyers").updateOne(
+            { _id: buyerId },
+            { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
+          );
+          return;
+        }
+
+        try {
+          transparencyUrl = new URL(parsed.transparencyUrl, websiteUrl).href;
+        } catch {
+          transparencyUrl = parsed.transparencyUrl;
+        }
+
+        const validCsvLinks = parsed.csvLinks
+          .map((link) => { try { return new URL(link, websiteUrl).href; } catch { return null; } })
+          .filter((link): link is string =>
+            link !== null && (link.startsWith("http://") || link.startsWith("https://"))
+          );
+
+        discoveryMethod = "ai_discovery";
+
+        console.log(`\nDiscovered transparency URL: ${transparencyUrl}`);
+        console.log(`Discovery method: ${discoveryMethod}`);
+        console.log(`Direct CSV links found: ${validCsvLinks.length}`);
+        validCsvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+
         await db.collection("buyers").updateOne(
           { _id: buyerId },
-          { $set: { transparencyPageUrl: "none", updatedAt: new Date() } }
-        );
-        return;
-      }
-
-      // Resolve relative URL
-      try {
-        transparencyUrl = new URL(parsed.transparencyUrl, websiteUrl).href;
-      } catch {
-        transparencyUrl = parsed.transparencyUrl;
-      }
-
-      const validCsvLinks = parsed.csvLinks
-        .map((link) => {
-          try {
-            return new URL(link, websiteUrl).href;
-          } catch {
-            return null;
+          {
+            $set: {
+              transparencyPageUrl: transparencyUrl,
+              discoveryMethod,
+              ...(validCsvLinks.length > 0 ? { csvLinks: validCsvLinks } : {}),
+              updatedAt: new Date(),
+            },
           }
-        })
-        .filter((link): link is string =>
-          link !== null && (link.startsWith("http://") || link.startsWith("https://"))
         );
-
-      console.log(`\nDiscovered transparency URL: ${transparencyUrl}`);
-      console.log(`Direct CSV links found: ${validCsvLinks.length}`);
-      validCsvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
-
-      await db.collection("buyers").updateOne(
-        { _id: buyerId },
-        {
-          $set: {
-            transparencyPageUrl: transparencyUrl,
-            ...(validCsvLinks.length > 0 ? { csvLinks: validCsvLinks } : {}),
-            updatedAt: new Date(),
-          },
-        }
-      );
+      }
     }
 
     // ─── STAGE 2: Extract CSV Links ────────────────────────────────
@@ -386,6 +916,24 @@ Return ONLY valid JSON (no markdown):
     // Re-read buyer to get any csvLinks from stage 1
     const buyerAfterS1 = await db.collection("buyers").findOne({ _id: buyerId });
     let csvLinks = (buyerAfterS1?.csvLinks as string[]) ?? [];
+
+    // Follow GOV.UK publication pages → resolve to actual download URLs
+    const hasPublicationUrls = csvLinks.some((u) => u.includes("/government/publications/"));
+    if (hasPublicationUrls) {
+      csvLinks = await followGovukPublicationPages(csvLinks);
+    }
+
+    // Filter resolved download URLs to this buyer's department
+    if (transparencyUrl?.includes("gov.uk/government/")) {
+      const beforeCount = csvLinks.length;
+      csvLinks = filterLinksToBuyer(csvLinks, buyer.name as string);
+      console.log(`Filtered ${beforeCount} → ${csvLinks.length} links for "${buyer.name}"`);
+      // Update buyer with filtered links
+      await db.collection("buyers").updateOne(
+        { _id: buyerId },
+        { $set: { csvLinks, updatedAt: new Date() } }
+      );
+    }
 
     if (buyerAfterS1?.csvLinksExtracted) {
       console.log(`Already extracted: ${csvLinks.length} links`);
@@ -417,18 +965,23 @@ Return ONLY valid JSON (no markdown):
         if (csvLinks.length === 0) return;
       }
 
-      // Pass 1: Regex
-      const regexLinks = extractLinksViaRegex(html!, transparencyUrl);
-      console.log(`Regex found ${regexLinks.length} links`);
+      // Pass 1: Enhanced regex extraction (12+ patterns with scoring)
+      const scoredLinks = extractLinksEnhanced(html!, transparencyUrl);
+      const regexLinks = scoredLinks.map((s) => s.url);
+      console.log(`Enhanced regex found ${regexLinks.length} links`);
+      if (scoredLinks.length > 0) {
+        console.log("Top scored links:");
+        scoredLinks.slice(0, 10).forEach((s, i) =>
+          console.log(`  ${i + 1}. [${s.score}] ${s.matchedPatterns.join(",")} → ${s.url.slice(0, 80)}${s.anchorText ? ` (${s.anchorText.slice(0, 30)})` : ""}`)
+        );
+      }
 
-      // Pass 2: Claude Haiku if regex found < 3
+      // Pass 2: Claude Haiku if enhanced regex found < 3
       let aiLinks: string[] = [];
       if (regexLinks.length < 3) {
-        console.log("Regex found < 3 links, using Claude Haiku fallback...");
+        console.log("Enhanced regex found < 3 links, using Claude Haiku fallback...");
 
-        const strippedHtml = stripHtml(html!)
-          .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .slice(0, 15000);
+        const strippedHtml = stripHtml(html!).slice(0, 15000);
 
         const aiResponse = await anthropic.messages.create({
           model: "claude-haiku-4-5-20251001",
@@ -468,20 +1021,8 @@ Return ONLY valid JSON:
       // Merge all links
       const allLinks = Array.from(new Set([...csvLinks, ...regexLinks, ...aiLinks]));
 
-      // Filter: keep only valid download links
-      csvLinks = allLinks.filter((link) => {
-        try {
-          const url = new URL(link);
-          const path = url.pathname.toLowerCase();
-          return (
-            FILE_EXT_PATTERN.test(path) ||
-            path.includes("download") ||
-            path.includes("export")
-          );
-        } catch {
-          return false;
-        }
-      });
+      // Filter: keep only valid download links (enhanced check)
+      csvLinks = allLinks.filter(isValidDownloadLink);
 
       console.log(`\nTotal CSV links after merge + filter: ${csvLinks.length}`);
       csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
@@ -497,20 +1038,20 @@ Return ONLY valid JSON:
       return;
     }
 
-    // ─── STAGE 3: Download & Parse CSVs ────────────────────────────
+    // ─── STAGE 3: Download & Parse Files ───────────────────────────
 
     console.log(`\n${SEP}`);
-    console.log("STAGE 3: Download & Parse CSVs");
+    console.log("STAGE 3: Download & Parse Files (CSV/ODS/XLSX)");
     console.log(SEP);
 
     let totalTransactions = 0;
-    const MAX_CSVS = 5; // Limit for testing
+    const MAX_FILES = 3; // Limit for testing
     const MAX_TRANSACTIONS = 500;
 
-    for (let i = 0; i < Math.min(csvLinks.length, MAX_CSVS); i++) {
+    for (let i = 0; i < Math.min(csvLinks.length, MAX_FILES); i++) {
       const csvUrl = csvLinks[i];
       console.log(`\n${DASH}`);
-      console.log(`CSV ${i + 1}/${Math.min(csvLinks.length, MAX_CSVS)}: ${csvUrl}`);
+      console.log(`File ${i + 1}/${Math.min(csvLinks.length, MAX_FILES)}: ${csvUrl}`);
       console.log(DASH);
 
       // Check if already processed
@@ -522,8 +1063,9 @@ Return ONLY valid JSON:
         continue;
       }
 
-      // Download
-      let csvText: string;
+      // Download and parse
+      let parsedData: Record<string, string>[];
+      let headers: string[];
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
@@ -538,71 +1080,87 @@ Return ONLY valid JSON:
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const contentType = response.headers.get("content-type") ?? "";
-        console.log(`Content-Type: ${contentType}`);
+        const format = detectFileFormat(contentType, csvUrl);
+        console.log(`Content-Type: ${contentType} → format: ${format}`);
 
-        if (
-          !contentType.includes("text/csv") &&
-          !contentType.includes("text/plain") &&
-          !contentType.includes("application/csv") &&
-          !contentType.includes("application/octet-stream") &&
-          !contentType.includes("application/vnd")
-        ) {
-          console.warn(`Non-CSV content-type — skipping.`);
+        if (format === "ods" || format === "xlsx") {
+          const buffer = await response.arrayBuffer();
+          const result = parseSpreadsheet(buffer);
+          parsedData = result.data;
+          headers = result.fields;
+          console.log(`Parsed ${format.toUpperCase()}: ${parsedData.length} rows, ${headers.length} cols`);
+        } else if (format === "csv" || format === "unknown") {
+          if (contentType.includes("text/html")) {
+            console.warn("HTML content — skipping.");
+            continue;
+          }
+          const csvText = await response.text();
+          console.log(`Downloaded ${csvText.length} chars`);
+          const parseResult = parseCSV(csvText);
+          parsedData = parseResult.data;
+          headers = parseResult.fields;
+          console.log(`Parsed CSV: ${parsedData.length} rows`);
+        } else {
+          console.warn(`Unsupported format "${format}" — skipping.`);
           continue;
         }
-
-        csvText = await response.text();
-        console.log(`Downloaded ${csvText.length} chars`);
       } catch (err) {
         console.warn(`Download failed: ${err instanceof Error ? err.message : String(err)}`);
         continue;
       }
 
-      // Parse
-      const parseResult = parseCSV(csvText);
-
-      console.log(`Parsed ${parseResult.data.length} rows`);
-
-      if (parseResult.data.length === 0) {
+      if (parsedData.length === 0) {
         console.log("No data rows — skipping.");
         continue;
       }
 
-      // Column mapping (use AI since we're testing)
-      const headers = parseResult.fields;
       console.log(`Headers: ${headers.join(", ")}`);
 
-      const sampleRows = parseResult.data
+      const sampleRows = parsedData
         .slice(0, 3)
         .map((row) => headers.map((h) => row[h] ?? ""));
 
       console.log("Sample rows:");
       sampleRows.forEach((r) => console.log(`  ${r.join(" | ")}`));
 
-      // Try to figure out columns — simple heuristic first
+      // Column mapping: try known schemas first, then heuristic, then AI
       let columnMapping: Record<string, string | undefined> | null = null;
 
-      // Check common patterns
-      const headerLower = headers.map((h) => h.toLowerCase());
-      const dateCol = headers.find((_, i) =>
-        /date|payment.?date|trans.?date/.test(headerLower[i])
-      );
-      const amountCol = headers.find((_, i) =>
-        /amount|value|total|net|gross|sum/.test(headerLower[i])
-      );
-      const vendorCol = headers.find((_, i) =>
-        /vendor|supplier|payee|beneficiary|company|merchant/.test(headerLower[i])
-      );
+      // 1. Known schema matching
+      for (const schema of KNOWN_SCHEMAS) {
+        if (schema.detect(headers)) {
+          columnMapping = schema.map;
+          console.log(`Known schema matched: "${schema.name}"`);
+          break;
+        }
+      }
 
-      if (dateCol && amountCol && vendorCol) {
-        columnMapping = { date: dateCol, amount: amountCol, vendor: vendorCol };
-        const catCol = headers.find((_, i) =>
-          /category|service|type|description|purpose|expense.?type/.test(headerLower[i])
+      // 2. Heuristic matching
+      if (!columnMapping) {
+        const headerLower = headers.map((h) => h.toLowerCase());
+        const dateCol = headers.find((_, i) =>
+          /date|payment.?date|trans.?date/.test(headerLower[i])
         );
-        if (catCol) columnMapping.category = catCol;
-        console.log(`Heuristic mapping: date=${dateCol}, amount=${amountCol}, vendor=${vendorCol}`);
-      } else {
-        console.log("Heuristic mapping failed, calling Claude Haiku...");
+        const amountCol = headers.find((_, i) =>
+          /amount|value|total|net|gross|sum/.test(headerLower[i])
+        );
+        const vendorCol = headers.find((_, i) =>
+          /vendor|supplier|payee|beneficiary|company|merchant/.test(headerLower[i])
+        );
+
+        if (dateCol && amountCol && vendorCol) {
+          columnMapping = { date: dateCol, amount: amountCol, vendor: vendorCol };
+          const catCol = headers.find((_, i) =>
+            /category|service|type|description|purpose|expense.?type/.test(headerLower[i])
+          );
+          if (catCol) columnMapping.category = catCol;
+          console.log(`Heuristic mapping: date=${dateCol}, amount=${amountCol}, vendor=${vendorCol}`);
+        }
+      }
+
+      // 3. AI fallback
+      if (!columnMapping) {
+        console.log("No schema/heuristic match, calling Claude Haiku...");
         const aiResponse = await anthropic.messages.create({
           model: "claude-haiku-4-5-20251001",
           max_tokens: 512,
@@ -657,6 +1215,9 @@ Return ONLY valid JSON:
         vendor: string;
         vendorNormalized: string;
         category: string;
+        subcategory?: string;
+        department?: string;
+        reference?: string;
         sourceFile: string;
         createdAt: Date;
         updatedAt: Date;
@@ -665,13 +1226,24 @@ Return ONLY valid JSON:
       const transactions: TxDoc[] = [];
       let skipped = 0;
 
-      for (const row of parseResult.data) {
+      // Case-insensitive row lookup (CSV headers have inconsistent casing)
+      const getCol = (row: Record<string, string>, col: string | undefined): string => {
+        if (!col) return "";
+        if (row[col] !== undefined) return row[col];
+        const colLower = col.toLowerCase();
+        for (const key of Object.keys(row)) {
+          if (key.toLowerCase() === colLower) return row[key];
+        }
+        return "";
+      };
+
+      for (const row of parsedData) {
         if (transactions.length >= MAX_TRANSACTIONS) break;
 
-        const dateStr = row[columnMapping.date!] ?? "";
-        const amountStr = row[columnMapping.amount!] ?? "";
-        const vendorStr = row[columnMapping.vendor!] ?? "";
-        const categoryStr = columnMapping.category ? row[columnMapping.category] ?? "" : "";
+        const dateStr = getCol(row, columnMapping.date);
+        const amountStr = getCol(row, columnMapping.amount);
+        const vendorStr = getCol(row, columnMapping.vendor);
+        const categoryStr = getCol(row, columnMapping.category);
 
         const date = parseFlexibleDate(dateStr);
         const amount = parseAmount(amountStr);
@@ -690,6 +1262,9 @@ Return ONLY valid JSON:
           vendor,
           vendorNormalized: normalizeVendor(vendor),
           category: categoryStr || "Other",
+          subcategory: getCol(row, columnMapping.subcategory) || undefined,
+          department: getCol(row, columnMapping.department) || undefined,
+          reference: getCol(row, columnMapping.reference) || undefined,
           sourceFile: csvUrl,
           createdAt: now,
           updatedAt: now,
@@ -801,7 +1376,6 @@ Return ONLY valid JSON:
               },
             },
             { $sort: { total: -1 } },
-            { $limit: 30 },
           ],
           byVendor: [
             {

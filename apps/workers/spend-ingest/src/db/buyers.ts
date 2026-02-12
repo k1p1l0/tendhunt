@@ -23,7 +23,7 @@ export async function getBuyerBatch(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -49,7 +49,7 @@ export async function getBuyerBatchForDiscovery(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -76,7 +76,7 @@ export async function getBuyerBatchForLinkExtraction(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -102,7 +102,7 @@ export async function getBuyerBatchForDownload(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -128,7 +128,7 @@ export async function getBuyerBatchForAggregation(
 
   return collection
     .find(filter)
-    .sort({ _id: 1 })
+    .sort({ enrichmentPriority: -1, _id: 1 })
     .limit(batchSize)
     .toArray();
 }
@@ -142,6 +142,7 @@ export async function updateBuyerTransparencyInfo(
   fields: {
     transparencyPageUrl: string;
     csvLinks?: string[];
+    discoveryMethod?: string;
   }
 ): Promise<void> {
   const collection = db.collection<BuyerDoc>(COLLECTION);
@@ -153,10 +154,37 @@ export async function updateBuyerTransparencyInfo(
         ...(fields.csvLinks && fields.csvLinks.length > 0
           ? { csvLinks: fields.csvLinks }
           : {}),
+        ...(fields.discoveryMethod
+          ? { discoveryMethod: fields.discoveryMethod }
+          : {}),
         updatedAt: new Date(),
       },
     }
   );
+}
+
+/**
+ * Reset buyers previously marked with discoveryMethod "none" so they can
+ * be retried with pattern-based discovery. One-time migration helper.
+ */
+export async function resetAiOnlyDiscoveryResults(
+  db: Db
+): Promise<number> {
+  const collection = db.collection<BuyerDoc>(COLLECTION);
+  const result = await collection.updateMany(
+    {
+      transparencyPageUrl: "none",
+      $or: [
+        { discoveryMethod: { $in: ["none", "ai_discovery"] } },
+        { discoveryMethod: { $exists: false } },
+      ],
+    },
+    {
+      $unset: { transparencyPageUrl: "", discoveryMethod: "" },
+      $set: { updatedAt: new Date() },
+    }
+  );
+  return result.modifiedCount;
 }
 
 /**

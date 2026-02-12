@@ -75,52 +75,77 @@ export function SpendingHero({ metrics, profileMatch }: SpendingHeroProps) {
 
             {/* Right: Profile match */}
             <div className="w-full lg:max-w-xs">
-              {profileMatch && profileMatch.matchedCategories.length > 0 ? (
-                <div className="rounded-lg border-l-4 border-l-blue-500 bg-blue-500/5 p-4">
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Profile Match
-                  </div>
-                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    {profileMatch.matchPercentage}%
-                  </div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    {gbpCompact.format(profileMatch.totalMatchedSpend)} spent in
-                    your sectors
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {profileMatch.matchedCategories.slice(0, 3).map((cat) => (
-                      <span
-                        key={cat}
-                        className="inline-block rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-300"
-                      >
-                        {cat}
-                      </span>
-                    ))}
-                    {profileMatch.matchedCategories.length > 3 && (
-                      <span className="inline-block px-1 text-xs text-muted-foreground">
-                        and {profileMatch.matchedCategories.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed p-4 text-center">
-                  <div className="text-sm text-muted-foreground">
-                    Complete your company profile to see spend match
-                  </div>
-                  <a
-                    href="/settings"
-                    className="mt-2 inline-block text-sm font-medium text-blue-600 underline-offset-4 hover:underline dark:text-blue-400"
-                  >
-                    Go to Settings
-                  </a>
-                </div>
-              )}
+              <ProfileMatchCard profileMatch={profileMatch} />
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ProfileMatchCard({ profileMatch }: { profileMatch: ProfileMatch | null }) {
+  // Case 1: Has matching categories — show match %
+  if (profileMatch && profileMatch.matchedCategories.length > 0) {
+    return (
+      <div className="rounded-lg border-l-4 border-l-blue-500 bg-blue-500/5 p-4">
+        <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Profile Match
+        </div>
+        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+          {profileMatch.matchPercentage}%
+        </div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          {gbpCompact.format(profileMatch.totalMatchedSpend)} spent in
+          your sectors
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {profileMatch.matchedCategories.slice(0, 3).map((cat) => (
+            <span
+              key={cat}
+              className="inline-block rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-300"
+            >
+              {cat}
+            </span>
+          ))}
+          {profileMatch.matchedCategories.length > 3 && (
+            <span className="inline-block px-1 text-xs text-muted-foreground">
+              and {profileMatch.matchedCategories.length - 3} more
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Case 2: Profile exists but no category overlap (profileMatch is non-null with empty array)
+  if (profileMatch) {
+    return (
+      <div className="rounded-lg border-l-4 border-l-muted bg-muted/30 p-4">
+        <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Profile Match
+        </div>
+        <div className="text-3xl font-bold text-muted-foreground">0%</div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          No category overlap with this buyer&apos;s spend
+        </div>
+      </div>
+    );
+  }
+
+  // Case 3: No company profile at all
+  return (
+    <div className="rounded-lg border border-dashed p-4 text-center">
+      <div className="text-sm text-muted-foreground">
+        Complete your company profile to see spend match
+      </div>
+      <a
+        href="/settings"
+        className="mt-2 inline-block text-sm font-medium text-blue-600 underline-offset-4 hover:underline dark:text-blue-400"
+      >
+        Go to Settings
+      </a>
+    </div>
   );
 }
 

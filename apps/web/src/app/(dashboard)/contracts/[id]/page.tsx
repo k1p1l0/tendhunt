@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchContractById } from "@/lib/contracts";
+import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { resolveRegionName } from "@/lib/nuts-regions";
 import {
   Card,
@@ -125,6 +126,18 @@ export default async function ContractDetailPage({
 
   return (
     <div className="space-y-6">
+      <AgentContextSetter
+        context={{
+          page: "contract_detail",
+          contractId: String(contract._id),
+          contractTitle: contract.title,
+          contractBuyerName: contract.buyerName,
+          contractSector: contract.sector ?? undefined,
+          contractValue: contract.valueMax
+            ? `GBP ${contract.valueMax.toLocaleString()}`
+            : undefined,
+        }}
+      />
       {/* Header */}
       <div className="space-y-4">
         <Link

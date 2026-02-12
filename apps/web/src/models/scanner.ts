@@ -83,6 +83,8 @@ const scannerSchema = new Schema(
     columnRenames: { type: Map, of: String, default: new Map() },
     columnFilters: { type: Map, of: [String], default: new Map() },
     autoRun: { type: Boolean, default: false },
+    rowOffset: { type: Number, default: 0 },
+    rowLimit: { type: Number, default: 0 },
     lastScoredAt: { type: Date },
   },
   { timestamps: true }

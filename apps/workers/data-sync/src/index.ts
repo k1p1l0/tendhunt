@@ -53,7 +53,8 @@ export default {
         "FIND_A_TENDER",
         fatFetchPage,
         fatStart,
-        FAT_MAX_ITEMS
+        FAT_MAX_ITEMS,
+        env.ENRICHMENT_WORKER_URL
       );
       console.log(
         `FaT: fetched=${fatResult.fetched}, errors=${fatResult.errors}, done=${fatResult.done}`
@@ -67,7 +68,8 @@ export default {
         "CONTRACTS_FINDER",
         cfFetchPage,
         cfStart,
-        CF_MAX_ITEMS
+        CF_MAX_ITEMS,
+        env.ENRICHMENT_WORKER_URL
       );
       console.log(
         `CF: fetched=${cfResult.fetched}, errors=${cfResult.errors}, done=${cfResult.done}`

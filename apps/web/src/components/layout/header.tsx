@@ -3,6 +3,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { useBreadcrumb } from "./breadcrumb-context";
+import { useAgentStore } from "@/stores/agent-store";
 
 export function Header() {
   const { breadcrumb } = useBreadcrumb();
@@ -18,6 +19,16 @@ export function Header() {
           </span>
         )}
       </div>
+      <button
+        type="button"
+        className="agent-trigger-btn"
+        onClick={() => useAgentStore.getState().setPanelOpen(true)}
+        aria-label="Open research agent (Cmd+K)"
+      >
+        <span className="agent-trigger-orb" aria-hidden="true" />
+        <span className="text-sm font-medium">Chat with AI</span>
+        <kbd className="agent-trigger-kbd">⌘K</kbd>
+      </button>
     </header>
   );
 }

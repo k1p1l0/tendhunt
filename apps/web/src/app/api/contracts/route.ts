@@ -1,24 +1,39 @@
 import { auth } from "@clerk/nextjs/server";
-import { dbConnect } from "@/lib/mongodb";
-import Contract from "@/models/contract";
+import { fetchContracts } from "@/lib/contracts";
+import type { ContractFilters } from "@/lib/contracts";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    await dbConnect();
+    const { searchParams } = new URL(request.url);
 
-    const contracts = await Contract.find({})
-      .select(
-        "title description buyerName sector valueMin valueMax buyerRegion cpvCodes source status publishedDate deadlineDate vibeScore vibeReasoning"
-      )
-      .sort({ publishedDate: -1 })
-      .lean();
+    const filters: ContractFilters = {
+      query: searchParams.get("q") ?? undefined,
+      sector: searchParams.get("sector") ?? undefined,
+      region: searchParams.get("region") ?? undefined,
+      minValue: searchParams.get("minValue")
+        ? Number(searchParams.get("minValue"))
+        : undefined,
+      maxValue: searchParams.get("maxValue")
+        ? Number(searchParams.get("maxValue"))
+        : undefined,
+      sort: (searchParams.get("sort") as ContractFilters["sort"]) ?? undefined,
+      page: searchParams.get("page")
+        ? parseInt(searchParams.get("page")!, 10)
+        : 1,
+      pageSize: searchParams.get("pageSize")
+        ? parseInt(searchParams.get("pageSize")!, 10)
+        : 0,
+    };
 
-    return Response.json({ contracts });
+    const { contracts, filteredCount, totalCount } =
+      await fetchContracts(filters);
+
+    return Response.json({ contracts, filteredCount, totalCount });
   } catch (error) {
     console.error("Contracts API error:", error);
     return Response.json(

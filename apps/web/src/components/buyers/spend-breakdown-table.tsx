@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SpendFilters, type SpendFilterState } from "@/components/buyers/spend-filters";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { TransactionDetailSheet } from "@/components/buyers/transaction-detail-sheet";
 
 interface Transaction {
   _id: string;
@@ -30,6 +31,7 @@ interface Transaction {
   subcategory?: string | null;
   department?: string | null;
   reference?: string | null;
+  sourceFile?: string | null;
 }
 
 interface TransactionsResponse {
@@ -42,6 +44,7 @@ interface TransactionsResponse {
 interface SpendBreakdownTableProps {
   buyerId: string;
   initialCategory?: string;
+  initialVendor?: string;
   categories: string[];
   vendors: string[];
 }
@@ -49,6 +52,7 @@ interface SpendBreakdownTableProps {
 export function SpendBreakdownTable({
   buyerId,
   initialCategory,
+  initialVendor,
   categories,
   vendors,
 }: SpendBreakdownTableProps) {
@@ -58,6 +62,7 @@ export function SpendBreakdownTable({
   const [filters, setFilters] = useState<SpendFilterState>({
     category: initialCategory,
   });
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   // Update filters when initialCategory changes (chart click)
   useEffect(() => {
@@ -66,6 +71,14 @@ export function SpendBreakdownTable({
       setPage(1);
     }
   }, [initialCategory, filters.category]);
+
+  // Update filters when initialVendor changes (vendor table click)
+  useEffect(() => {
+    if (initialVendor !== undefined && initialVendor !== filters.vendor) {
+      setFilters((prev) => ({ ...prev, vendor: initialVendor || undefined }));
+      setPage(1);
+    }
+  }, [initialVendor, filters.vendor]);
 
   // Fetch transactions
   useEffect(() => {
@@ -201,7 +214,11 @@ export function SpendBreakdownTable({
                 </TableHeader>
                 <TableBody>
                   {data.transactions.map((tx) => (
-                    <TableRow key={tx._id}>
+                    <TableRow
+                      key={tx._id}
+                      className="cursor-pointer transition-colors hover:bg-muted/50"
+                      onClick={() => setSelectedTx(tx)}
+                    >
                       <TableCell className="whitespace-nowrap">
                         {formatDate(tx.date)}
                       </TableCell>
@@ -259,6 +276,14 @@ export function SpendBreakdownTable({
           </>
         )}
       </CardContent>
+
+      <TransactionDetailSheet
+        transaction={selectedTx}
+        open={selectedTx !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTx(null);
+        }}
+      />
     </Card>
   );
 }

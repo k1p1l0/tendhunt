@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { fetchBuyerById } from "@/lib/buyers";
 import { BuyerDetailClient } from "@/components/buyers/buyer-detail-client";
+import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { BuyerBreadcrumb } from "./breadcrumb";
 import { dbConnect } from "@/lib/mongodb";
 import SpendSummary from "@/models/spend-summary";
@@ -9,13 +10,15 @@ import { isValidObjectId } from "mongoose";
 
 export default async function BuyerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const { id } = await params;
+  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const buyer = await fetchBuyerById(id);
 
   if (!buyer) {
@@ -93,8 +96,19 @@ export default async function BuyerDetailPage({
 
   return (
     <div className="space-y-6">
+      <AgentContextSetter
+        context={{
+          page: "buyer_detail",
+          buyerId,
+          buyerName,
+          buyerSector: buyer.sector ?? undefined,
+          buyerRegion: buyer.region ?? undefined,
+          buyerOrgType: buyer.orgType ?? undefined,
+        }}
+      />
       <BuyerBreadcrumb name={buyerName} />
       <BuyerDetailClient
+        initialTab={tab}
         buyer={{
           _id: buyerId,
           name: buyerName,
@@ -119,11 +133,10 @@ export default async function BuyerDetailPage({
           lastEnrichedAt: buyer.lastEnrichedAt ? String(buyer.lastEnrichedAt) : undefined,
           logoUrl: buyer.logoUrl ?? undefined,
           linkedinUrl: buyer.linkedinUrl ?? undefined,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           linkedin: buyer.linkedin ? {
-            ...buyer.linkedin as any,
-            lastFetchedAt: (buyer.linkedin as any)?.lastFetchedAt
-              ? String((buyer.linkedin as any).lastFetchedAt)
+            ...(buyer.linkedin as Record<string, unknown>),
+            lastFetchedAt: (buyer.linkedin as Record<string, unknown>)?.lastFetchedAt
+              ? String((buyer.linkedin as Record<string, unknown>).lastFetchedAt)
               : undefined,
           } : undefined,
           hasSpendData,

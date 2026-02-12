@@ -20,7 +20,7 @@ export interface ProfileMatch {
   matchPercentage: number;
 }
 
-interface RecurringPattern {
+export interface RecurringPattern {
   vendor: string;
   category: string;
   frequency: "monthly" | "quarterly";
@@ -107,6 +107,7 @@ function computeProfileMatch(
   summary: ISpendSummary,
   userProfile: ICompanyProfile | null
 ): ProfileMatch | null {
+  // null = no profile at all → show "complete your profile" CTA
   if (!userProfile) return null;
 
   const sectors = [
@@ -115,11 +116,16 @@ function computeProfileMatch(
     ...(userProfile.keywords ?? []),
   ].map((s) => s.toLowerCase());
 
-  if (sectors.length === 0) return null;
+  // Profile exists but empty sectors → return 0% match (not null)
+  if (sectors.length === 0) {
+    return { matchedCategories: [], totalMatchedSpend: 0, matchPercentage: 0 };
+  }
 
   const categories = summary.categoryBreakdown ?? [];
   const totalSpend = summary.totalSpend ?? 0;
-  if (totalSpend === 0) return null;
+  if (totalSpend === 0) {
+    return { matchedCategories: [], totalMatchedSpend: 0, matchPercentage: 0 };
+  }
 
   const matchedCategories: string[] = [];
   let totalMatchedSpend = 0;
@@ -135,8 +141,11 @@ function computeProfileMatch(
     }
   }
 
-  const matchPercentage =
-    totalSpend > 0 ? Math.round((totalMatchedSpend / totalSpend) * 100) : 0;
+  const rawPercent = totalSpend > 0 ? (totalMatchedSpend / totalSpend) * 100 : 0;
+  // Show 1 decimal for small matches (<1%), whole number otherwise
+  const matchPercentage = rawPercent > 0 && rawPercent < 1
+    ? Math.round(rawPercent * 10) / 10
+    : Math.round(rawPercent);
 
   return { matchedCategories, totalMatchedSpend, matchPercentage };
 }

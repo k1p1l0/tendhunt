@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
+**Current focus:** Phase 19 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 11 + 15 (parallel: Invoice & Spend Data Intelligence + Contract-Buyer Entity Linking)
-Plan: 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Plan 11-01 complete -- SpendTransaction/SpendSummary models, spend-ingest Worker scaffold with 4-stage pipeline
-Last activity: 2026-02-12 -- Plan 11-01 executed (4 min)
+Phase: 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
+Plan: 19 ALL COMPLETE (4/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Phase 19 Plan 04 complete -- Agent panel polish (Cmd+K shortcut, DOMPurify markdown, error retry, animations, accessibility)
+Last activity: 2026-02-12 - Completed quick task 3: Fix data-sync worker index conflict + trigger enrichment for new buyers
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 38
-- Average duration: 3.5 min
-- Total execution time: 2.33 hours
+- Total plans completed: 46
+- Average duration: 3.4 min
+- Total execution time: 2.73 hours
 
 **By Phase:**
 
@@ -40,9 +40,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 | 14-buyer-explorer-filters | 3/3 | 9 min | 3 min |
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
+| 18-admin-panel | 4/4 | 15 min | 3.8 min |
+| 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 11-01 (4 min), 15-01 (3 min), 14-03 (2 min), 14-02 (4 min), 14-01 (3 min)
+- Last 5 plans: 19-04 (3 min), 19-03 (3 min), 19-02 (2 min), 19-01 (2 min), 18-03 (4 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -211,6 +213,40 @@ Recent decisions affecting current work:
 - [11-01]: SpendTransaction compound dedup key: buyerId + date + vendor + amount + reference
 - [11-01]: Weekly cron (Monday 3AM UTC) vs hourly for enrichment -- spend data changes less frequently
 - [11-01]: Default maxItemsPerRun 200 (vs 500 for enrichment) -- spend parsing is heavier per item
+- [18-01]: Admin role guard checks publicMetadata.role via Clerk backend API (not JWT claims) -- ensures fresh role data
+- [18-01]: Simplified header with pathname-based page name lookup instead of breadcrumb context
+- [18-01]: .env.example (not .env.local.example) to match .gitignore exception pattern
+- [18-04]: NonNullable cast for mongoose.connection.db to avoid mongodb type version conflicts between mongoose-bundled and direct mongodb types
+- [18-02]: Native MongoDB queries via mongoose.connection.db instead of duplicating Mongoose models in admin app
+- [18-02]: Status derivation logic: running > error > complete > idle precedence for overall worker status
+- [18-02]: Cache-Control: no-store on API responses to ensure polling always gets fresh data
+- [18-02]: Collapsible error log on workers detail page to keep UI clean by default
+- [18-04]: Purple badge for admin role, secondary badge for user role -- visual role distinction in user table
+- [18-04]: Summary stats computed client-side via useMemo over fetched users array -- avoids separate API endpoint
+- [18-03]: DataTable uses { _id?: unknown } constraint instead of Record<string, unknown> for typed interface compatibility
+- [18-03]: Client-side sorting sufficient for 100-item dataset -- no server-side sort endpoint
+- [18-03]: Enrichment score thresholds 70/40 (green/yellow/red) match Phase 13 convention
+- [19-01]: Reuse existing fetchBuyers/fetchContracts/fetchBuyerById/fetchContractById for agent tool handlers -- zero query duplication
+- [19-01]: Sliding window of last 10 messages to manage Sonnet token budget
+- [19-01]: Max 5 tool-use iterations to prevent infinite agent loops
+- [19-01]: Web search returns stub for MVP -- internal data tools are the priority
+- [19-01]: EnrichmentScore filter applied client-side since fetchBuyers interface doesn't support it natively
+- [19-02]: AgentProvider wraps inside BreadcrumbProvider for access to both contexts
+- [19-02]: Sheet showCloseButton=false with custom close button in AgentPanelHeader for consistent header layout
+- [19-02]: getActiveMessages as standalone selector function (not computed store property) for Zustand compatibility
+- [19-02]: marked.parse with sync mode and dangerouslySetInnerHTML for assistant markdown rendering
+- [19-02]: Auto-create conversation on first message send if none active (nanoid for IDs)
+- [19-02]: useAgentStore.getState() for header button to avoid unnecessary re-renders
+- [19-03]: useAgent hook manages full lifecycle (send, stream, abort, new conversation) -- panel components become props-driven
+- [19-03]: AgentContextSetter component pattern for server component pages that cannot use hooks
+- [19-03]: Conversation persistence happens server-side after stream completion, not fire-and-forget from client
+- [19-03]: conversation_id SSE event sent back to client so subsequent messages update the same MongoDB document
+- [19-03]: AgentInput gets isStreaming as prop (not from store) for explicit prop-driven control
+- [19-04]: DOMPurify with explicit ALLOWED_TAGS whitelist for safe markdown rendering (no raw HTML injection)
+- [19-04]: marked link renderer override for target=_blank and rel=noopener noreferrer on all links
+- [19-04]: useReducedMotion from motion/react (not custom hook) for accessibility
+- [19-04]: isError flag on AgentMessage + removeMessage store method for retry flow
+- [19-04]: min-h-[44px] on all interactive buttons for mobile tap target compliance
 
 ### Pending Todos
 
@@ -225,13 +261,22 @@ Recent decisions affecting current work:
 - Phase 13 added: Buyer Data Enrichment (6-stage enrichment pipeline, 4 new collections, Cloudflare Worker, 2,368 org DATA_SOURCES spec)
 - Phase 14 added: Buyer Explorer Filters & Data Visibility (filter dropdowns, enrichment columns, remove credit gating, server-side filtering)
 - Phase 15 added: Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement
+- Phase 18 added: Admin Panel (admin app scaffold, overview dashboard, workers management, data/users pages)
+- Phase 19 added: Research Agent Chat Panel (backend tools, SSE streaming, chat UI, conversation persistence)
 
 ### Blockers/Concerns
 
 None yet.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Add PDF spend file parsing to spend-ingest worker pipeline with R2 storage | 2026-02-12 | dcf5616 | [1-add-pdf-spend-file-parsing-to-spend-inge](./quick/1-add-pdf-spend-file-parsing-to-spend-inge/) |
+| 3 | Fix data-sync worker: remove index conflict + trigger enrichment for new buyers | 2026-02-12 | 6d11175 | [3-fix-data-sync-worker-remove-index-confli](./quick/3-fix-data-sync-worker-remove-index-confli/) |
+
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 11-01-PLAN.md -- SpendTransaction/SpendSummary models + spend-ingest Worker scaffold
-Next: Execute 11-02-PLAN.md (transparency page discovery stage) and 15-02-PLAN.md (contract detail page). Phase 11 has 4 remaining plans.
+Stopped at: Completed quick-3 -- Fixed data-sync worker index conflict + added enrichment trigger for new buyers
+Next: Phase 19 COMPLETE. Pending: 11-02, 15-02. Deploy data-sync worker.

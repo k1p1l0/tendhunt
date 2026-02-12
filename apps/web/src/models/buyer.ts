@@ -66,6 +66,7 @@ const buyerSchema = new Schema(
     enrichmentSources: [{ type: String }],
     lastEnrichedAt: { type: Date },
     enrichmentVersion: { type: Number, default: 0 },
+    enrichmentPriority: { type: Number, default: 0, index: true },
   },
   { timestamps: true }
 );
