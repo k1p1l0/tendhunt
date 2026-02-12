@@ -46,6 +46,14 @@ async function runPipeline(env: Env, maxItems = 500) {
       } catch (err) {
         console.error("Spend ingest trigger failed:", err);
       }
+
+      try {
+        const bmRes = await fetch(`${env.BOARD_MINUTES_WORKER_URL}/run`);
+        const bmResult = await bmRes.json();
+        console.log("Board-minutes signal extraction result:", JSON.stringify(bmResult));
+      } catch (err) {
+        console.error("Board-minutes trigger failed:", err);
+      }
     }
     console.log("--- Enrichment pipeline run complete ---");
     return result;
@@ -103,7 +111,21 @@ export default {
           spendResults = { error: err instanceof Error ? err.message : String(err) };
         }
 
-        return Response.json({ buyerId, buyerName: buyer.name, enrichment: results, spend: spendResults });
+        let boardMinutesResults = {};
+        try {
+          const bmRes = await fetch(`${env.BOARD_MINUTES_WORKER_URL}/run-buyer?id=${buyerId}`);
+          boardMinutesResults = await bmRes.json();
+        } catch (err) {
+          boardMinutesResults = { error: err instanceof Error ? err.message : String(err) };
+        }
+
+        return Response.json({
+          buyerId,
+          buyerName: buyer.name,
+          enrichment: results,
+          spend: spendResults,
+          boardMinutes: boardMinutesResults,
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return Response.json({ error: msg }, { status: 500 });

@@ -99,7 +99,7 @@ export async function fetchBuyerById(buyerId: string) {
       .limit(20)
       .select("-rawData")
       .lean(),
-    Signal.find({ organizationName: buyer.name })
+    Signal.find({ $or: [{ buyerId: buyer._id }, { organizationName: buyer.name }] })
       .sort({ sourceDate: -1 })
       .lean(),
     BoardDocument.find({ buyerId: buyer._id })

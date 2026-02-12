@@ -12,6 +12,7 @@ bucket_name = "tendhunt-enrichment-docs"
 
 [vars]
 SPEND_INGEST_WORKER_URL = "https://tendhunt-spend-ingest.kozak-74d.workers.dev"
+BOARD_MINUTES_WORKER_URL = "https://tendhunt-board-minutes.kozak-74d.workers.dev"
 
 # Secrets: MONGODB_URI, ANTHROPIC_API_KEY, APIFY_API_TOKEN, LOGO_DEV_TOKEN
 # Set via: wrangler secret put MONGODB_URI

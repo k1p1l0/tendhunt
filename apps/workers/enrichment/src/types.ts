@@ -11,6 +11,7 @@ export interface Env {
   LOGO_DEV_TOKEN: string;
   DOCS: R2Bucket;
   SPEND_INGEST_WORKER_URL: string;
+  BOARD_MINUTES_WORKER_URL: string;
 }
 
 // ---------------------------------------------------------------------------
