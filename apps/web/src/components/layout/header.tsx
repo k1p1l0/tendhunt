@@ -1,9 +1,7 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "./breadcrumb-context";
 import { useAgentStore } from "@/stores/agent-store";
 
@@ -21,15 +19,16 @@ export function Header() {
           </span>
         )}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0"
+      <button
+        type="button"
+        className="agent-trigger-btn"
         onClick={() => useAgentStore.getState().setPanelOpen(true)}
-        aria-label="Open research agent"
+        aria-label="Open research agent (Cmd+K)"
       >
-        <Sparkles className="h-4 w-4" />
-      </Button>
+        <span className="agent-trigger-orb" aria-hidden="true" />
+        <span className="text-sm font-medium">Chat with AI</span>
+        <kbd className="agent-trigger-kbd">⌘K</kbd>
+      </button>
     </header>
   );
 }
