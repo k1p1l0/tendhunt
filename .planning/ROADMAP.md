@@ -232,6 +232,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 13. Buyer Data Enrichment | 6/6 | ✓ Complete | 2026-02-11 |
 | 14. Buyer Explorer Filters | 3/3 | ✓ Complete | 2026-02-12 |
 | 17. Dashboard Home | 0/? | Not started | - |
+| 18. Admin Panel | 0/4 | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -354,3 +355,15 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 17 to break down)
+
+### Phase 18: Admin Panel
+
+**Goal:** Build a separate Next.js admin app (`apps/admin/`) providing operational visibility into the TendHunt platform: worker health monitoring (data-sync, enrichment, spend-ingest), recently ingested data (contracts, buyers, signals), and user management with key metrics
+**Depends on:** Phase 10, Phase 11, Phase 13
+**Plans:** 4 plans
+
+Plans:
+- [ ] 18-01-PLAN.md -- Admin app scaffold: Next.js 16.1, Clerk admin role guard, sidebar layout, MongoDB connection, shadcn/ui components
+- [ ] 18-02-PLAN.md -- Overview dashboard + worker health monitoring: stats cards, worker status cards with stage breakdowns, recent activity feed, 15s polling
+- [ ] 18-03-PLAN.md -- Data explorer pages: recent contracts/buyers/signals tables with sortable columns, total counts, source badges, 30s polling
+- [ ] 18-04-PLAN.md -- Users management page: Clerk user list enriched with MongoDB data (company profiles, credit balances), summary stats
