@@ -135,7 +135,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
 
   const [syncJobs, enrichmentJobs, spendJobs, dataSyncHealth, enrichmentHealth, spendHealth] = await Promise.all([
     db
-      .collection("syncjobs")
+      .collection("syncJobs")
       .find({})
       .project<SyncJobDoc>({
         source: 1,
