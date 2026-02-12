@@ -80,7 +80,9 @@ export function AiAnalysisProgress({
   // When isComplete becomes true, mark all steps as done
   useEffect(() => {
     if (isComplete) {
-      setCurrentStepIndex(steps.length);
+      // Defer to avoid synchronous setState in effect (react-hooks lint)
+      const raf = requestAnimationFrame(() => setCurrentStepIndex(steps.length));
+      return () => cancelAnimationFrame(raf);
     }
   }, [isComplete, steps.length]);
 

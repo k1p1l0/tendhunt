@@ -40,6 +40,7 @@ export function AgentInput({ onSend, onStop, isStreaming = false, textareaRef }:
   const [value, setValue] = useState("");
   const { context } = useAgentContext();
 
+  // eslint-disable-next-line react-hooks/refs -- textarea resize in event handler is safe
   const handleInput = useCallback(() => {
     const el = textareaRef?.current;
     if (el) {
