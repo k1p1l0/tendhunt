@@ -70,8 +70,11 @@ export function BuyerTabs(props: BuyerTabsProps) {
   const contactCount = props.contacts.length;
 
   return (
-    <Tabs defaultValue="contracts" className="w-full">
+    <Tabs defaultValue="spending" className="w-full">
       <TabsList>
+        <TabsTrigger value="spending">
+          Spending{props.spendTransactionCount ? ` (${props.spendTransactionCount.toLocaleString()})` : ""}
+        </TabsTrigger>
         <TabsTrigger value="contracts">
           Contracts ({props.contracts.length})
         </TabsTrigger>
@@ -80,9 +83,6 @@ export function BuyerTabs(props: BuyerTabsProps) {
         </TabsTrigger>
         <TabsTrigger value="signals">
           Buying Signals ({props.signals.length})
-        </TabsTrigger>
-        <TabsTrigger value="spending">
-          Spending{props.spendTransactionCount ? ` (${props.spendTransactionCount.toLocaleString()})` : ""}
         </TabsTrigger>
         <TabsTrigger value="board-documents">
           Board Documents ({props.boardDocuments.length})
@@ -94,6 +94,10 @@ export function BuyerTabs(props: BuyerTabsProps) {
           Buyer Attributes
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="spending" className="mt-4">
+        <SpendingTab buyerId={props.buyer._id} buyerName={props.buyerName} />
+      </TabsContent>
 
       <TabsContent value="contracts" className="mt-4">
         <ContractsTab contracts={props.contracts} />
@@ -117,10 +121,6 @@ export function BuyerTabs(props: BuyerTabsProps) {
 
       <TabsContent value="attributes" className="mt-4">
         <AttributesTab buyer={props.buyer} />
-      </TabsContent>
-
-      <TabsContent value="spending" className="mt-4">
-        <SpendingTab buyerId={props.buyer._id} buyerName={props.buyerName} />
       </TabsContent>
     </Tabs>
   );
