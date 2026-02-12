@@ -1295,7 +1295,6 @@ Return ONLY valid JSON:
               },
             },
             { $sort: { total: -1 } },
-            { $limit: 30 },
           ],
           byVendor: [
             {

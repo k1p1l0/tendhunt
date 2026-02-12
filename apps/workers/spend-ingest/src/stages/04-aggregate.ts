@@ -69,7 +69,6 @@ export async function aggregateSpendData(
                   },
                 },
                 { $sort: { total: -1 as const } },
-                { $limit: 30 },
               ],
               byVendor: [
                 {
