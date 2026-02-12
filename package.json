@@ -11,6 +11,20 @@
     "deploy:landing": "bun --cwd apps/landing run deploy",
     "deploy:data-sync": "bun --cwd apps/workers/data-sync run deploy",
     "deploy:enrichment": "bun --cwd apps/workers/enrichment run deploy",
-    "deploy:spend-ingest": "bun --cwd apps/workers/spend-ingest run deploy"
+    "deploy:spend-ingest": "bun --cwd apps/workers/spend-ingest run deploy",
+    "lint": "bun run --cwd apps/web lint && bun run --cwd apps/landing lint",
+    "lint:web": "bun run --cwd apps/web lint",
+    "lint:landing": "bun run --cwd apps/landing lint",
+    "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/landing typecheck && bun run --cwd apps/workers/data-sync typecheck && bun run --cwd apps/workers/enrichment typecheck && bun run --cwd apps/workers/spend-ingest typecheck",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "husky": "^9.0.0",
+    "prettier": "^3.6.0",
+    "prettier-plugin-tailwindcss": "^0.6.0"
   }
 }

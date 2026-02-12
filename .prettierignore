@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+build
+bun.lock
+*.min.js
+*.min.css
+.planning
+.claude
+apps/workers/*/dist

@@ -1,0 +1,35 @@
+"web app":
+  - changed-files:
+      - any-glob-to-any-file: ["apps/web/**"]
+
+"landing":
+  - changed-files:
+      - any-glob-to-any-file: ["apps/landing/**"]
+
+"workers":
+  - changed-files:
+      - any-glob-to-any-file: ["apps/workers/**"]
+
+"worker: data-sync":
+  - changed-files:
+      - any-glob-to-any-file: ["apps/workers/data-sync/**"]
+
+"worker: enrichment":
+  - changed-files:
+      - any-glob-to-any-file: ["apps/workers/enrichment/**"]
+
+"worker: spend-ingest":
+  - changed-files:
+      - any-glob-to-any-file: ["apps/workers/spend-ingest/**"]
+
+"ci/cd":
+  - changed-files:
+      - any-glob-to-any-file: [".github/**"]
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file: ["bun.lock"]
+
+"planning":
+  - changed-files:
+      - any-glob-to-any-file: [".planning/**"]
