@@ -43,6 +43,13 @@ export interface WorkerStage {
   lastRunAt: string | null;
 }
 
+export interface WorkerHealthCheck {
+  reachable: boolean;
+  latencyMs: number;
+  url: string;
+  error?: string;
+}
+
 export interface WorkerStatus {
   workerName: string;
   displayName: string;
@@ -52,6 +59,7 @@ export interface WorkerStatus {
   totalErrors: number;
   stages: WorkerStage[];
   errorLog: string[];
+  health?: WorkerHealthCheck;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +94,37 @@ function collectErrors(docs: { errorLog?: string[] }[], limit = 5): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Worker HTTP health checks
+// ---------------------------------------------------------------------------
+
+const WORKER_URLS: Record<string, string> = {
+  "data-sync": process.env.DATA_SYNC_WORKER_URL ?? "https://tendhunt-data-sync.kozak-74d.workers.dev",
+  "enrichment": process.env.ENRICHMENT_WORKER_URL ?? "https://tendhunt-enrichment.kozak-74d.workers.dev",
+  "spend-ingest": process.env.SPEND_INGEST_WORKER_URL ?? "https://tendhunt-spend-ingest.kozak-74d.workers.dev",
+};
+
+async function checkWorkerHealth(workerName: string): Promise<WorkerHealthCheck> {
+  const url = WORKER_URLS[workerName];
+  if (!url) return { reachable: false, latencyMs: 0, url: "", error: "No URL configured" };
+
+  const healthUrl = `${url}/health`;
+  const start = Date.now();
+  try {
+    const res = await fetch(healthUrl, { signal: AbortSignal.timeout(5000) });
+    const latencyMs = Date.now() - start;
+    if (!res.ok) return { reachable: false, latencyMs, url: healthUrl, error: `HTTP ${res.status}` };
+    return { reachable: true, latencyMs, url: healthUrl };
+  } catch (err) {
+    return {
+      reachable: false,
+      latencyMs: Date.now() - start,
+      url: healthUrl,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main fetch function
 // ---------------------------------------------------------------------------
 
@@ -94,7 +133,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
   const db = mongoose.connection.db;
   if (!db) throw new Error("Database connection not available");
 
-  const [syncJobs, enrichmentJobs, spendJobs] = await Promise.all([
+  const [syncJobs, enrichmentJobs, spendJobs, dataSyncHealth, enrichmentHealth, spendHealth] = await Promise.all([
     db
       .collection("syncjobs")
       .find({})
@@ -132,6 +171,9 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
         errorLog: { $slice: -5 },
       })
       .toArray(),
+    checkWorkerHealth("data-sync"),
+    checkWorkerHealth("enrichment"),
+    checkWorkerHealth("spend-ingest"),
   ]);
 
   const dataSyncWorker: WorkerStatus = {
@@ -149,6 +191,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
     })),
     errorLog: collectErrors(syncJobs),
+    health: dataSyncHealth,
   };
 
   const enrichmentWorker: WorkerStatus = {
@@ -172,6 +215,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
     })),
     errorLog: collectErrors(enrichmentJobs),
+    health: enrichmentHealth,
   };
 
   const spendIngestWorker: WorkerStatus = {
@@ -192,6 +236,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
     })),
     errorLog: collectErrors(spendJobs),
+    health: spendHealth,
   };
 
   return [dataSyncWorker, enrichmentWorker, spendIngestWorker];

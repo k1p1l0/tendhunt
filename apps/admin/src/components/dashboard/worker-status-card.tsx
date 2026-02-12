@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-import type { WorkerStatus, WorkerStage } from "@/lib/workers";
+import type { WorkerStatus, WorkerStage, WorkerHealthCheck } from "@/lib/workers";
 
 // ---------------------------------------------------------------------------
 // Status badge config
@@ -95,6 +95,27 @@ function StatusDot({ status }: { status: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// HTTP health indicator
+// ---------------------------------------------------------------------------
+
+function HealthIndicator({ health }: { health?: WorkerHealthCheck }) {
+  if (!health) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span
+        className={`inline-block h-2 w-2 rounded-full ${
+          health.reachable ? "bg-green-500" : "bg-red-500"
+        }`}
+      />
+      <span className={health.reachable ? "text-green-600" : "text-red-500"}>
+        {health.reachable ? `${health.latencyMs}ms` : health.error ?? "Unreachable"}
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Stage row
 // ---------------------------------------------------------------------------
 
@@ -153,7 +174,10 @@ export function WorkerStatusCard({
             {overallIcon}
             <CardTitle className="text-base">{worker.displayName}</CardTitle>
           </div>
-          <StatusBadge status={worker.overallStatus} />
+          <div className="flex items-center gap-2">
+            <HealthIndicator health={worker.health} />
+            <StatusBadge status={worker.overallStatus} />
+          </div>
         </div>
         <CardDescription className="flex items-center gap-4 text-xs">
           <span>

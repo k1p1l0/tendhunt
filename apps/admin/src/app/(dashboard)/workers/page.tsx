@@ -57,16 +57,23 @@ export default function WorkersPage() {
     }, POLL_INTERVAL);
   };
 
-  // Derive health banner state
+  // Derive health banner state (includes HTTP health check)
   const allHealthy =
     workers?.length &&
     workers.every(
-      (w) => w.overallStatus === "complete" || w.overallStatus === "idle"
+      (w) =>
+        (w.overallStatus === "complete" || w.overallStatus === "idle" || w.overallStatus === "running") &&
+        (w.health?.reachable !== false)
     );
-  const hasErrors = workers?.some((w) => w.overallStatus === "error");
+  const hasErrors = workers?.some((w) => w.overallStatus === "error" || w.health?.reachable === false);
   const errorWorkerNames = workers
-    ?.filter((w) => w.overallStatus === "error")
-    .map((w) => w.displayName);
+    ?.filter((w) => w.overallStatus === "error" || w.health?.reachable === false)
+    .map((w) => {
+      const issues: string[] = [];
+      if (w.overallStatus === "error") issues.push("job errors");
+      if (w.health?.reachable === false) issues.push("unreachable");
+      return `${w.displayName} (${issues.join(", ")})`;
+    });
 
   return (
     <div className="space-y-6">
