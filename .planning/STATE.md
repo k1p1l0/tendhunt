@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 18 IN PROGRESS (1/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
+**Current focus:** Phase 18 IN PROGRESS (2/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
 
 ## Current Position
 
 Phase: 11 + 15 + 18 (parallel: Invoice & Spend Data + Contract-Buyer Linking + Admin Panel)
-Plan: 18-01 COMPLETE (1/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Plan 18-01 complete -- Admin app scaffold with Clerk admin-role middleware, sidebar navigation, MongoDB connection
-Last activity: 2026-02-12 -- Plan 18-01 executed (5 min)
+Plan: 18-04 COMPLETE (2/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Plan 18-04 complete -- Users management page with Clerk + MongoDB enrichment, summary stats, auto-refresh
+Last activity: 2026-02-12 -- Plan 18-04 executed (2 min)
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39
+- Total plans completed: 40
 - Average duration: 3.5 min
-- Total execution time: 2.41 hours
+- Total execution time: 2.44 hours
 
 **By Phase:**
 
@@ -40,10 +40,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 | 14-buyer-explorer-filters | 3/3 | 9 min | 3 min |
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
-| 18-admin-panel | 1/4 | 5 min | 5 min |
+| 18-admin-panel | 2/4 | 7 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 18-01 (5 min), 11-01 (4 min), 15-01 (3 min), 14-03 (2 min), 14-02 (4 min)
+- Last 5 plans: 18-04 (2 min), 18-01 (5 min), 11-01 (4 min), 15-01 (3 min), 14-03 (2 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -215,6 +215,9 @@ Recent decisions affecting current work:
 - [18-01]: Admin role guard checks publicMetadata.role via Clerk backend API (not JWT claims) -- ensures fresh role data
 - [18-01]: Simplified header with pathname-based page name lookup instead of breadcrumb context
 - [18-01]: .env.example (not .env.local.example) to match .gitignore exception pattern
+- [18-04]: NonNullable cast for mongoose.connection.db to avoid mongodb type version conflicts between mongoose-bundled and direct mongodb types
+- [18-04]: Purple badge for admin role, secondary badge for user role -- visual role distinction in user table
+- [18-04]: Summary stats computed client-side via useMemo over fetched users array -- avoids separate API endpoint
 
 ### Pending Todos
 
@@ -238,5 +241,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 18-01-PLAN.md -- Admin app scaffold with Clerk middleware, sidebar, MongoDB
-Next: Execute 18-02-PLAN.md (overview dashboard with stats). Phase 18 has 3 remaining plans. Also pending: 11-02 and 15-02.
+Stopped at: Completed 18-04-PLAN.md -- Users management page with enriched user table
+Next: Execute remaining 18 plans (02, 03). Also pending: 11-02 and 15-02.
