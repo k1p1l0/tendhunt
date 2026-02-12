@@ -61,14 +61,14 @@ export async function fetchContracts(filters: ContractFilters) {
       ? { vibeScore: -1, publishedDate: -1 }
       : { publishedDate: -1 };
 
-  // Execute three queries in parallel
+  // Execute queries in parallel — skip pagination when pageSize is 0 (return all)
+  const baseQuery = Contract.find(query).sort(sortOrder).select("-rawData");
+  if (pageSize > 0) {
+    baseQuery.skip((page - 1) * pageSize).limit(pageSize);
+  }
+
   const [contracts, filteredCount, totalCount] = await Promise.all([
-    Contract.find(query)
-      .sort(sortOrder)
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .select("-rawData")
-      .lean(),
+    baseQuery.lean(),
     Contract.countDocuments(query),
     Contract.estimatedDocumentCount(),
   ]);

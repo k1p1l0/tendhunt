@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         : 1,
       pageSize: searchParams.get("pageSize")
         ? parseInt(searchParams.get("pageSize")!, 10)
-        : 5000,
+        : 0,
     };
 
     const { contracts, filteredCount, totalCount } =
