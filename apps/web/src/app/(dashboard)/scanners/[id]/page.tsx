@@ -243,6 +243,8 @@ export default function ScannerDetailPage({
         if (f.minValue) params.set("minValue", String(f.minValue));
         if (f.maxValue) params.set("maxValue", String(f.maxValue));
         if (f.signalType) params.set("signalType", String(f.signalType));
+        if (f.stage) params.set("stage", String(f.stage));
+        if (f.status) params.set("status", String(f.status));
       }
 
       // Apply row pagination
