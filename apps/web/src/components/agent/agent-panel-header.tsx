@@ -1,8 +1,7 @@
 "use client";
 
-import { Sparkles, RefreshCw, X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import { nanoid } from "nanoid";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAgentContext } from "./agent-provider";
 import { useAgentStore } from "@/stores/agent-store";
@@ -46,27 +45,27 @@ export function AgentPanelHeader({ onNewChat }: AgentPanelHeaderProps) {
   };
 
   return (
-    <div className="px-4 py-3 border-b flex items-center gap-2">
-      <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+    <div className="px-4 py-3 border-b flex items-center gap-3">
+      <span className="agent-trigger-orb !w-6 !h-6 shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0">
         <h2 className="text-sm font-semibold leading-tight">Research Agent</h2>
-        <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0 h-4 font-normal truncate max-w-[200px]">
+        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
           {getContextLabel(context)}
-        </Badge>
+        </p>
       </div>
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 shrink-0"
+        className="h-7 w-7 shrink-0 rounded-full"
         onClick={handleNewChat}
         aria-label="Start new conversation"
       >
-        <RefreshCw className="h-3.5 w-3.5" />
+        <RotateCcw className="h-3.5 w-3.5" />
       </Button>
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 shrink-0"
+        className="h-7 w-7 shrink-0 rounded-full"
         onClick={() => setPanelOpen(false)}
         aria-label="Close agent panel"
       >

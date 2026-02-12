@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { ToolCallIndicator } from "./tool-call-indicator";
+import { ToolCallChain } from "./tool-call-indicator";
 import { useAgentStore } from "@/stores/agent-store";
 
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
@@ -90,17 +90,18 @@ export function AgentMessage({ message }: AgentMessageProps) {
   }
 
   return (
-    <motion.div {...motionProps}>
-      {message.toolCalls?.map((tc, i) => (
-        <ToolCallIndicator key={`${message.id}-tool-${i}`} toolCall={tc} />
-      ))}
+    <motion.div {...motionProps} className="space-y-1">
+      {message.toolCalls && message.toolCalls.length > 0 && (
+        <ToolCallChain toolCalls={message.toolCalls} />
+      )}
       {message.content && (
-        <div className="bg-muted rounded-2xl px-4 py-2.5 max-w-[85%]">
+        <div>
           <div
             className="prose prose-sm dark:prose-invert max-w-none
-              prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
+              prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5
               prose-headings:my-2 prose-pre:my-2 prose-table:my-2
-              prose-a:text-primary prose-a:underline"
+              prose-a:text-primary prose-a:underline
+              text-[0.8125rem] leading-relaxed"
             onClick={handleClick}
             dangerouslySetInnerHTML={{ __html: htmlContent }}
           />

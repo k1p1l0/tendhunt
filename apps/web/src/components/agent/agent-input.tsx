@@ -72,7 +72,7 @@ export function AgentInput({ onSend, onStop, isStreaming = false, textareaRef }:
 
   return (
     <div className="px-4 py-3 border-t">
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-2 rounded-2xl border bg-background px-3 py-2 transition-colors focus-within:border-ring">
         <textarea
           ref={textareaRef}
           value={value}
@@ -85,7 +85,7 @@ export function AgentInput({ onSend, onStop, isStreaming = false, textareaRef }:
           disabled={isStreaming}
           rows={1}
           aria-label="Message input"
-          className="resize-none bg-transparent w-full outline-none text-sm leading-relaxed py-1.5 max-h-24 scrollbar-thin disabled:opacity-50 disabled:cursor-not-allowed"
+          className="resize-none bg-transparent w-full outline-none text-sm leading-relaxed py-1 max-h-24 scrollbar-thin disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-muted-foreground/60"
         />
         {isStreaming ? (
           <Button

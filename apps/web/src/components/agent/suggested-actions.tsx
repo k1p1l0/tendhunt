@@ -1,8 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { Button } from "@/components/ui/button";
 import { useAgentContext } from "./agent-provider";
 
 import type { AgentPageContext } from "./agent-provider";
@@ -60,37 +58,45 @@ export function SuggestedActions({ onSend }: SuggestedActionsProps) {
   const prefersReducedMotion = useReducedMotion();
   const prompts = getPrompts(context);
 
+  const baseMotion = prefersReducedMotion
+    ? {}
+    : { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 } };
+
   return (
-    <div className="flex flex-col items-center justify-center h-full px-4 py-8 gap-6">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Sparkles className="h-5 w-5 text-primary" />
+    <div className="flex flex-col items-center justify-center h-full px-5 py-10 gap-8">
+      {/* Hero */}
+      <motion.div
+        {...baseMotion}
+        transition={{ duration: 0.25 }}
+        className="flex flex-col items-center gap-3 text-center"
+      >
+        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+          <span className="agent-trigger-orb !w-7 !h-7" aria-hidden="true" />
         </div>
-        <h3 className="text-base font-semibold">How can I help?</h3>
-        <p className="text-xs text-muted-foreground max-w-[280px]">
+        <h3 className="text-lg font-semibold tracking-tight">How can I help?</h3>
+        <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
           Ask me anything about UK public sector procurement, buyers, contracts, or spending data.
         </p>
-      </div>
+      </motion.div>
+
+      {/* Suggestion cards */}
       <div className="w-full space-y-2">
         {prompts.map((prompt, index) => (
-          <motion.div
+          <motion.button
             key={prompt}
+            type="button"
             initial={prefersReducedMotion ? {} : { opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={
               prefersReducedMotion
                 ? { duration: 0 }
-                : { duration: 0.15, delay: index * 0.05, ease: "easeOut" }
+                : { duration: 0.15, delay: 0.1 + index * 0.05, ease: "easeOut" }
             }
+            onClick={() => onSend(prompt)}
+            className="w-full text-left rounded-xl border bg-background px-4 py-3 text-sm text-foreground transition-colors duration-100 hover:bg-muted/60 active:scale-[0.99] min-h-[44px]"
           >
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-left h-auto min-h-[44px] py-2.5 px-3 text-sm font-normal border hover:bg-muted/50 whitespace-normal"
-              onClick={() => onSend(prompt)}
-            >
-              {prompt}
-            </Button>
-          </motion.div>
+            {prompt}
+          </motion.button>
         ))}
       </div>
     </div>
