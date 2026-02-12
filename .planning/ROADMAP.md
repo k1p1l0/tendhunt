@@ -234,6 +234,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 17. Dashboard Home | 0/? | Not started | - |
 | 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
+| 20. Board Minutes Signals | 0/? | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -392,3 +393,26 @@ Plans:
 - [x] 19-02-PLAN.md -- AgentProvider context, Zustand store, Sheet panel UI, message components, input, suggested actions, header trigger
 - [x] 19-03-PLAN.md -- useAgent SSE hook, page context setters (scanner/buyer/contract/dashboard), conversation persistence
 - [x] 19-04-PLAN.md -- Keyboard shortcut (Cmd+K), animations, typing indicator, safe markdown (DOMPurify), error handling + retry
+
+### Phase 20: Board Minutes Signal Extraction
+
+**Goal:** Build a new Cloudflare Worker (`apps/workers/board-minutes/`) that processes existing BoardDocument records for Tier 0 buyers, extracts structured buying signals (PROCUREMENT, STAFFING, STRATEGY, FINANCIAL, PROJECTS, REGULATORY) using Claude Haiku, stores them as Signal records linked to buyers, and displays them in a new "Signals" tab on the buyer profile page. Leverages patterns from the board-minutes-intelligence reference project at `/Users/kirillkozak/Projects/board-minutes-intelligence`.
+**Depends on:** Phase 13 (Buyer Data Enrichment), Phase 6 (Buyer Intelligence)
+**Requirements**: SGNL-01, SGNL-02, SGNL-03, SGNL-04, SGNL-05
+**Success Criteria** (what must be TRUE):
+  1. New Cloudflare Worker (`board-minutes`) processes BoardDocument records with extracted text content for Tier 0 buyers
+  2. Text chunking splits large documents into 4,000-char chunks with overlap for LLM processing
+  3. Claude Haiku extracts structured signals with 6 types (PROCUREMENT, STAFFING, STRATEGY, FINANCIAL, PROJECTS, REGULATORY), confidence scores, summaries, quotes, and entities
+  4. Signal records stored in MongoDB `signals` collection linked to buyerId + documentId + meetingDate
+  5. Deduplication prevents duplicate signals from re-processing same documents
+  6. Worker runs on cron schedule + supports single-buyer on-demand processing via `/run-buyer?id=X`
+  7. Buyer profile page displays extracted signals in the existing Signals tab with type badges, confidence indicators, and entity tags
+  8. Enrichment worker chains to board-minutes worker after Stage 6 (scrape) completes
+  9. Scanner grid can display signal data for "Board Meetings" scanner type
+**Plans:** 4 plans
+
+Plans:
+- [ ] 20-01-PLAN.md -- Worker scaffold: project config, types, DB helpers, pipeline engine, HTTP routes, cron handler
+- [ ] 20-02-PLAN.md -- Schema extensions (Signal + BoardDocument), enrichment worker chaining, signal buyerId query fix
+- [ ] 20-03-PLAN.md -- Signal extraction stage (chunking, Claude Haiku, JSON parsing, upsert) + deduplication stage
+- [ ] 20-04-PLAN.md -- SignalsTab frontend: type filter pills, confidence indicators, quote display, entity badges, animations
