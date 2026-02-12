@@ -242,6 +242,50 @@ Per-domain rate limiter (`apps/workers/enrichment/src/api-clients/rate-limiter.t
 The `Buyer` model (`apps/web/src/models/buyer.ts`) was extended with 12 enrichment fields:
 `orgType`, `orgSubType`, `dataSourceId`, `democracyPortalUrl`, `democracyPlatform`, `boardPapersUrl`, `staffCount`, `annualBudget`, `enrichmentScore`, `enrichmentSources`, `lastEnrichedAt`, `enrichmentVersion`
 
+## Data-Sync Worker
+
+### Overview
+
+Cloudflare Worker (`apps/workers/data-sync/`) that syncs UK government contracts from two OCDS APIs into MongoDB. Runs **hourly** via cron, processing up to 9,000 items per invocation (5,400 FaT + 3,600 CF) with cursor-based crash-safe resume.
+
+### Data Sources
+
+| Source | API | Budget | Key Params |
+|--------|-----|--------|------------|
+| Find a Tender (FaT) | `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages` | 5,400 items (60%) | `updatedFrom`, `stages` (tender/award separately), `limit=100` |
+| Contracts Finder (CF) | `https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search` | 3,600 items (40%) | `publishedFrom`, `stages` (comma-separated), `limit=100` |
+
+**FaT dual-stage fetch**: FaT rejects comma-separated stages. Uses closure variable + synthetic `"STAGE:award"` cursor to fetch tender and award stages sequentially within a single sync pass.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Worker entry point, cron handler, budget allocation |
+| `src/sync-engine.ts` | Core page loop — cursor resume, error recovery, buyer extraction + enrichment trigger |
+| `src/api-clients/fat-client.ts` | FaT API client (dual-stage, full-URL pagination) |
+| `src/api-clients/cf-client.ts` | CF API client (combined stages, date-filtered) |
+| `src/db/buyers.ts` | `autoExtractBuyers()` — upsert by `nameLower`, returns new buyer IDs for enrichment |
+| `src/db/contracts.ts` | `upsertContracts()` — bulkWrite with `noticeId` dedup |
+| `src/db/sync-jobs.ts` | Sync job CRUD — cursor tracking, error recovery |
+| `src/mappers/ocds-mapper.ts` | OCDS release → TendHunt contract schema mapping |
+
+### MongoDB Collections (Data-Sync)
+
+| Collection | Key Fields | Purpose |
+|------------|-----------|---------|
+| `syncJobs` | source, status, cursor, totalFetched | Tracks backfill/sync progress per source |
+| `contracts` | noticeId (unique), source, buyerId, title, status | Government contract notices |
+| `buyers` | nameLower (unique), orgId, contractCount | Auto-extracted buyer organizations |
+
+### Error Recovery
+
+The sync engine handles error states automatically:
+- `status: "error"` with cursor → resumes backfilling from cursor position
+- `status: "error"` without cursor → resumes syncing from `lastSyncedDate`
+- Per-release try/catch ensures individual bad records don't kill the batch
+- Progress saved to MongoDB after EVERY page for crash-safe resume
+
 ## Git Rules
 
 **These project-level git rules OVERRIDE any global `~/.claude/CLAUDE.md` git rules.**
