@@ -735,19 +735,78 @@ function parseSpreadsheet(buffer: ArrayBuffer): { data: Record<string, string>[]
   return { data: rows, fields: Object.keys(rows[0]) };
 }
 
-type FileFormat = "csv" | "ods" | "xlsx" | "unknown";
+type FileFormat = "csv" | "ods" | "xlsx" | "pdf" | "unknown";
 function detectFileFormat(contentType: string, url: string): FileFormat {
   const ct = contentType.toLowerCase();
+  if (ct.includes("application/pdf")) return "pdf";
   if (ct.includes("text/csv") || ct.includes("application/csv")) return "csv";
   if (ct.includes("application/vnd.oasis.opendocument.spreadsheet")) return "ods";
   if (ct.includes("application/vnd.openxmlformats-officedocument.spreadsheetml")) return "xlsx";
   const pathPart = url.toLowerCase().split("?")[0];
+  if (pathPart.endsWith(".pdf")) return "pdf";
   if (pathPart.endsWith(".csv")) return "csv";
   if (pathPart.endsWith(".ods")) return "ods";
   if (pathPart.endsWith(".xlsx") || pathPart.endsWith(".xls")) return "xlsx";
   if (ct.includes("text/plain")) return "csv";
-  if (ct.includes("application/octet-stream") || ct.includes("application/vnd")) { if (url.toLowerCase().includes(".ods")) return "ods"; if (url.toLowerCase().includes(".xls")) return "xlsx"; }
+  if (ct.includes("application/octet-stream") || ct.includes("application/vnd")) { if (url.toLowerCase().includes(".pdf")) return "pdf"; if (url.toLowerCase().includes(".ods")) return "ods"; if (url.toLowerCase().includes(".xls")) return "xlsx"; }
   return "unknown";
+}
+
+async function parsePdfText(buffer: Buffer): Promise<string> {
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  return result.text;
+}
+
+async function parsePdfWithClaude(
+  pdfText: string,
+  anthropic: Anthropic
+): Promise<{ data: Record<string, string>[]; fields: string[] }> {
+  if (pdfText.length < 50) {
+    console.log(`  PDF text too short (${pdfText.length} chars) — likely scanned image, skipping`);
+    return { data: [], fields: [] };
+  }
+
+  const truncatedText = pdfText.slice(0, 15000);
+  const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    system:
+      "You are extracting structured spending transaction data from a UK public sector PDF document. The PDF contains tabular spending data (payments over 25k or 500). Extract each row as a JSON object. If the PDF does not contain tabular spending data, return an empty array [].",
+    messages: [
+      {
+        role: "user",
+        content: `Extract tabular spending data from this PDF text.
+
+PDF text:
+${truncatedText}
+
+Return ONLY a JSON array of objects. Each object must have:
+- "date": payment/transaction date as written
+- "amount": payment amount (number as string, keep original format)
+- "vendor": supplier/payee name
+- "category": spend category or service area (if available, otherwise "")
+- "department": department/directorate (if available, otherwise "")
+- "reference": transaction/invoice reference (if available, otherwise "")
+
+If no tabular spending data found, return []`,
+      },
+    ],
+  });
+
+  const responseText = response.content[0]?.type === "text" ? response.content[0].text : "";
+  try {
+    const match = responseText.match(/\[[\s\S]*\]/);
+    if (!match) return { data: [], fields: [] };
+    const parsed = JSON.parse(match[0]) as Record<string, string>[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return { data: [], fields: [] };
+    const fields = Object.keys(parsed[0]);
+    return { data: parsed, fields };
+  } catch {
+    console.warn("  Failed to parse Claude PDF response");
+    return { data: [], fields: [] };
+  }
 }
 
 interface KnownSchema { name: string; detect: (headers: string[]) => boolean; map: Record<string, string | undefined>; }
@@ -992,7 +1051,13 @@ async function runSpendIngest(
       if (!res.ok) continue;
       const contentType = res.headers.get("content-type") ?? "";
       const format = detectFileFormat(contentType, csvUrl);
-      if (format === "ods" || format === "xlsx") {
+      if (format === "pdf") {
+        const arrBuf = await res.arrayBuffer();
+        const pdfText = await parsePdfText(Buffer.from(arrBuf));
+        const result = await parsePdfWithClaude(pdfText, anthropic);
+        parsedData = result.data; headers = result.fields;
+        if (parsedData.length > 0) console.log(`  Parsed PDF: ${parsedData.length} rows extracted via Claude`);
+      } else if (format === "ods" || format === "xlsx") {
         const buffer = await res.arrayBuffer();
         const result = parseSpreadsheet(buffer);
         parsedData = result.data; headers = result.fields;
