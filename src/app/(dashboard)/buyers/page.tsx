@@ -20,22 +20,20 @@ async function BuyerFeed({
   sort,
   order,
   page,
-  userId,
 }: {
   sort?: string;
   order?: string;
   page: number;
-  userId: string;
 }) {
   const pageSize = 25;
-  const validSort = (["name", "sector", "region", "contracts"] as const).includes(
-    sort as "name" | "sector" | "region" | "contracts"
+  const validSort = (["name", "sector", "region", "contracts", "orgType", "enrichmentScore"] as const).includes(
+    sort as "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore"
   )
-    ? (sort as "name" | "sector" | "region" | "contracts")
+    ? (sort as "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore")
     : "name";
   const validOrder = order === "desc" ? "desc" : "asc";
 
-  const { buyers, total } = await fetchBuyers(userId, {
+  const { buyers, total } = await fetchBuyers({
     sort: validSort,
     order: validOrder,
     page,
@@ -51,8 +49,9 @@ async function BuyerFeed({
     sector: b.sector ?? undefined,
     region: b.region ?? undefined,
     contractCount: b.contractCount ?? 0,
-    contactCount: b.contactCount ?? 0,
-    isUnlocked: b.isUnlocked ?? false,
+    orgType: b.orgType ?? undefined,
+    enrichmentScore: b.enrichmentScore ?? undefined,
+    website: b.website ?? undefined,
   }));
 
   return (
@@ -85,12 +84,12 @@ export default async function BuyersPage({
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Buyers</h1>
         <p className="text-muted-foreground">
-          Explore buyer organizations and unlock contacts
+          Explore buyer organizations and enrichment data
         </p>
       </div>
 
       <Suspense key={suspenseKey} fallback={<TableSkeleton />}>
-        <BuyerFeed sort={sort} order={order} page={page} userId={userId} />
+        <BuyerFeed sort={sort} order={order} page={page} />
       </Suspense>
     </div>
   );

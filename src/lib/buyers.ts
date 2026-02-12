@@ -8,17 +8,36 @@ import BoardDocument from "@/models/board-document";
 import KeyPersonnel from "@/models/key-personnel";
 
 export interface BuyerFilters {
-  sort?: "name" | "contracts" | "sector" | "region";
+  sort?: "name" | "contracts" | "sector" | "region" | "orgType" | "enrichmentScore";
   order?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  sector?: string;
+  orgType?: string;
+  region?: string;
 }
 
-export async function fetchBuyers(userId: string, filters: BuyerFilters) {
+export async function fetchBuyers(filters: BuyerFilters) {
   await dbConnect();
 
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 25;
+
+  // Build MongoDB query from filters
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: Record<string, any>[] = [];
+
+  if (filters.sector) {
+    conditions.push({ sector: filters.sector });
+  }
+  if (filters.orgType) {
+    conditions.push({ orgType: filters.orgType });
+  }
+  if (filters.region) {
+    conditions.push({ region: filters.region });
+  }
+
+  const query = conditions.length > 0 ? { $and: conditions } : {};
 
   // Build sort order
   const sortField: Record<string, string> = {
@@ -26,35 +45,31 @@ export async function fetchBuyers(userId: string, filters: BuyerFilters) {
     contracts: "contractCount",
     sector: "sector",
     region: "region",
+    orgType: "orgType",
+    enrichmentScore: "enrichmentScore",
   };
   const field = sortField[filters.sort ?? "name"] ?? "name";
   const direction = filters.order === "desc" ? -1 : 1;
   const sortOrder: Record<string, 1 | -1> = { [field]: direction as 1 | -1 };
 
-  // Parallel fetch: buyers list, total count, and user's revealed buyers
-  const [buyers, total, reveals] = await Promise.all([
-    Buyer.find({})
+  // Parallel fetch: buyers list, total count, filtered count
+  const [buyers, total, filteredCount] = await Promise.all([
+    Buyer.find(query)
       .sort(sortOrder)
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .lean(),
     Buyer.estimatedDocumentCount(),
-    ContactReveal.find({ userId }).select("buyerId").lean(),
+    Buyer.countDocuments(query),
   ]);
 
-  // Build Set of revealed buyer IDs for O(1) lookup
-  const revealedIds = new Set(
-    reveals.map((r) => r.buyerId.toString())
-  );
-
-  // Map buyers to include contactCount and isUnlocked
+  // Map buyers to include contactCount
   const buyersWithStatus = buyers.map((b) => ({
     ...b,
     contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
-    isUnlocked: revealedIds.has(b._id.toString()),
   }));
 
-  return { buyers: buyersWithStatus, total };
+  return { buyers: buyersWithStatus, total, filteredCount };
 }
 
 export async function fetchBuyerById(buyerId: string, userId: string) {
