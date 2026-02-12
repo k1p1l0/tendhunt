@@ -3,7 +3,6 @@ import { dbConnect } from "@/lib/mongodb";
 import Buyer from "@/models/buyer";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
-import ContactReveal from "@/models/contact-reveal";
 import BoardDocument from "@/models/board-document";
 import KeyPersonnel from "@/models/key-personnel";
 
@@ -72,7 +71,7 @@ export async function fetchBuyers(filters: BuyerFilters) {
   return { buyers: buyersWithStatus, total, filteredCount };
 }
 
-export async function fetchBuyerById(buyerId: string, userId: string) {
+export async function fetchBuyerById(buyerId: string) {
   await dbConnect();
 
   if (!mongoose.isValidObjectId(buyerId)) {
@@ -84,8 +83,8 @@ export async function fetchBuyerById(buyerId: string, userId: string) {
     return null;
   }
 
-  // Parallel fetch: contracts, signals, reveal status, board documents, key personnel
-  const [contracts, signals, reveal, boardDocuments, keyPersonnel] = await Promise.all([
+  // Parallel fetch: contracts, signals, board documents, key personnel
+  const [contracts, signals, boardDocuments, keyPersonnel] = await Promise.all([
     Contract.find({ buyerName: buyer.name })
       .sort({ publishedDate: -1 })
       .limit(20)
@@ -94,7 +93,6 @@ export async function fetchBuyerById(buyerId: string, userId: string) {
     Signal.find({ organizationName: buyer.name })
       .sort({ sourceDate: -1 })
       .lean(),
-    ContactReveal.findOne({ userId, buyerId }),
     BoardDocument.find({ buyerId: buyer._id })
       .sort({ meetingDate: -1 })
       .limit(20)
@@ -108,7 +106,6 @@ export async function fetchBuyerById(buyerId: string, userId: string) {
     ...buyer,
     contracts,
     signals,
-    isUnlocked: !!reveal,
     boardDocuments,
     keyPersonnel,
     // Enrichment fields (already on buyer document via spread, but explicitly named for clarity)

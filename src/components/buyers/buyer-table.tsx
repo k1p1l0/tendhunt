@@ -27,6 +27,7 @@ interface BuyerRow {
 interface BuyerTableProps {
   buyers: BuyerRow[];
   total: number;
+  filteredCount: number;
 }
 
 type SortColumn = "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore";
@@ -91,7 +92,7 @@ function displayDomain(url: string): string {
   }
 }
 
-export function BuyerTable({ buyers, total }: BuyerTableProps) {
+export function BuyerTable({ buyers, total, filteredCount }: BuyerTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -210,7 +211,9 @@ export function BuyerTable({ buyers, total }: BuyerTableProps) {
       </Table>
       {total > 0 && (
         <div className="px-4 py-3 border-t text-xs text-muted-foreground">
-          Showing {buyers.length} of {total} buyer organizations
+          {filteredCount < total
+            ? `Showing ${filteredCount.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")} buyer organizations`
+            : `${total.toLocaleString("en-GB")} buyer organizations`}
         </div>
       )}
     </div>

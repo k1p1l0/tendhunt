@@ -13,7 +13,7 @@ export default async function BuyerDetailPage({
   if (!userId) redirect("/sign-in");
 
   const { id } = await params;
-  const buyer = await fetchBuyerById(id, userId);
+  const buyer = await fetchBuyerById(id);
 
   if (!buyer) {
     notFound();

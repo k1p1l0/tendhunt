@@ -12,7 +12,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const buyer = await fetchBuyerById(id, userId);
+    const buyer = await fetchBuyerById(id);
 
     if (!buyer) {
       return Response.json({ error: "Buyer not found" }, { status: 404 });
