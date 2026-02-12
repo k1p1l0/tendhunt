@@ -234,7 +234,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 17. Dashboard Home | 0/? | Not started | - |
 | 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
-| 20. Board Minutes Signals | 0/? | Not started | - |
+| 20. Board Minutes Signals | 4/4 | ✓ Complete | 2026-02-12 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -412,7 +412,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 20-01-PLAN.md -- Worker scaffold: project config, types, DB helpers, pipeline engine, HTTP routes, cron handler
-- [ ] 20-02-PLAN.md -- Schema extensions (Signal + BoardDocument), enrichment worker chaining, signal buyerId query fix
-- [ ] 20-03-PLAN.md -- Signal extraction stage (chunking, Claude Haiku, JSON parsing, upsert) + deduplication stage
-- [ ] 20-04-PLAN.md -- SignalsTab frontend: type filter pills, confidence indicators, quote display, entity badges, animations
+- [x] 20-01-PLAN.md -- Worker scaffold: project config, types, DB helpers, pipeline engine, HTTP routes, cron handler
+- [x] 20-02-PLAN.md -- Schema extensions (Signal + BoardDocument), enrichment worker chaining, signal buyerId query fix
+- [x] 20-03-PLAN.md -- Signal extraction stage (chunking, Claude Haiku, JSON parsing, upsert) + deduplication stage
+- [x] 20-04-PLAN.md -- SignalsTab frontend: type filter pills, confidence indicators, quote display, entity badges, animations
