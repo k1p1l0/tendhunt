@@ -78,6 +78,7 @@ export interface MappedContract {
   publishedDate: Date | null;
   deadlineDate: Date | null;
   rawData: unknown;
+  buyerId?: ObjectId | null;
 }
 
 // ---------------------------------------------------------------------------

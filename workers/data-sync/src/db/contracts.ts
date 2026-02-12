@@ -1,4 +1,4 @@
-import type { Db, BulkWriteResult } from "mongodb";
+import type { Db, BulkWriteResult, ObjectId } from "mongodb";
 import type { MappedContract } from "../types";
 
 /**
@@ -8,7 +8,8 @@ import type { MappedContract } from "../types";
  */
 export async function upsertContracts(
   db: Db,
-  contracts: MappedContract[]
+  contracts: MappedContract[],
+  buyerIdMap?: Map<string, ObjectId>
 ): Promise<BulkWriteResult> {
   if (contracts.length === 0) {
     return {
@@ -23,16 +24,22 @@ export async function upsertContracts(
   }
 
   const collection = db.collection("contracts");
-  const ops = contracts.map((doc) => ({
-    updateOne: {
-      filter: { source: doc.source, noticeId: doc.noticeId },
-      update: {
-        $set: { ...doc, updatedAt: new Date() },
-        $setOnInsert: { createdAt: new Date() },
+  const ops = contracts.map((doc) => {
+    // Resolve buyerId from the buyer name lookup map
+    const nameLower = doc.buyerName?.toLowerCase().trim();
+    const buyerId = (nameLower && buyerIdMap?.get(nameLower)) || null;
+
+    return {
+      updateOne: {
+        filter: { source: doc.source, noticeId: doc.noticeId },
+        update: {
+          $set: { ...doc, buyerId, updatedAt: new Date() },
+          $setOnInsert: { createdAt: new Date() },
+        },
+        upsert: true,
       },
-      upsert: true,
-    },
-  }));
+    };
+  });
 
   return collection.bulkWrite(ops, { ordered: false });
 }

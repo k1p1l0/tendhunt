@@ -1,21 +1,18 @@
-import type { Db } from "mongodb";
+import type { Db, ObjectId } from "mongodb";
 import type { MappedContract } from "../types";
 
 /**
- * Generate a stable orgId from buyer name.
- * Lowercase, replace spaces with hyphens, strip non-alphanumeric.
- */
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/**
  * Auto-extract buyer records from contract data.
+ *
+ * Dedup strategy: uses a `nameLower` field (lowercased buyer name) with a
+ * unique index as the upsert key. This prevents duplicates across batches
+ * and concurrent invocations — unlike regex-based filters which don't work
+ * reliably with MongoDB bulkWrite upserts.
+ *
+ * Groups contracts by lowercased name within the batch, then does one upsert
+ * per unique name. The unique index on `nameLower` guarantees no duplicates
+ * even across separate Worker invocations.
+ *
  * Uses $setOnInsert for non-destructive upsert (won't overwrite enriched buyer data).
  * Uses $inc to increment contractCount on existing buyers.
  * Returns the number of newly created buyer records.
@@ -23,42 +20,58 @@ function slugify(name: string): string {
 export async function autoExtractBuyers(
   db: Db,
   contracts: MappedContract[]
-): Promise<number> {
-  const uniqueBuyers = new Map<
+): Promise<{ created: number; buyerIdMap: Map<string, ObjectId> }> {
+  // Group by lowercased name to deduplicate within this batch
+  const uniqueByName = new Map<
     string,
-    { name: string; orgId: string; sector?: string; region?: string }
+    { name: string; orgId: string; sector?: string; region?: string; count: number }
   >();
 
   for (const contract of contracts) {
-    const orgId = contract.buyerOrg || `auto-${slugify(contract.buyerName)}`;
-    if (!orgId || orgId === "auto-") continue;
+    if (!contract.buyerName) continue;
 
-    if (!uniqueBuyers.has(orgId)) {
-      uniqueBuyers.set(orgId, {
+    const nameKey = contract.buyerName.toLowerCase().trim();
+    if (!nameKey) continue;
+
+    const existing = uniqueByName.get(nameKey);
+    if (existing) {
+      existing.count++;
+    } else {
+      uniqueByName.set(nameKey, {
         name: contract.buyerName,
-        orgId,
+        orgId: contract.buyerOrg || "",
         sector: contract.sector,
         region: contract.buyerRegion ?? undefined,
+        count: 1,
       });
     }
   }
 
-  if (uniqueBuyers.size === 0) return 0;
+  if (uniqueByName.size === 0) return { created: 0, buyerIdMap: new Map() };
 
   const collection = db.collection("buyers");
-  const ops = Array.from(uniqueBuyers.values()).map((buyer) => ({
+
+  // Ensure unique index on nameLower (idempotent — no-op if already exists)
+  await collection.createIndex(
+    { nameLower: 1 },
+    { unique: true, sparse: true, name: "nameLower_1_unique" }
+  );
+
+  // Upsert by exact nameLower match — deterministic, index-backed, no duplicates
+  const ops = Array.from(uniqueByName.entries()).map(([nameKey, buyer]) => ({
     updateOne: {
-      filter: { orgId: buyer.orgId },
+      filter: { nameLower: nameKey },
       update: {
         $setOnInsert: {
           name: buyer.name,
+          nameLower: nameKey,
           orgId: buyer.orgId,
           sector: buyer.sector,
           region: buyer.region,
           contacts: [],
           createdAt: new Date(),
         },
-        $inc: { contractCount: 1 },
+        $inc: { contractCount: buyer.count },
         $set: { updatedAt: new Date() },
       },
       upsert: true,
@@ -66,5 +79,22 @@ export async function autoExtractBuyers(
   }));
 
   const result = await collection.bulkWrite(ops, { ordered: false });
-  return result.upsertedCount;
+
+  // Fetch IDs for ALL buyers we just upserted/matched.
+  // bulkWrite only returns upsertedIds for NEW docs, not matched/existing ones.
+  // Most buyers will already exist, so we need the find() to get their IDs too.
+  const allNameKeys = Array.from(uniqueByName.keys());
+  const buyerDocs = await collection
+    .find(
+      { nameLower: { $in: allNameKeys } },
+      { projection: { _id: 1, nameLower: 1 } }
+    )
+    .toArray();
+
+  const buyerIdMap = new Map<string, ObjectId>();
+  for (const doc of buyerDocs) {
+    buyerIdMap.set(doc.nameLower as string, doc._id as ObjectId);
+  }
+
+  return { created: result.upsertedCount, buyerIdMap };
 }

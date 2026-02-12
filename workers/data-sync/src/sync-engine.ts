@@ -101,10 +101,10 @@ export async function processSyncJob(
         }
       }
 
-      // Upsert mapped contracts and extract buyers
+      // Extract buyers FIRST (to get IDs), THEN upsert contracts (with IDs)
       if (batch.length > 0) {
-        await upsertContracts(db, batch);
-        await autoExtractBuyers(db, batch);
+        const { buyerIdMap } = await autoExtractBuyers(db, batch);
+        await upsertContracts(db, batch, buyerIdMap);
       }
 
       fetched += pageResult.releases.length;
