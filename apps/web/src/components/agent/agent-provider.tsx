@@ -19,9 +19,12 @@ export interface AgentPageContext {
   buyerName?: string;
   buyerSector?: string;
   buyerRegion?: string;
+  buyerOrgType?: string;
   contractId?: string;
   contractTitle?: string;
   contractBuyerName?: string;
+  contractSector?: string;
+  contractValue?: string;
   selectedRow?: Record<string, unknown>;
 }
 

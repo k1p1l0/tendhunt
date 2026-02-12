@@ -2,10 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
 import { anthropic } from "@/lib/anthropic";
 import CompanyProfile from "@/models/company-profile";
+import ChatConversation from "@/models/chat-conversation";
 import { buildSystemPrompt } from "@/lib/agent/system-prompt";
-import type { AgentPageContext } from "@/lib/agent/system-prompt";
 import { getToolDefinitions } from "@/lib/agent/tools";
 import { executeToolHandler } from "@/lib/agent/tool-handlers";
+
+import type { AgentPageContext } from "@/lib/agent/system-prompt";
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -50,6 +52,11 @@ export async function POST(request: Request) {
         const MAX_ITERATIONS = 5;
         let continueLoop = true;
 
+        // Track accumulated text and tool calls for persistence
+        let assistantText = "";
+        const toolCallSummaries: Array<{ toolName: string; summary: string }> =
+          [];
+
         while (continueLoop && iteration < MAX_ITERATIONS) {
           iteration++;
 
@@ -68,10 +75,11 @@ export async function POST(request: Request) {
             (b) => b.type === "text"
           );
 
-          // Stream text blocks
+          // Stream text blocks and accumulate for persistence
           for (const block of textBlocks) {
             if (block.type === "text" && block.text) {
               send({ type: "text_delta", content: block.text });
+              assistantText += block.text;
             }
           }
 
@@ -104,6 +112,11 @@ export async function POST(request: Request) {
                   ...(result.action ? { action: result.action } : {}),
                 });
 
+                toolCallSummaries.push({
+                  toolName: block.name,
+                  summary: result.summary,
+                });
+
                 toolResults.push({
                   type: "tool_result",
                   tool_use_id: block.id,
@@ -115,17 +128,75 @@ export async function POST(request: Request) {
             // Append assistant message + tool results for next iteration
             currentMessages = [
               ...currentMessages,
-              { role: "assistant" as const, content: response.content as unknown as string },
-              { role: "user" as const, content: toolResults as unknown as string },
+              {
+                role: "assistant" as const,
+                content: response.content as unknown as string,
+              },
+              {
+                role: "user" as const,
+                content: toolResults as unknown as string,
+              },
             ];
           }
 
           continueLoop = response.stop_reason === "tool_use";
         }
 
-        // Conversation persistence placeholder (Plan 03)
-        if (conversationId) {
-          // Future: update existing conversation
+        // Persist conversation to MongoDB
+        const userContent =
+          messages[messages.length - 1]?.content || "";
+        const now = new Date();
+
+        try {
+          if (conversationId) {
+            await ChatConversation.findOneAndUpdate(
+              { _id: conversationId, userId },
+              {
+                $push: {
+                  messages: {
+                    $each: [
+                      { role: "user", content: userContent, timestamp: now },
+                      {
+                        role: "assistant",
+                        content: assistantText,
+                        toolCalls: toolCallSummaries.map((tc) => ({
+                          toolName: tc.toolName,
+                          result: tc.summary,
+                        })),
+                        timestamp: now,
+                      },
+                    ],
+                  },
+                },
+                $set: { lastMessageAt: now },
+              }
+            );
+          } else {
+            const conv = await ChatConversation.create({
+              userId,
+              title: userContent.slice(0, 50),
+              context,
+              messages: [
+                { role: "user", content: userContent, timestamp: now },
+                {
+                  role: "assistant",
+                  content: assistantText,
+                  toolCalls: toolCallSummaries.map((tc) => ({
+                    toolName: tc.toolName,
+                    result: tc.summary,
+                  })),
+                  timestamp: now,
+                },
+              ],
+              lastMessageAt: now,
+            });
+            send({
+              type: "conversation_id",
+              id: String(conv._id),
+            });
+          }
+        } catch (persistErr) {
+          console.error("Failed to persist conversation:", persistErr);
         }
 
         send({ type: "done" });

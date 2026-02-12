@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { fetchBuyerById } from "@/lib/buyers";
 import { BuyerDetailClient } from "@/components/buyers/buyer-detail-client";
+import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { BuyerBreadcrumb } from "./breadcrumb";
 import { dbConnect } from "@/lib/mongodb";
 import SpendSummary from "@/models/spend-summary";
@@ -93,6 +94,16 @@ export default async function BuyerDetailPage({
 
   return (
     <div className="space-y-6">
+      <AgentContextSetter
+        context={{
+          page: "buyer_detail",
+          buyerId,
+          buyerName,
+          buyerSector: buyer.sector ?? undefined,
+          buyerRegion: buyer.region ?? undefined,
+          buyerOrgType: buyer.orgType ?? undefined,
+        }}
+      />
       <BuyerBreadcrumb name={buyerName} />
       <BuyerDetailClient
         buyer={{

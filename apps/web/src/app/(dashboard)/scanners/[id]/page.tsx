@@ -17,6 +17,7 @@ import { getColumnsForType } from "@/components/scanners/table-columns";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import { useScannerStore } from "@/stores/scanner-store";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { useAgentContext } from "@/components/agent/agent-provider";
 import type { ScannerType } from "@/models/scanner";
 
 interface CustomColumnData {
@@ -45,6 +46,8 @@ interface ScannerData {
   columnRenames?: Record<string, string>;
   columnFilters?: Record<string, string[]>;
   autoRun?: boolean;
+  rowOffset?: number;
+  rowLimit?: number;
   lastScoredAt?: string;
 }
 
@@ -138,6 +141,10 @@ export default function ScannerDetailPage({
   // Auto-run state
   const [autoRun, setAutoRun] = useState(false);
 
+  // Row pagination state
+  const [totalRowCount, setTotalRowCount] = useState(0);
+  const [rowPagination, setRowPagination] = useState({ offset: 0, limit: 0 });
+
   // Entity detail sheet state (double-click row)
   const [detailRow, setDetailRow] = useState<Record<string, unknown> | null>(
     null
@@ -183,6 +190,9 @@ export default function ScannerDetailPage({
       };
       setScanner(scannerData);
       setAutoRun(scannerData.autoRun ?? false);
+      const savedOffset = scannerData.rowOffset ?? 0;
+      const savedLimit = scannerData.rowLimit ?? 0;
+      setRowPagination({ offset: savedOffset, limit: savedLimit });
 
       // 2. Set active scanner in store
       setActiveScanner(String(scannerData._id), scannerData.type);
@@ -232,6 +242,16 @@ export default function ScannerDetailPage({
         if (f.signalType) params.set("signalType", String(f.signalType));
       }
 
+      // Apply row pagination
+      if (savedLimit > 0) {
+        const page = Math.floor(savedOffset / savedLimit) + 1;
+        params.set("page", String(page));
+        params.set("pageSize", String(savedLimit));
+      } else if (savedOffset > 0) {
+        params.set("page", String(savedOffset + 1));
+        params.set("pageSize", "1");
+      }
+
       const queryString = params.toString();
       const dataUrl = queryString
         ? `${dataEndpoint}?${queryString}`
@@ -244,6 +264,7 @@ export default function ScannerDetailPage({
       const entityRows: Array<Record<string, unknown>> =
         dataJson[dataKey] || [];
       setRows(entityRows);
+      setTotalRowCount(dataJson.filteredCount ?? dataJson.totalCount ?? dataJson.total ?? entityRows.length);
     } catch (err) {
       console.error("Scanner detail load error:", err);
       setError(
@@ -440,6 +461,26 @@ export default function ScannerDetailPage({
       console.error("Failed to save autoRun:", err);
       setAutoRun(!enabled); // Revert on failure
     }
+  }
+
+  /**
+   * Handle row pagination change from the header popover.
+   * Persists to DB and re-fetches data with new offset/limit.
+   */
+  async function handleRowPaginationChange(offset: number, limit: number) {
+    setRowPagination({ offset, limit });
+
+    try {
+      await fetch(`/api/scanners/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowOffset: offset, rowLimit: limit }),
+      });
+    } catch (err) {
+      console.error("Failed to save row pagination:", err);
+    }
+
+    loadData();
   }
 
   // Auto-run interval polling (5 minutes)
@@ -1056,6 +1097,21 @@ export default function ScannerDetailPage({
     ).length;
   }, [rows, columnFilters, columns]);
 
+  // Set agent context for the research agent panel
+  const { setContext: setAgentContext } = useAgentContext();
+  useEffect(() => {
+    if (scanner) {
+      setAgentContext({
+        page: "scanner",
+        scannerId: String(scanner._id),
+        scannerType: scanner.type,
+        scannerName: scanner.name,
+        scannerQuery: scanner.searchQuery,
+      });
+    }
+    return () => setAgentContext({ page: "dashboard" });
+  }, [scanner?._id, scanner?.name, scanner?.type, scanner?.searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Push breadcrumb into the global header
   const { setBreadcrumb } = useBreadcrumb();
   useEffect(() => {
@@ -1121,9 +1177,11 @@ export default function ScannerDetailPage({
         <ScannerHeader
           scanner={{ ...scanner, autoRun }}
           rowCount={filteredRowCount}
-          columnCount={columns.length}
+          totalRowCount={totalRowCount}
           activeFilterCount={Object.values(columnFilters).filter((v) => v.length > 0).length}
           isScoring={isScoring}
+          rowPagination={rowPagination}
+          onRowPaginationChange={handleRowPaginationChange}
           onToggleAutoRun={handleToggleAutoRun}
           onRunNow={handleScore}
           onCancelScoring={cancelScoring}

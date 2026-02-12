@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import {
   getUserScanners,
   getTopScores,
@@ -22,6 +23,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <AgentContextSetter context={{ page: "dashboard" }} />
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           Welcome back, {user?.firstName || "there"}
