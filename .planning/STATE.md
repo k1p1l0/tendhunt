@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 15 IN PROGRESS -- Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement (1/2 plans complete)
+**Current focus:** Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
 
 ## Current Position
 
-Phase: 15 of 15 (Contract-Buyer Entity Linking)
-Plan: 1 of 2 in current phase (15-01 Data Foundation COMPLETE)
-Status: Plan 15-01 complete -- buyerId on contracts, NUTS mapping, data-sync forward-write, backfill script ready
-Last activity: 2026-02-12 -- Plan 15-01 executed (3 min)
+Phase: 11 + 15 (parallel: Invoice & Spend Data Intelligence + Contract-Buyer Entity Linking)
+Plan: 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Plan 11-01 complete -- SpendTransaction/SpendSummary models, spend-ingest Worker scaffold with 4-stage pipeline
+Last activity: 2026-02-12 -- Plan 11-01 executed (4 min)
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~95% (Phase 15 in progress, 1/2 plans done)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37
+- Total plans completed: 38
 - Average duration: 3.5 min
-- Total execution time: 2.26 hours
+- Total execution time: 2.33 hours
 
 **By Phase:**
 
@@ -39,9 +39,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~95% (Phase 15 in progress, 1/2 plans
 | 13-buyer-data-enrichment | 6/6 | 23 min | 3.8 min |
 | 14-buyer-explorer-filters | 3/3 | 9 min | 3 min |
 | 15-buyer-dedup-linkedin-data-detail-page | 1/2 | 3 min | 3 min |
+| 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 15-01 (3 min), 14-03 (2 min), 14-02 (4 min), 14-01 (3 min), 13-06 (3 min)
+- Last 5 plans: 11-01 (4 min), 15-01 (3 min), 14-03 (2 min), 14-02 (4 min), 14-01 (3 min)
 - Trend: Consistent ~2-4 min per plan
 
 *Updated after each plan completion*
@@ -206,6 +207,10 @@ Recent decisions affecting current work:
 - [15-01]: Sync engine order reversed: extract buyers FIRST (get IDs), THEN upsert contracts (with IDs)
 - [15-01]: Static NUTS mapping includes both 2016 and 2021 codes for Scotland (UKM2/M3 + UKM5-M9) and London (UKI1/I2 + UKI3-I7)
 - [15-01]: buyerId stored as indexed ObjectId with ref on Contract schema for O(1) buyer detail page queries
+- [11-01]: Exact enrichment Worker pattern for spend-ingest Worker (same engine, stage, job tracking architecture)
+- [11-01]: SpendTransaction compound dedup key: buyerId + date + vendor + amount + reference
+- [11-01]: Weekly cron (Monday 3AM UTC) vs hourly for enrichment -- spend data changes less frequently
+- [11-01]: Default maxItemsPerRun 200 (vs 500 for enrichment) -- spend parsing is heavier per item
 
 ### Pending Todos
 
@@ -228,5 +233,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 15-01-PLAN.md -- Data foundation for contract-buyer entity linking
-Next: Execute 15-02-PLAN.md (contract detail page enhancement with buyer intelligence). Run backfill script before deploying.
+Stopped at: Completed 11-01-PLAN.md -- SpendTransaction/SpendSummary models + spend-ingest Worker scaffold
+Next: Execute 11-02-PLAN.md (transparency page discovery stage) and 15-02-PLAN.md (contract detail page). Phase 11 has 4 remaining plans.
