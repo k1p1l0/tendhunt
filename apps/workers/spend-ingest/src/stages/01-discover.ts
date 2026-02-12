@@ -1,27 +1,22 @@
 import type { Db } from "mongodb";
 import Anthropic from "@anthropic-ai/sdk";
 import pLimit from "p-limit";
+
 import type { Env, SpendJobDoc } from "../types";
 import { getBuyerBatchForDiscovery, updateBuyerTransparencyInfo } from "../db/buyers";
 import { updateJobProgress } from "../db/spend-jobs";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
+import { getPatternsForOrgType } from "../patterns/transparency-urls";
+import { validateTransparencyUrl } from "../patterns/url-validator";
+import { extractNavAndFooter } from "../patterns/html-extractor";
+import { scoreLink } from "../patterns/csv-patterns";
+import { decodeHtmlEntities } from "../patterns/html-extractor";
 
 // ---------------------------------------------------------------------------
-// Stage 1: Discover transparency pages on buyer websites
+// Stage 1: Discover transparency pages — pattern-first, AI fallback
 // ---------------------------------------------------------------------------
 
 const BATCH_SIZE = 20;
-
-/**
- * Strip script, style, and noscript tags from HTML.
- * Keeps <a> tags with href attributes for link discovery.
- */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, "");
-}
 
 /**
  * Parse Claude's JSON response for transparency page discovery.
@@ -45,11 +40,41 @@ function parseDiscoveryResponse(
 }
 
 /**
+ * Extract CSV links from HTML using all patterns. Reused when pattern
+ * discovery already fetched the transparency page HTML.
+ */
+function extractCsvLinksFromHtml(html: string, baseUrl: string): string[] {
+  const decoded = decodeHtmlEntities(html);
+  const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+  const links: string[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = hrefRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    const scored = scoreLink(href);
+    if (scored) {
+      try {
+        const resolved = new URL(href, baseUrl).href;
+        if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
+          links.push(resolved);
+        }
+      } catch {
+        // skip invalid URL
+      }
+    }
+  }
+
+  return [...new Set(links)];
+}
+
+/**
  * Stage 1: Discover transparency pages on buyer websites.
  *
- * For each buyer with a website but no transparencyPageUrl, fetches the homepage,
- * sends the HTML to Claude Haiku to identify transparency/spending pages,
- * and stores the discovered URL and any direct CSV links.
+ * New flow per buyer:
+ * 1. Look up patterns for buyer.orgType
+ * 2. PATTERN PHASE: probe known URL paths, validate with spend keywords
+ * 3. AI FALLBACK: if no pattern matched, fetch homepage + Claude Haiku
+ * 4. Store result with discoveryMethod tag
  */
 export async function discoverTransparencyPages(
   db: Db,
@@ -64,13 +89,15 @@ export async function discoverTransparencyPages(
   let errors = 0;
   let currentCursor = job.cursor;
   let discovered = 0;
+  let patternMatches = 0;
+  let aiMatches = 0;
 
   while (processed < maxItems) {
     const batch = await getBuyerBatchForDiscovery(db, currentCursor, BATCH_SIZE);
 
     if (batch.length === 0) {
       console.log(
-        `Discover complete: ${discovered} transparency pages found out of ${processed} processed`
+        `Discover complete: ${discovered} found (${patternMatches} pattern, ${aiMatches} AI) out of ${processed} processed`
       );
       return { processed, errors, done: true };
     }
@@ -82,7 +109,49 @@ export async function discoverTransparencyPages(
         limit(async () => {
           const websiteUrl = buyer.website!;
 
-          // Fetch the homepage
+          // ---------------------------------------------------------------
+          // PATTERN PHASE: probe known URL paths for this org type
+          // ---------------------------------------------------------------
+          const patterns = getPatternsForOrgType(buyer.orgType);
+
+          if (patterns.length > 0) {
+            // Sort by priority (lower = first)
+            const sorted = [...patterns].sort((a, b) => a.priority - b.priority);
+
+            for (const pattern of sorted) {
+              for (const path of pattern.paths) {
+                let candidateUrl: string;
+                try {
+                  candidateUrl = new URL(path, websiteUrl).href;
+                } catch {
+                  continue;
+                }
+
+                const result = await validateTransparencyUrl(candidateUrl);
+                if (result.valid && result.html) {
+                  // Extract CSV links from the validated page
+                  const csvLinks = extractCsvLinksFromHtml(
+                    result.html,
+                    candidateUrl
+                  );
+
+                  await updateBuyerTransparencyInfo(db, buyer._id!, {
+                    transparencyPageUrl: candidateUrl,
+                    csvLinks: csvLinks.length > 0 ? csvLinks : undefined,
+                    discoveryMethod: "pattern_match",
+                  });
+
+                  discovered++;
+                  patternMatches++;
+                  return { error: false, found: true };
+                }
+              }
+            }
+          }
+
+          // ---------------------------------------------------------------
+          // AI FALLBACK: fetch homepage, extract nav/footer, ask Claude
+          // ---------------------------------------------------------------
           let html: string;
           try {
             const controller = new AbortController();
@@ -102,7 +171,6 @@ export async function discoverTransparencyPages(
 
             html = await response.text();
           } catch (err) {
-            // Network/timeout error — mark as "none" to skip in future
             console.warn(
               `Fetch failed for "${buyer.name}" (${websiteUrl}): ${
                 err instanceof Error ? err.message : String(err)
@@ -110,17 +178,17 @@ export async function discoverTransparencyPages(
             );
             await updateBuyerTransparencyInfo(db, buyer._id!, {
               transparencyPageUrl: "none",
+              discoveryMethod: "none",
             });
             return { error: false, found: false };
           }
 
-          // Strip scripts/styles, truncate to 12000 chars
-          const strippedHtml = stripHtml(html).slice(0, 12000);
+          // Use nav/footer-focused extraction with 20K limit
+          const extractedHtml = extractNavAndFooter(html, 20000);
 
-          // Call Claude Haiku for analysis
           try {
             const response = await anthropic.messages.create({
-              model: "claude-haiku-4-5-20250401",
+              model: "claude-haiku-4-5-20251001",
               max_tokens: 512,
               messages: [
                 {
@@ -132,7 +200,7 @@ Website: ${websiteUrl}
 Organization type: ${buyer.orgType ?? "unknown"}
 
 HTML content:
-<html>${strippedHtml}</html>
+<html>${extractedHtml}</html>
 
 Find links to:
 1. "transparency", "spending", "payments over 500", "expenditure", "open data" pages
@@ -161,6 +229,7 @@ Return ONLY valid JSON (no markdown):
             if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
               await updateBuyerTransparencyInfo(db, buyer._id!, {
                 transparencyPageUrl: "none",
+                discoveryMethod: "none",
               });
               return { error: false, found: false };
             }
@@ -189,12 +258,13 @@ Return ONLY valid JSON (no markdown):
             await updateBuyerTransparencyInfo(db, buyer._id!, {
               transparencyPageUrl: resolvedUrl,
               csvLinks: validCsvLinks,
+              discoveryMethod: "ai_discovery",
             });
 
             discovered++;
+            aiMatches++;
             return { error: false, found: true };
           } catch (err) {
-            // Claude API error — skip buyer, don't mark as "none" (retryable)
             const msg = `Claude API error for "${buyer.name}": ${
               err instanceof Error ? err.message : String(err)
             }`;
@@ -230,7 +300,7 @@ Return ONLY valid JSON (no markdown):
   }
 
   console.log(
-    `Discover paused (budget ${maxItems} reached): ${discovered} found out of ${processed} processed`
+    `Discover paused (budget ${maxItems} reached): ${discovered} found (${patternMatches} pattern, ${aiMatches} AI) out of ${processed} processed`
   );
   return { processed, errors, done: false };
 }

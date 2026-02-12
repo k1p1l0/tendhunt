@@ -116,6 +116,7 @@ export interface BuyerDoc {
   csvLinksExtracted?: boolean;
   spendDataIngested?: boolean;
   spendDataAvailable?: boolean;
+  discoveryMethod?: string;
   lastSpendIngestAt?: Date;
   createdAt: Date;
   updatedAt: Date;

@@ -142,6 +142,7 @@ export async function updateBuyerTransparencyInfo(
   fields: {
     transparencyPageUrl: string;
     csvLinks?: string[];
+    discoveryMethod?: string;
   }
 ): Promise<void> {
   const collection = db.collection<BuyerDoc>(COLLECTION);
@@ -153,10 +154,37 @@ export async function updateBuyerTransparencyInfo(
         ...(fields.csvLinks && fields.csvLinks.length > 0
           ? { csvLinks: fields.csvLinks }
           : {}),
+        ...(fields.discoveryMethod
+          ? { discoveryMethod: fields.discoveryMethod }
+          : {}),
         updatedAt: new Date(),
       },
     }
   );
+}
+
+/**
+ * Reset buyers previously marked with discoveryMethod "none" so they can
+ * be retried with pattern-based discovery. One-time migration helper.
+ */
+export async function resetAiOnlyDiscoveryResults(
+  db: Db
+): Promise<number> {
+  const collection = db.collection<BuyerDoc>(COLLECTION);
+  const result = await collection.updateMany(
+    {
+      transparencyPageUrl: "none",
+      $or: [
+        { discoveryMethod: { $in: ["none", "ai_discovery"] } },
+        { discoveryMethod: { $exists: false } },
+      ],
+    },
+    {
+      $unset: { transparencyPageUrl: "", discoveryMethod: "" },
+      $set: { updatedAt: new Date() },
+    }
+  );
+  return result.modifiedCount;
 }
 
 /**
