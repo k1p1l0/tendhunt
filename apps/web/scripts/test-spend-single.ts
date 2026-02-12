@@ -78,28 +78,6 @@ function parseLinkExtractionResponse(text: string): string[] {
   }
 }
 
-const FILE_EXT_PATTERN = /\.(?:csv|xls|xlsx)$/i;
-const DOWNLOAD_PATTERN = /(?:download|export).*csv|csv.*(?:download|export)/i;
-
-function extractLinksViaRegex(html: string, baseUrl: string): string[] {
-  const links: string[] = [];
-  const hrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
-  let match: RegExpExecArray | null;
-
-  while ((match = hrefRegex.exec(html)) !== null) {
-    const href = match[1];
-    if (FILE_EXT_PATTERN.test(href)) {
-      links.push(href);
-      continue;
-    }
-    if (DOWNLOAD_PATTERN.test(href)) {
-      links.push(href);
-    }
-  }
-
-  return resolveAndDedup(links, baseUrl);
-}
-
 function resolveAndDedup(urls: string[], baseUrl: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -118,6 +96,167 @@ function resolveAndDedup(urls: string[], baseUrl: string): string[] {
     }
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Pattern-based discovery (inlined from worker patterns/)
+// ---------------------------------------------------------------------------
+
+interface TransparencyUrlPattern {
+  name: string;
+  paths: string[];
+  priority: number;
+}
+
+const PATTERN_REGISTRY: Record<string, TransparencyUrlPattern[]> = {
+  local_council: [
+    { name: "council_transparency_spending", priority: 1, paths: ["/council/transparency/spending", "/transparency/spending", "/about-the-council/transparency/spending-and-procurement"] },
+    { name: "council_payments", priority: 2, paths: ["/payments-over-500", "/spending-over-500", "/spending-over-250"] },
+    { name: "council_open_data", priority: 3, paths: ["/open-data/spending", "/open-data/council-spending"] },
+    { name: "council_transparency_generic", priority: 4, paths: ["/transparency", "/transparency-and-open-data", "/your-council/transparency"] },
+  ],
+  nhs_trust: [
+    { name: "nhs_spending_25k", priority: 1, paths: ["/about-us/freedom-of-information/spending-over-25000", "/about-us/spending-over-25-000", "/about-us/spending-over-25000"] },
+    { name: "nhs_spending_money", priority: 2, paths: ["/about-us/how-we-spend-our-money", "/about-us/spending"] },
+  ],
+  nhs_icb: [
+    { name: "icb_spending", priority: 1, paths: ["/about-us/how-we-spend-public-money", "/about-us/spending-reports", "/about-us/spending-over-25000"] },
+  ],
+  central_government: [
+    { name: "govuk_spending_25k", priority: 1, paths: ["/government/collections/spending-over-25-000", "/government/publications/spending-over-25-000"] },
+    { name: "govuk_transparency", priority: 2, paths: ["/government/collections/transparency-data", "/transparency"] },
+  ],
+  fire_rescue: [{ name: "fire_transparency", priority: 1, paths: ["/about-us/transparency", "/transparency/spending"] }],
+  police_pcc: [{ name: "police_spending", priority: 1, paths: ["/transparency/spending", "/about-us/what-we-spend"] }],
+  combined_authority: [{ name: "combined_authority_spending", priority: 1, paths: ["/transparency/spending", "/about-us/how-we-spend-public-money"] }],
+  university: [{ name: "university_spending", priority: 1, paths: ["/about/transparency", "/about-us/transparency", "/governance/transparency"] }],
+  alb: [{ name: "alb_spending", priority: 1, paths: ["/about-us/transparency", "/transparency/spending", "/about-us/spending"] }],
+};
+
+function getPatternsForOrgType(orgType: string | undefined): TransparencyUrlPattern[] {
+  if (!orgType) return [];
+  if (PATTERN_REGISTRY[orgType]) return PATTERN_REGISTRY[orgType];
+  const segments = orgType.split("_");
+  for (let i = segments.length - 1; i >= 1; i--) {
+    const parentType = segments.slice(0, i).join("_");
+    if (PATTERN_REGISTRY[parentType]) return PATTERN_REGISTRY[parentType];
+  }
+  return [];
+}
+
+const SPEND_KEYWORDS = [
+  "spending", "expenditure", "transparency", "payments over",
+  "spend over", "csv", ".csv", ".xls", "download",
+  "freedom of information", "publication scheme",
+];
+
+function containsSpendKeywords(html: string): boolean {
+  const lower = html.toLowerCase();
+  return SPEND_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+function extractNavAndFooter(html: string, maxChars = 20000): string {
+  const sections: string[] = [];
+  sections.push(...(html.match(/<nav[\s\S]*?<\/nav>/gi) ?? []));
+  sections.push(...(html.match(/<header[\s\S]*?<\/header>/gi) ?? []));
+  sections.push(...(html.match(/<footer[\s\S]*?<\/footer>/gi) ?? []));
+  sections.push(...(html.match(/<aside[\s\S]*?<\/aside>/gi) ?? []));
+  const combined = sections.join("\n");
+  if (combined.length > 2000) return stripHtml(combined).slice(0, maxChars);
+  return stripHtml(html).slice(0, maxChars);
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x2F;/g, "/")
+    .replace(/&#(\d+);/g, (_m, code) => String.fromCharCode(parseInt(code, 10)));
+}
+
+// Enhanced CSV patterns (12+)
+interface CsvPattern { name: string; regex: RegExp; weight: number; }
+const ALL_CSV_PATTERNS: CsvPattern[] = [
+  { name: "file_extension", regex: /\.(?:csv|xls|xlsx|ods)(?:\?[^"'\s]*)?$/i, weight: 10 },
+  { name: "download_export", regex: /(?:download|export|attachment).*(?:csv|xls|xlsx|spending|payment)|(?:csv|xls|xlsx).*(?:download|export|attachment)/i, weight: 8 },
+  { name: "govuk_attachment", regex: /\/government\/(?:publications|uploads)\//i, weight: 7 },
+  { name: "data_gov_uk", regex: /data\.gov\.uk\/dataset\//i, weight: 9 },
+  { name: "document_mgmt", regex: /(?:Document\.ashx\?Id=|mgDocument\.aspx\?i=)/i, weight: 5 },
+  { name: "wp_uploads", regex: /\/wp-content\/uploads\/.*(?:spend|payment|expenditure|transparency|csv|xls)/i, weight: 7 },
+  { name: "drupal_files", regex: /\/sites\/default\/files\/.*(?:spend|payment|expenditure|transparency|csv|xls)/i, weight: 7 },
+  { name: "period_named", regex: /(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q[1-4]|quarter|20[12]\d).*\.(?:csv|xls|xlsx)/i, weight: 9 },
+  { name: "stream_download", regex: /(?:streamfile|filedownload|getfile|openfile|documentdownload)/i, weight: 5 },
+  { name: "file_id", regex: /[?&](?:file_?id|doc_?id|document_?id|attachment_?id)=\d+/i, weight: 4 },
+  { name: "sharepoint", regex: /\/(?:Shared%20Documents|Documents|_layouts\/15\/download\.aspx)/i, weight: 5 },
+  { name: "content_download", regex: /\/download\/(?:file|attachment|document)\/\d+/i, weight: 6 },
+];
+
+const SPEND_ANCHOR_KEYWORDS = [
+  "spending", "expenditure", "payments over", "spend over",
+  "transparency", "csv", "download", "quarter", "monthly",
+];
+
+interface ScoredLink { url: string; score: number; matchedPatterns: string[]; anchorText?: string; }
+
+function scoreLink(href: string, anchorText?: string): ScoredLink | null {
+  let totalScore = 0;
+  const matchedPatterns: string[] = [];
+  for (const p of ALL_CSV_PATTERNS) {
+    if (p.regex.test(href)) { totalScore += p.weight; matchedPatterns.push(p.name); }
+  }
+  if (matchedPatterns.length === 0) return null;
+  if (anchorText) {
+    const lower = anchorText.toLowerCase();
+    for (const kw of SPEND_ANCHOR_KEYWORDS) {
+      if (lower.includes(kw)) { totalScore += 3; break; }
+    }
+  }
+  return { url: href, score: totalScore, matchedPatterns, anchorText };
+}
+
+function extractLinksEnhanced(html: string, baseUrl: string): ScoredLink[] {
+  const decoded = decodeHtmlEntities(html);
+  const scored: ScoredLink[] = [];
+  const seen = new Set<string>();
+
+  const anchorRegex = /<a\s[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = anchorRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    const anchorText = match[2].replace(/<[^>]*>/g, "").trim();
+    const result = scoreLink(href, anchorText);
+    if (result) {
+      try {
+        const resolved = new URL(href, baseUrl).href;
+        if ((resolved.startsWith("http://") || resolved.startsWith("https://")) && !seen.has(resolved)) {
+          seen.add(resolved);
+          scored.push({ ...result, url: resolved });
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  const bareHrefRegex = /href\s*=\s*["']([^"']+)["']/gi;
+  while ((match = bareHrefRegex.exec(decoded)) !== null) {
+    const href = match[1];
+    try {
+      const resolved = new URL(href, baseUrl).href;
+      if (seen.has(resolved)) continue;
+      const result = scoreLink(href);
+      if (result && (resolved.startsWith("http://") || resolved.startsWith("https://"))) {
+        seen.add(resolved);
+        scored.push({ ...result, url: resolved });
+      }
+    } catch { /* skip */ }
+  }
+
+  return scored.sort((a, b) => b.score - a.score);
+}
+
+function isValidDownloadLink(url: string): boolean {
+  try {
+    const full = new URL(url).href.toLowerCase();
+    return scoreLink(full) !== null;
+  } catch { return false; }
 }
 
 // Simple CSV parser (avoids papaparse dependency in root)
@@ -260,57 +399,137 @@ async function main() {
       return;
     } else {
       const websiteUrl = buyer.website as string;
-      console.log(`Fetching homepage: ${websiteUrl}`);
+      let discoveryMethod = "none";
 
-      let html: string;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        const response = await fetch(websiteUrl, {
-          signal: controller.signal,
-          headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)",
-          },
-        });
-        clearTimeout(timeout);
+      // ─── PATTERN PHASE ───────────────────────────────────────────
+      const patterns = getPatternsForOrgType(buyer.orgType as string | undefined);
+      console.log(`orgType: ${buyer.orgType ?? "unknown"} → ${patterns.length} pattern groups`);
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        html = await response.text();
-        console.log(`Fetched ${html.length} chars`);
-      } catch (err) {
-        console.error(`Fetch failed: ${err instanceof Error ? err.message : String(err)}`);
-        console.log("Marking as 'none' and stopping.");
-        await db.collection("buyers").updateOne(
-          { _id: buyerId },
-          { $set: { transparencyPageUrl: "none", updatedAt: new Date() } }
-        );
-        return;
+      if (patterns.length > 0) {
+        const sorted = [...patterns].sort((a, b) => a.priority - b.priority);
+        console.log(`Trying ${sorted.reduce((n, p) => n + p.paths.length, 0)} candidate URLs...`);
+
+        for (const pattern of sorted) {
+          for (const path of pattern.paths) {
+            let candidateUrl: string;
+            try {
+              candidateUrl = new URL(path, websiteUrl).href;
+            } catch { continue; }
+
+            process.stdout.write(`  ${pattern.name}: ${candidateUrl} ... `);
+
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 8000);
+              const response = await fetch(candidateUrl, {
+                signal: controller.signal,
+                headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+              });
+              clearTimeout(timeout);
+
+              if (!response.ok) {
+                console.log(`${response.status}`);
+                continue;
+              }
+
+              const ct = response.headers.get("content-type") ?? "";
+              if (!ct.includes("text/html") && !ct.includes("application/xhtml")) {
+                console.log(`non-HTML (${ct})`);
+                continue;
+              }
+
+              const html = await response.text();
+              const hasKeywords = containsSpendKeywords(html);
+              console.log(`${html.length} chars, keywords=${hasKeywords}`);
+
+              if (hasKeywords) {
+                transparencyUrl = candidateUrl;
+                discoveryMethod = "pattern_match";
+
+                // Extract CSV links from validated page
+                const csvLinksFromPattern = extractLinksEnhanced(html, candidateUrl)
+                  .map((s) => s.url);
+
+                console.log(`\n  ✓ PATTERN MATCH: ${pattern.name}`);
+                console.log(`  Transparency URL: ${transparencyUrl}`);
+                console.log(`  CSV links found: ${csvLinksFromPattern.length}`);
+                csvLinksFromPattern.forEach((l, i) => console.log(`    ${i + 1}. ${l}`));
+
+                await db.collection("buyers").updateOne(
+                  { _id: buyerId },
+                  {
+                    $set: {
+                      transparencyPageUrl: transparencyUrl,
+                      discoveryMethod,
+                      ...(csvLinksFromPattern.length > 0 ? { csvLinks: csvLinksFromPattern } : {}),
+                      updatedAt: new Date(),
+                    },
+                  }
+                );
+                break;
+              }
+            } catch (err) {
+              console.log(`error: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }
+          if (discoveryMethod === "pattern_match") break;
+        }
       }
 
-      const strippedHtml = stripHtml(html).slice(0, 12000);
+      // ─── AI FALLBACK ─────────────────────────────────────────────
+      if (discoveryMethod !== "pattern_match") {
+        console.log(`\nNo pattern match. Falling back to AI discovery...`);
+        console.log(`Fetching homepage: ${websiteUrl}`);
 
-      console.log("Calling Claude Haiku for transparency page analysis...");
-      const aiResponse = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        messages: [
-          {
-            role: "user",
-            content: `You are analyzing a UK public sector website to find spending transparency data.
+        let html: string;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          const response = await fetch(websiteUrl, {
+            signal: controller.signal,
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+          });
+          clearTimeout(timeout);
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          html = await response.text();
+          console.log(`Fetched ${html.length} chars`);
+        } catch (err) {
+          console.error(`Fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+          console.log("Marking as 'none' and stopping.");
+          await db.collection("buyers").updateOne(
+            { _id: buyerId },
+            { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
+          );
+          return;
+        }
+
+        // Use nav/footer-focused extraction with 20K limit
+        const extractedHtml = extractNavAndFooter(html, 20000);
+        console.log(`Extracted ${extractedHtml.length} chars (nav/footer-focused)`);
+
+        console.log("Calling Claude Haiku for transparency page analysis...");
+        const aiResponse = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 512,
+          messages: [
+            {
+              role: "user",
+              content: `You are analyzing a UK public sector website to find spending transparency data.
 
 Organization: ${buyer.name}
 Website: ${websiteUrl}
 Organization type: ${buyer.orgType ?? "unknown"}
 
 HTML content:
-<html>${strippedHtml}</html>
+<html>${extractedHtml}</html>
 
 Find links to:
 1. "transparency", "spending", "payments over 500", "expenditure", "open data" pages
 2. Direct CSV/Excel file download links containing spending/payment data
 3. Links to external open data portals (data.gov.uk, etc.)
 
-Look in navigation menus, footer links, and body content.
+Look in navigation menus, footer links, and body content. UK councils typically have these under "Your Council" > "Transparency" or "About Us" > "Spending".
 
 Return ONLY valid JSON (no markdown):
 {
@@ -318,58 +537,56 @@ Return ONLY valid JSON (no markdown):
   "csvLinks": ["array of direct CSV/XLS download URLs found, empty if none"],
   "confidence": "HIGH|MEDIUM|LOW|NONE"
 }`,
-          },
-        ],
-      });
+            },
+          ],
+        });
 
-      const responseText =
-        aiResponse.content[0]?.type === "text" ? aiResponse.content[0].text : "";
-      console.log(`\nClaude response:\n${responseText}`);
+        const responseText =
+          aiResponse.content[0]?.type === "text" ? aiResponse.content[0].text : "";
+        console.log(`\nClaude response:\n${responseText}`);
 
-      const parsed = parseDiscoveryResponse(responseText);
+        const parsed = parseDiscoveryResponse(responseText);
 
-      if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
-        console.log("No transparency page found. Marking as 'none'.");
+        if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
+          console.log("No transparency page found. Marking as 'none'.");
+          await db.collection("buyers").updateOne(
+            { _id: buyerId },
+            { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
+          );
+          return;
+        }
+
+        try {
+          transparencyUrl = new URL(parsed.transparencyUrl, websiteUrl).href;
+        } catch {
+          transparencyUrl = parsed.transparencyUrl;
+        }
+
+        const validCsvLinks = parsed.csvLinks
+          .map((link) => { try { return new URL(link, websiteUrl).href; } catch { return null; } })
+          .filter((link): link is string =>
+            link !== null && (link.startsWith("http://") || link.startsWith("https://"))
+          );
+
+        discoveryMethod = "ai_discovery";
+
+        console.log(`\nDiscovered transparency URL: ${transparencyUrl}`);
+        console.log(`Discovery method: ${discoveryMethod}`);
+        console.log(`Direct CSV links found: ${validCsvLinks.length}`);
+        validCsvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+
         await db.collection("buyers").updateOne(
           { _id: buyerId },
-          { $set: { transparencyPageUrl: "none", updatedAt: new Date() } }
-        );
-        return;
-      }
-
-      // Resolve relative URL
-      try {
-        transparencyUrl = new URL(parsed.transparencyUrl, websiteUrl).href;
-      } catch {
-        transparencyUrl = parsed.transparencyUrl;
-      }
-
-      const validCsvLinks = parsed.csvLinks
-        .map((link) => {
-          try {
-            return new URL(link, websiteUrl).href;
-          } catch {
-            return null;
+          {
+            $set: {
+              transparencyPageUrl: transparencyUrl,
+              discoveryMethod,
+              ...(validCsvLinks.length > 0 ? { csvLinks: validCsvLinks } : {}),
+              updatedAt: new Date(),
+            },
           }
-        })
-        .filter((link): link is string =>
-          link !== null && (link.startsWith("http://") || link.startsWith("https://"))
         );
-
-      console.log(`\nDiscovered transparency URL: ${transparencyUrl}`);
-      console.log(`Direct CSV links found: ${validCsvLinks.length}`);
-      validCsvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
-
-      await db.collection("buyers").updateOne(
-        { _id: buyerId },
-        {
-          $set: {
-            transparencyPageUrl: transparencyUrl,
-            ...(validCsvLinks.length > 0 ? { csvLinks: validCsvLinks } : {}),
-            updatedAt: new Date(),
-          },
-        }
-      );
+      }
     }
 
     // ─── STAGE 2: Extract CSV Links ────────────────────────────────
@@ -417,18 +634,23 @@ Return ONLY valid JSON (no markdown):
         if (csvLinks.length === 0) return;
       }
 
-      // Pass 1: Regex
-      const regexLinks = extractLinksViaRegex(html!, transparencyUrl);
-      console.log(`Regex found ${regexLinks.length} links`);
+      // Pass 1: Enhanced regex extraction (12+ patterns with scoring)
+      const scoredLinks = extractLinksEnhanced(html!, transparencyUrl);
+      const regexLinks = scoredLinks.map((s) => s.url);
+      console.log(`Enhanced regex found ${regexLinks.length} links`);
+      if (scoredLinks.length > 0) {
+        console.log("Top scored links:");
+        scoredLinks.slice(0, 10).forEach((s, i) =>
+          console.log(`  ${i + 1}. [${s.score}] ${s.matchedPatterns.join(",")} → ${s.url.slice(0, 80)}${s.anchorText ? ` (${s.anchorText.slice(0, 30)})` : ""}`)
+        );
+      }
 
-      // Pass 2: Claude Haiku if regex found < 3
+      // Pass 2: Claude Haiku if enhanced regex found < 3
       let aiLinks: string[] = [];
       if (regexLinks.length < 3) {
-        console.log("Regex found < 3 links, using Claude Haiku fallback...");
+        console.log("Enhanced regex found < 3 links, using Claude Haiku fallback...");
 
-        const strippedHtml = stripHtml(html!)
-          .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .slice(0, 15000);
+        const strippedHtml = stripHtml(html!).slice(0, 15000);
 
         const aiResponse = await anthropic.messages.create({
           model: "claude-haiku-4-5-20251001",
@@ -468,20 +690,8 @@ Return ONLY valid JSON:
       // Merge all links
       const allLinks = Array.from(new Set([...csvLinks, ...regexLinks, ...aiLinks]));
 
-      // Filter: keep only valid download links
-      csvLinks = allLinks.filter((link) => {
-        try {
-          const url = new URL(link);
-          const path = url.pathname.toLowerCase();
-          return (
-            FILE_EXT_PATTERN.test(path) ||
-            path.includes("download") ||
-            path.includes("export")
-          );
-        } catch {
-          return false;
-        }
-      });
+      // Filter: keep only valid download links (enhanced check)
+      csvLinks = allLinks.filter(isValidDownloadLink);
 
       console.log(`\nTotal CSV links after merge + filter: ${csvLinks.length}`);
       csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));

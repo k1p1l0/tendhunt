@@ -193,6 +193,25 @@ const ALB_PATTERNS: TransparencyUrlPattern[] = [
   },
 ];
 
+const CENTRAL_GOVERNMENT_PATTERNS: TransparencyUrlPattern[] = [
+  {
+    name: "govuk_spending_25k",
+    priority: 1,
+    paths: [
+      "/government/collections/spending-over-25-000",
+      "/government/publications/spending-over-25-000",
+    ],
+  },
+  {
+    name: "govuk_transparency",
+    priority: 2,
+    paths: [
+      "/government/collections/transparency-data",
+      "/transparency",
+    ],
+  },
+];
+
 const NATIONAL_PARK_PATTERNS: TransparencyUrlPattern[] = [
   {
     name: "national_park_spending",
@@ -217,6 +236,7 @@ const PATTERN_REGISTRY: Record<string, TransparencyUrlPattern[]> = {
   mat: MAT_PATTERNS,
   alb: ALB_PATTERNS,
   national_park: NATIONAL_PARK_PATTERNS,
+  central_government: CENTRAL_GOVERNMENT_PATTERNS,
 };
 
 /**
