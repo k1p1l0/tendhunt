@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Building2, Mail, Phone, Copy, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Contact {
   name?: string;
@@ -14,7 +13,6 @@ interface Contact {
 
 interface ContactCardProps {
   contact: Contact;
-  isUnlocked: boolean;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -46,15 +44,15 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function ContactCard({ contact, isUnlocked }: ContactCardProps) {
+export function ContactCard({ contact }: ContactCardProps) {
   return (
     <div className="rounded-lg border p-4 space-y-3">
-      {/* Name - always visible */}
+      {/* Name */}
       {contact.name && (
         <h4 className="font-semibold text-sm">{contact.name}</h4>
       )}
 
-      {/* Job title - always visible */}
+      {/* Job title */}
       {contact.title && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Building2 className="h-4 w-4 shrink-0" />
@@ -62,37 +60,21 @@ export function ContactCard({ contact, isUnlocked }: ContactCardProps) {
         </div>
       )}
 
-      {/* Email - blurred when locked */}
+      {/* Email */}
       {contact.email && (
         <div className="flex items-center gap-2 text-sm">
           <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span
-            className={cn(
-              "transition-[filter] duration-300 ease-out",
-              !isUnlocked && "blur-sm select-none pointer-events-none"
-            )}
-            aria-hidden={!isUnlocked}
-          >
-            {contact.email}
-          </span>
-          {isUnlocked && <CopyButton text={contact.email} />}
+          <span>{contact.email}</span>
+          <CopyButton text={contact.email} />
         </div>
       )}
 
-      {/* Phone - blurred when locked */}
+      {/* Phone */}
       {contact.phone && (
         <div className="flex items-center gap-2 text-sm">
           <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span
-            className={cn(
-              "transition-[filter] duration-300 ease-out",
-              !isUnlocked && "blur-sm select-none pointer-events-none"
-            )}
-            aria-hidden={!isUnlocked}
-          >
-            {contact.phone}
-          </span>
-          {isUnlocked && <CopyButton text={contact.phone} />}
+          <span>{contact.phone}</span>
+          <CopyButton text={contact.phone} />
         </div>
       )}
     </div>

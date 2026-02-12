@@ -7,7 +7,6 @@ import {
   MapPin,
   FileText,
   ExternalLink,
-  Unlock,
   Users,
   PoundSterling,
   Landmark,
@@ -21,7 +20,6 @@ interface BuyerHeaderProps {
     region?: string;
     contractCount: number;
     website?: string;
-    isUnlocked: boolean;
     enrichmentScore?: number;
     orgType?: string;
     staffCount?: number;
@@ -117,12 +115,6 @@ export function BuyerHeader({ buyer }: BuyerHeaderProps) {
                 {buyer.name}
               </h1>
               <div className="flex items-center gap-2 shrink-0">
-                {buyer.isUnlocked && (
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    <Unlock className="h-3 w-3" />
-                    Unlocked
-                  </Badge>
-                )}
                 {buyer.enrichmentScore != null && buyer.enrichmentScore > 0 && (
                   <EnrichmentBadge score={buyer.enrichmentScore} size="md" />
                 )}

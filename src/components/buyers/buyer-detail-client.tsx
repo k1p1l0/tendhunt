@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { BuyerHeader } from "@/components/buyers/buyer-header";
 import { BuyerTabs } from "@/components/buyers/buyer-tabs";
 
@@ -62,7 +61,6 @@ interface BuyerData {
   contractCount: number;
   website?: string;
   description?: string;
-  isUnlocked: boolean;
   contacts: ContactData[];
   contracts: ContractData[];
   signals: SignalData[];
@@ -82,14 +80,6 @@ interface BuyerDetailClientProps {
 }
 
 export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
-  // Local state for isUnlocked -- initialized from server data,
-  // flipped to true when user clicks "Unlock Contacts"
-  const [isUnlocked, setIsUnlocked] = useState(buyer.isUnlocked);
-
-  function handleUnlocked() {
-    setIsUnlocked(true);
-  }
-
   return (
     <div className="space-y-6">
       <BuyerHeader
@@ -99,7 +89,6 @@ export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
           region: buyer.region,
           contractCount: buyer.contractCount,
           website: buyer.website,
-          isUnlocked,
           enrichmentScore: buyer.enrichmentScore,
           orgType: buyer.orgType,
           staffCount: buyer.staffCount,
@@ -111,8 +100,6 @@ export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
         contracts={buyer.contracts}
         signals={buyer.signals}
         contacts={buyer.contacts}
-        isUnlocked={isUnlocked}
-        buyerId={buyer._id}
         buyerName={buyer.name}
         buyer={{
           _id: buyer._id,
@@ -122,7 +109,6 @@ export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
         }}
         boardDocuments={buyer.boardDocuments}
         keyPersonnel={buyer.keyPersonnel}
-        onUnlocked={handleUnlocked}
       />
     </div>
   );

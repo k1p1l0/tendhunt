@@ -90,7 +90,6 @@ export default async function BuyerDetailPage({
           contractCount: buyer.contractCount ?? 0,
           website: buyer.website ?? undefined,
           description: buyer.description ?? undefined,
-          isUnlocked: buyer.isUnlocked,
           contacts,
           contracts,
           signals,

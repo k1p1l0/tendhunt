@@ -46,8 +46,6 @@ interface BuyerTabsProps {
   contracts: ContractData[];
   signals: SignalData[];
   contacts: ContactData[];
-  isUnlocked: boolean;
-  buyerId: string;
   buyerName: string;
   buyer: {
     _id: string;
@@ -57,7 +55,6 @@ interface BuyerTabsProps {
   };
   boardDocuments: BoardDocumentData[];
   keyPersonnel: KeyPersonnelData[];
-  onUnlocked?: () => void;
 }
 
 export function BuyerTabs(props: BuyerTabsProps) {
@@ -91,12 +88,7 @@ export function BuyerTabs(props: BuyerTabsProps) {
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-4">
-        <ContactsTab
-          contacts={props.contacts}
-          isUnlocked={props.isUnlocked}
-          buyerId={props.buyerId}
-          onUnlocked={props.onUnlocked}
-        />
+        <ContactsTab contacts={props.contacts} />
       </TabsContent>
 
       <TabsContent value="signals" className="mt-4">
