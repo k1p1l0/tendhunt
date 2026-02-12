@@ -6,7 +6,7 @@ import type { Env, SpendJobDoc } from "../types";
 import { getBuyerBatchForDiscovery, updateBuyerTransparencyInfo } from "../db/buyers";
 import { updateJobProgress } from "../db/spend-jobs";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
-import { getPatternsForOrgType } from "../patterns/transparency-urls";
+import { getPatternsForOrgType, getGovukDeptPaths } from "../patterns/transparency-urls";
 import { validateTransparencyUrl } from "../patterns/url-validator";
 import { extractNavAndFooter } from "../patterns/html-extractor";
 import { scoreLink } from "../patterns/csv-patterns";
@@ -172,6 +172,39 @@ export async function discoverTransparencyPages(
       batch.map((buyer) =>
         limit(async () => {
           const websiteUrl = buyer.website!;
+
+          // ---------------------------------------------------------------
+          // GOV.UK DEPT-SPECIFIC: try department publication page first
+          // ---------------------------------------------------------------
+          const deptPaths = getGovukDeptPaths(buyer.name);
+          if (deptPaths.length > 0) {
+            for (const path of deptPaths) {
+              let candidateUrl: string;
+              try {
+                candidateUrl = new URL(path, "https://www.gov.uk").href;
+              } catch {
+                continue;
+              }
+
+              const result = await validateTransparencyUrl(candidateUrl);
+              if (result.valid && result.html) {
+                const csvLinks = extractCsvLinksFromHtml(
+                  result.html,
+                  candidateUrl
+                );
+
+                await updateBuyerTransparencyInfo(db, buyer._id!, {
+                  transparencyPageUrl: candidateUrl,
+                  csvLinks: csvLinks.length > 0 ? csvLinks : undefined,
+                  discoveryMethod: "pattern_match",
+                });
+
+                discovered++;
+                patternMatches++;
+                return { error: false, found: true };
+              }
+            }
+          }
 
           // ---------------------------------------------------------------
           // PATTERN PHASE: probe known URL paths for this org type

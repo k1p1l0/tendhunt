@@ -29,8 +29,23 @@ function hasHeaders(headers: string[], required: string[]): boolean {
  * Ordered by specificity — more specific patterns first.
  */
 export const KNOWN_SCHEMAS: ColumnMapping[] = [
-  // 0. GOV.UK central government spending-over-25k (MoD, HMRC, etc.)
-  // More specific than devon_pattern: requires "transaction number" + "supplier" (not "supplier name")
+  // 0a. GOV.UK MoD spending-over-25k (uses "Payment Date", "Total", "Supplier Name")
+  {
+    name: "govuk_mod_spending_25k",
+    detect: (headers) =>
+      hasHeaders(headers, ["expense type", "expense area", "supplier name", "transaction number", "payment date"]),
+    map: {
+      date: "Payment Date",
+      amount: "Total",
+      vendor: "Supplier Name",
+      category: "Expense Area",
+      subcategory: "Expense Type",
+      department: "Entity",
+      reference: "Transaction Number",
+    },
+  },
+
+  // 0b. GOV.UK central government spending-over-25k (HMRC uses "Date", "Amount", "Supplier")
   {
     name: "govuk_spending_25k",
     detect: (headers) =>

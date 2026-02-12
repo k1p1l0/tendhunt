@@ -134,6 +134,38 @@ const PATTERN_REGISTRY: Record<string, TransparencyUrlPattern[]> = {
   alb: [{ name: "alb_spending", priority: 1, paths: ["/about-us/transparency", "/transparency/spending", "/about-us/spending"] }],
 };
 
+const GOVUK_DEPT_SLUG_MAP: Record<string, string> = {
+  "ministry of defence": "mod",
+  "hm revenue & customs": "hmrc",
+  "hm revenue and customs": "hmrc",
+  "hm treasury": "hm-treasury",
+  "home office": "home-office",
+  "ministry of justice": "ministry-of-justice",
+  "department for education": "department-for-education-dfe",
+  "department of health and social care": "dhsc",
+  "department for transport": "department-for-transport",
+  "department for work and pensions": "dwp",
+  "cabinet office": "cabinet-office",
+  "nhs england": "nhs-england",
+};
+
+function getGovukDeptPaths(buyerName: string): string[] {
+  const nameLower = buyerName.toLowerCase();
+  for (const [pattern, slug] of Object.entries(GOVUK_DEPT_SLUG_MAP)) {
+    if (nameLower.includes(pattern)) {
+      const year = new Date().getFullYear();
+      return [
+        `/government/publications/${slug}-spending-over-25000-january-to-december-${year}`,
+        `/government/publications/${slug}-spending-over-25000-${year}`,
+        `/government/publications/${slug}-spending-over-25000-january-to-december-${year - 1}`,
+        `/government/publications/${slug}-spending-over-25-000`,
+        `/government/publications/${slug}-spending-over-25000`,
+      ];
+    }
+  }
+  return [];
+}
+
 function getPatternsForOrgType(orgType: string | undefined): TransparencyUrlPattern[] {
   if (!orgType) return [];
   if (PATTERN_REGISTRY[orgType]) return PATTERN_REGISTRY[orgType];
@@ -380,6 +412,11 @@ function hasHeaders(headers: string[], required: string[]): boolean {
 }
 const KNOWN_SCHEMAS: KnownSchema[] = [
   {
+    name: "govuk_mod_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier name", "transaction number", "payment date"]),
+    map: { date: "Payment Date", amount: "Total", vendor: "Supplier Name", category: "Expense Area", subcategory: "Expense Type", department: "Entity", reference: "Transaction Number" },
+  },
+  {
     name: "govuk_spending_25k",
     detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number"]),
     map: { date: "Date", amount: "Amount", vendor: "Supplier", category: "Expense Area", subcategory: "Expense Type", department: "Entity", reference: "Transaction Number" },
@@ -446,13 +483,14 @@ function parseCSVLine(line: string): string[] {
 }
 
 // Normalization helpers (simplified versions from worker)
+const MONTH_MAP: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
 function parseFlexibleDate(s: string): Date | null {
   if (!s) return null;
   const trimmed = s.trim();
-  // Try ISO
-  const iso = new Date(trimmed);
-  if (!isNaN(iso.getTime())) return iso;
-  // Try DD/MM/YYYY
+  // Try DD/MM/YYYY first (UK format — must come before new Date() which uses US format)
   const ukMatch = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
   if (ukMatch) {
     const day = parseInt(ukMatch[1]);
@@ -462,6 +500,21 @@ function parseFlexibleDate(s: string): Date | null {
     const d = new Date(year, month, day);
     if (!isNaN(d.getTime())) return d;
   }
+  // Try DD-Mon-YY / DD-Mon-YYYY (e.g., 21-Jan-25)
+  const monMatch = trimmed.match(/^(\d{1,2})[\/\-.]([A-Za-z]{3})[\/\-.](\d{2,4})$/);
+  if (monMatch) {
+    const day = parseInt(monMatch[1]);
+    const monthIdx = MONTH_MAP[monMatch[2].toLowerCase()];
+    if (monthIdx !== undefined) {
+      let year = parseInt(monMatch[3]);
+      if (year < 100) year += 2000;
+      const d = new Date(year, monthIdx, day);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  // Try ISO / general Date parse as fallback
+  const iso = new Date(trimmed);
+  if (!isNaN(iso.getTime())) return iso;
   return null;
 }
 
@@ -533,11 +586,51 @@ async function main() {
       const websiteUrl = buyer.website as string;
       let discoveryMethod = "none";
 
+      // ─── GOV.UK DEPT-SPECIFIC ─────────────────────────────────────
+      const deptPaths = getGovukDeptPaths(buyer.name as string);
+      if (deptPaths.length > 0) {
+        console.log(`GOV.UK dept-specific: trying ${deptPaths.length} paths for "${buyer.name}"...`);
+        for (const path of deptPaths) {
+          let candidateUrl: string;
+          try { candidateUrl = new URL(path, "https://www.gov.uk").href; } catch { continue; }
+          process.stdout.write(`  dept: ${candidateUrl} ... `);
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(candidateUrl, {
+              signal: controller.signal,
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TendHunt/1.0; test-script)" },
+            });
+            clearTimeout(timeout);
+            if (!response.ok) { console.log(`${response.status}`); continue; }
+            const ct = response.headers.get("content-type") ?? "";
+            if (!ct.includes("text/html") && !ct.includes("application/xhtml")) { console.log(`non-HTML (${ct})`); continue; }
+            const html = await response.text();
+            const hasKeywords = containsSpendKeywords(html);
+            console.log(`${html.length} chars, keywords=${hasKeywords}`);
+            if (hasKeywords) {
+              transparencyUrl = candidateUrl;
+              discoveryMethod = "pattern_match";
+              const csvLinksFromDept = extractLinksEnhanced(html, candidateUrl).map((s) => s.url);
+              console.log(`\n  ✓ DEPT MATCH: ${candidateUrl}`);
+              console.log(`  CSV links found: ${csvLinksFromDept.length}`);
+              csvLinksFromDept.slice(0, 5).forEach((l, i) => console.log(`    ${i + 1}. ${l}`));
+              if (csvLinksFromDept.length > 5) console.log(`    ... and ${csvLinksFromDept.length - 5} more`);
+              await db.collection("buyers").updateOne(
+                { _id: buyerId },
+                { $set: { transparencyPageUrl: transparencyUrl, discoveryMethod, ...(csvLinksFromDept.length > 0 ? { csvLinks: csvLinksFromDept } : {}), updatedAt: new Date() } }
+              );
+              break;
+            }
+          } catch (err) { console.log(`error: ${err instanceof Error ? err.message : String(err)}`); }
+        }
+      }
+
       // ─── PATTERN PHASE ───────────────────────────────────────────
       const patterns = getPatternsForOrgType(buyer.orgType as string | undefined);
       console.log(`orgType: ${buyer.orgType ?? "unknown"} → ${patterns.length} pattern groups`);
 
-      if (patterns.length > 0) {
+      if (discoveryMethod !== "pattern_match" && patterns.length > 0) {
         const sorted = [...patterns].sort((a, b) => a.priority - b.priority);
         console.log(`Trying ${sorted.reduce((n, p) => n + p.paths.length, 0)} candidate URLs...`);
 
@@ -747,7 +840,14 @@ Return ONLY valid JSON (no markdown):
     const hasPublicationUrls = csvLinks.some((u) => u.includes("/government/publications/"));
     if (hasPublicationUrls) {
       csvLinks = await followGovukPublicationPages(csvLinks);
-      // Update buyer with resolved links
+    }
+
+    // Filter resolved download URLs to this buyer's department
+    if (transparencyUrl?.includes("gov.uk/government/")) {
+      const beforeCount = csvLinks.length;
+      csvLinks = filterLinksToBuyer(csvLinks, buyer.name as string);
+      console.log(`Filtered ${beforeCount} → ${csvLinks.length} links for "${buyer.name}"`);
+      // Update buyer with filtered links
       await db.collection("buyers").updateOne(
         { _id: buyerId },
         { $set: { csvLinks, updatedAt: new Date() } }

@@ -212,6 +212,50 @@ const CENTRAL_GOVERNMENT_PATTERNS: TransparencyUrlPattern[] = [
   },
 ];
 
+// Dynamic slug map: buyer name → GOV.UK URL slug for department-specific spending pages
+const GOVUK_DEPT_SLUG_MAP: Record<string, string> = {
+  "ministry of defence": "mod",
+  "hm revenue & customs": "hmrc",
+  "hm revenue and customs": "hmrc",
+  "hm treasury": "hm-treasury",
+  "home office": "home-office",
+  "ministry of justice": "ministry-of-justice",
+  "department for education": "department-for-education-dfe",
+  "department of health and social care": "dhsc",
+  "department for transport": "department-for-transport",
+  "department for work and pensions": "dwp",
+  "department for environment, food & rural affairs": "defra",
+  "department for business and trade": "department-for-business-and-trade",
+  "foreign, commonwealth & development office": "fcdo",
+  "cabinet office": "cabinet-office",
+  "hm courts & tribunals service": "hmcts",
+  "crown prosecution service": "cps",
+  "nhs england": "nhs-england",
+};
+
+/**
+ * Get GOV.UK department-specific spending publication paths for a buyer.
+ * These are the highest-priority patterns for central government.
+ */
+export function getGovukDeptPaths(buyerName: string): string[] {
+  const nameLower = buyerName.toLowerCase();
+  for (const [pattern, slug] of Object.entries(GOVUK_DEPT_SLUG_MAP)) {
+    if (nameLower.includes(pattern)) {
+      // GOV.UK uses patterns like /government/publications/mod-spending-over-25000-january-to-december-YYYY
+      // and /government/publications/mod-spending-over-25000-YYYY
+      const year = new Date().getFullYear();
+      return [
+        `/government/publications/${slug}-spending-over-25000-january-to-december-${year}`,
+        `/government/publications/${slug}-spending-over-25000-${year}`,
+        `/government/publications/${slug}-spending-over-25000-january-to-december-${year - 1}`,
+        `/government/publications/${slug}-spending-over-25-000`,
+        `/government/publications/${slug}-spending-over-25000`,
+      ];
+    }
+  }
+  return [];
+}
+
 const NATIONAL_PARK_PATTERNS: TransparencyUrlPattern[] = [
   {
     name: "national_park_spending",
