@@ -256,6 +256,10 @@ Recent decisions affecting current work:
 - [20-01]: Default maxItems 100 per pipeline run (vs enrichment's 500) due to heavier Claude processing
 - [20-01]: No R2 bucket binding -- board-minutes worker reads text from MongoDB, not files
 - [20-01]: No [vars] section -- board-minutes is end-of-chain, no downstream worker
+- [20-03]: Signal type normalization maps both UPPER_CASE and lower_case to schema enum via explicit lookup
+- [20-03]: 500ms sleep between chunks to avoid Claude Haiku API rate limits
+- [20-03]: Top-5 keyword extraction for stable dedup keys (lowercase, sorted alphabetically)
+- [20-03]: Two-step buyer query: find qualifying doc buyerIds first, then match Tier 0 buyers
 - [20-04]: Filter pills only render when 2+ signal types present (avoids single-filter pointlessness)
 - [20-04]: Entity badges capped at 5 total across companies/people/amounts to avoid card clutter
 - [20-04]: hasBoardDocuments derived from boardDocuments.length in parent BuyerTabs
