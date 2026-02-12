@@ -31,6 +31,7 @@ const contractSchema = new Schema(
     buyerName: { type: String, required: true, index: true },
     buyerOrg: { type: String },
     buyerRegion: { type: String, index: true },
+    buyerId: { type: Schema.Types.ObjectId, ref: "Buyer", index: true },
 
     // Classification
     cpvCodes: [{ type: String }],
