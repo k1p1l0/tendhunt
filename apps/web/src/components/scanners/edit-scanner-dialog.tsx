@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { SearchQueryInput } from "@/components/scanners/search-query-display";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -270,13 +270,11 @@ export function EditScannerDialog({
           {/* Search Query */}
           <div className="space-y-2">
             <Label htmlFor="edit-scanner-query">Search Query</Label>
-            <Textarea
+            <SearchQueryInput
               id="edit-scanner-query"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="AI-generated OR-joined conditions..."
-              rows={6}
-              className="font-mono text-sm"
+              onChange={setSearchQuery}
+              placeholder="e.g. cloud migration OR IT infrastructure OR digital transformation"
             />
           </div>
 
