@@ -20,7 +20,10 @@ export async function GET(request: Request) {
     const conditions: Record<string, any>[] = [];
 
     if (q) {
-      conditions.push({ $text: { $search: q } });
+      const sanitized = q.replace(/"/g, "").replace(/\s+/g, " ").trim();
+      if (sanitized) {
+        conditions.push({ $text: { $search: sanitized } });
+      }
     }
     if (signalType) {
       conditions.push({ signalType });
