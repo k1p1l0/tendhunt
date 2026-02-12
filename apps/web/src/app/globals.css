@@ -125,3 +125,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Entity links in agent chat */
+.entity-link {
+  text-decoration: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground) !important;
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.entity-link:hover {
+  opacity: 0.85;
+}
+
+.entity-link::before {
+  display: inline-block;
+  font-size: 0.75rem;
+}
+
+.entity-link[data-entity-type="buyer"]::before {
+  content: "🏢";
+}
+
+.entity-link[data-entity-type="contract"]::before {
+  content: "📄";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entity-link {
+    transition: none;
+  }
+}

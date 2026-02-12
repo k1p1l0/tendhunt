@@ -10,13 +10,15 @@ import { isValidObjectId } from "mongoose";
 
 export default async function BuyerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const { id } = await params;
+  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const buyer = await fetchBuyerById(id);
 
   if (!buyer) {
@@ -106,6 +108,7 @@ export default async function BuyerDetailPage({
       />
       <BuyerBreadcrumb name={buyerName} />
       <BuyerDetailClient
+        initialTab={tab}
         buyer={{
           _id: buyerId,
           name: buyerName,

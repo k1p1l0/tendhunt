@@ -44,6 +44,13 @@ interface ContactData {
   linkedIn?: string;
 }
 
+const VALID_TABS = [
+  "spending", "contracts", "contacts", "signals",
+  "board-documents", "key-personnel", "attributes",
+] as const;
+
+type BuyerTab = typeof VALID_TABS[number];
+
 interface BuyerTabsProps {
   contracts: ContractData[];
   signals: SignalData[];
@@ -64,19 +71,23 @@ interface BuyerTabsProps {
   keyPersonnel: KeyPersonnelData[];
   hasSpendData?: boolean;
   spendTransactionCount?: number;
+  initialTab?: string;
 }
 
 export function BuyerTabs(props: BuyerTabsProps) {
   const contactCount = props.contacts.length;
+  const activeTab: BuyerTab = VALID_TABS.includes(props.initialTab as BuyerTab)
+    ? (props.initialTab as BuyerTab)
+    : "spending";
 
   return (
-    <Tabs defaultValue="spending" className="w-full">
+    <Tabs defaultValue={activeTab} className="w-full">
       <TabsList>
         <TabsTrigger value="spending">
           Spending{props.spendTransactionCount ? ` (${props.spendTransactionCount.toLocaleString()})` : ""}
         </TabsTrigger>
         <TabsTrigger value="contracts">
-          Contracts ({props.contracts.length})
+          Contracts ({props.buyer.contractCount || props.contracts.length})
         </TabsTrigger>
         <TabsTrigger value="contacts">
           Key Contacts ({contactCount})

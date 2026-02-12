@@ -102,9 +102,10 @@ interface BuyerData {
 
 interface BuyerDetailClientProps {
   buyer: BuyerData;
+  initialTab?: string;
 }
 
-export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
+export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps) {
   return (
     <div className="space-y-6">
       <BuyerHeader
@@ -146,6 +147,7 @@ export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
         keyPersonnel={buyer.keyPersonnel}
         hasSpendData={buyer.hasSpendData}
         spendTransactionCount={buyer.spendTransactionCount}
+        initialTab={initialTab}
       />
     </div>
   );

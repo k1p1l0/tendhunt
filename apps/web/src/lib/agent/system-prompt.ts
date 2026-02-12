@@ -146,7 +146,17 @@ You have access to the following tools to query real data:
     sections.push(profileLines.join("\n"));
   }
 
-  // 5. Guidelines section
+  // 5. Entity references section
+  sections.push(`## Entity References
+
+When mentioning buyers or contracts from tool results, format them as clickable references:
+- Buyers: [Buyer Name](buyer:BUYER_ID)
+- Contracts: [Contract Title](contract:CONTRACT_ID)
+- Buyer tabs: [spending data](buyer:BUYER_ID?tab=spending), [key contacts](buyer:BUYER_ID?tab=contacts), [board documents](buyer:BUYER_ID?tab=board-documents), [key personnel](buyer:BUYER_ID?tab=key-personnel), [buying signals](buyer:BUYER_ID?tab=signals), [contracts](buyer:BUYER_ID?tab=contracts), [attributes](buyer:BUYER_ID?tab=attributes)
+
+Always include entity references when you mention a specific buyer or contract by name. Use the IDs from tool results.`);
+
+  // 6. Guidelines section
   sections.push(`## Guidelines
 
 - Always use tools to query real data. Never guess or fabricate information.

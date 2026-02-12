@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { ToolCallIndicator } from "./tool-call-indicator";
+import { useAgentStore } from "@/stores/agent-store";
 
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
 
@@ -13,9 +15,18 @@ marked.setOptions({
   gfm: true,
 });
 
-// Override link renderer to add target="_blank" and rel="noopener noreferrer"
+const ENTITY_LINK_RE = /^(buyer|contract):(.+)$/;
+
 const renderer = new marked.Renderer();
 renderer.link = ({ href, text }) => {
+  const match = href.match(ENTITY_LINK_RE);
+  if (match) {
+    const [, entityType, rawId] = match;
+    const [id, query] = rawId.split("?");
+    const path = entityType === "buyer" ? `/buyers/${id}` : `/contracts/${id}`;
+    const fullPath = query ? `${path}?${query}` : path;
+    return `<a href="${fullPath}" data-entity-type="${entityType}" class="entity-link">${text}</a>`;
+  }
   return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
 };
 marked.use({ renderer });
@@ -28,7 +39,7 @@ function renderMarkdown(content: string): string {
       "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
       "blockquote", "del", "hr", "span", "sup", "sub",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel"],
+    ALLOWED_ATTR: ["href", "target", "rel", "data-entity-type", "class"],
   });
 }
 
@@ -38,11 +49,27 @@ interface AgentMessageProps {
 
 export function AgentMessage({ message }: AgentMessageProps) {
   const prefersReducedMotion = useReducedMotion();
+  const router = useRouter();
+  const setPanelOpen = useAgentStore((s) => s.setPanelOpen);
 
   const htmlContent = useMemo(() => {
     if (message.role !== "assistant" || !message.content) return "";
     return renderMarkdown(message.content);
   }, [message.content, message.role]);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = (e.target as HTMLElement).closest<HTMLAnchorElement>("a[data-entity-type]");
+      if (!target) return;
+      e.preventDefault();
+      const href = target.getAttribute("href");
+      if (href) {
+        setPanelOpen(false);
+        router.push(href);
+      }
+    },
+    [router, setPanelOpen]
+  );
 
   const motionProps = prefersReducedMotion
     ? {}
@@ -74,6 +101,7 @@ export function AgentMessage({ message }: AgentMessageProps) {
               prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
               prose-headings:my-2 prose-pre:my-2 prose-table:my-2
               prose-a:text-primary prose-a:underline"
+            onClick={handleClick}
             dangerouslySetInnerHTML={{ __html: htmlContent }}
           />
         </div>
