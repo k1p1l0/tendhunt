@@ -87,11 +87,84 @@ Pattern: requirement ID (e.g. `AUTH-01`) → Linear identifier (e.g. `HAC-1`).
 - **Hosting**: Cloudflare (Pages for app, Workers for scrapers/cron, R2 for storage)
 - **Domains**: `tendhunt.com` = landing/marketing page, `app.tendhunt.com` = authenticated app
 
+## Cloudflare Workers Architecture
+
+TendHunt runs **3 Cloudflare Workers** that form a data pipeline. They are independent deployable units that communicate via HTTP fire-and-forget calls.
+
+### Worker Overview
+
+| Worker | Directory | Cron | URL | Purpose |
+|--------|-----------|------|-----|---------|
+| **data-sync** | `apps/workers/data-sync/` | Hourly (`0 * * * *`) | `https://tendhunt-data-sync.kozak-74d.workers.dev` | Fetches contracts from FaT + CF APIs, extracts buyers |
+| **enrichment** | `apps/workers/enrichment/` | Hourly (`0 * * * *`) | `https://tendhunt-enrichment.kozak-74d.workers.dev` | 8-stage buyer enrichment (classify, website, logo, governance, moderngov, scrape, personnel, score) |
+| **spend-ingest** | `apps/workers/spend-ingest/` | Weekly (Mon 3AM) | `https://tendhunt-spend-ingest.kozak-74d.workers.dev` | 4-stage spend data ingest (discover, extract links, download/parse, aggregate) |
+
+### Data Flow — How Workers Connect
+
+```
+  ┌─────────────┐      fire-and-forget       ┌──────────────┐     after all_complete    ┌───────────────┐
+  │  data-sync  │ ──── /run-buyer?id=X ────→ │  enrichment  │ ──── /run ─────────────→ │ spend-ingest  │
+  │  (hourly)   │      (new buyers only)      │  (hourly)    │     (triggers spend)     │ (weekly+chain) │
+  └─────────────┘                             └──────────────┘                          └───────────────┘
+       │                                           │                                         │
+       │ FaT + CF APIs → contracts + buyers        │ 8 stages per buyer                      │ 4 stages per buyer
+       │ bulkWrite upsert, cursor-based resume     │ (classify → score)                      │ (discover → aggregate)
+       ▼                                           ▼                                         ▼
+  MongoDB: contracts, buyers, syncJobs        MongoDB: buyers (enrichment fields),      MongoDB: spendtransactions,
+                                              boarddocuments, keypersonnels,             spendsummaries,
+                                              enrichmentjobs, datasources               spendingestjobs
+```
+
+**Key flow:**
+1. **data-sync** fetches contracts hourly from Find a Tender + Contracts Finder APIs
+2. For each contract batch, it extracts buyer records via `autoExtractBuyers()` (upsert by `nameLower`)
+3. **Newly created buyers** (not existing ones) trigger a fire-and-forget `fetch()` to the **enrichment worker's** `/run-buyer?id=X` endpoint
+4. The **enrichment worker** runs all 8 stages for that buyer (classify, website discovery, logo/LinkedIn, governance URLs, ModernGov SOAP, HTML scrape, Claude personnel extraction, enrichment scoring)
+5. After enrichment completes, the enrichment worker chains to **spend-ingest** worker's `/run-buyer?id=X` for spend data
+6. Additionally, the **enrichment worker's** batch cron processes remaining un-enriched buyers hourly, and when all enrichment stages complete (`all_complete`), it triggers the **spend-ingest** worker's `/run` endpoint
+
+### Single-Buyer Endpoints
+
+Workers expose `/run-buyer?id=<ObjectId>` for on-demand single-buyer processing:
+- **enrichment**: `GET /run-buyer?id=X` — runs all 8 enrichment stages + chains to spend-ingest
+- **spend-ingest**: `GET /run-buyer?id=X` — runs all 4 spend stages for one buyer
+- **data-sync**: No single-buyer endpoint (batch-only via cron)
+
+### Worker Secrets & Env Vars
+
+| Worker | Secrets | Env Vars (`[vars]` in wrangler.toml) |
+|--------|---------|--------------------------------------|
+| data-sync | `MONGODB_URI` | `ENRICHMENT_WORKER_URL` |
+| enrichment | `MONGODB_URI`, `ANTHROPIC_API_KEY`, `APIFY_API_TOKEN`, `LOGO_DEV_TOKEN` | `SPEND_INGEST_WORKER_URL` |
+| spend-ingest | `MONGODB_URI`, `ANTHROPIC_API_KEY` | — |
+
+### Deploying Workers
+
+```bash
+cd apps/workers/data-sync && wrangler deploy
+cd apps/workers/enrichment && wrangler deploy
+cd apps/workers/spend-ingest && wrangler deploy
+```
+
+### Debugging Workers
+
+```bash
+# Live logs
+wrangler tail --name tendhunt-data-sync
+
+# Debug endpoints (all workers expose GET /debug with collection stats + job states)
+curl https://tendhunt-enrichment.kozak-74d.workers.dev/debug
+
+# Manual trigger
+curl https://tendhunt-enrichment.kozak-74d.workers.dev/run?max=100
+curl https://tendhunt-spend-ingest.kozak-74d.workers.dev/run?max=50
+```
+
 ## Buyer Data Enrichment Pipeline
 
 ### Overview
 
-A 6-stage Cloudflare Worker (`apps/workers/enrichment/`) enriches 2,384 UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron (`0 * * * *`), processing 500 buyers per invocation with cursor-based resume.
+An 8-stage Cloudflare Worker (`apps/workers/enrichment/`) enriches 2,384 UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron (`0 * * * *`), processing 500 buyers per invocation with cursor-based resume.
 
 **Worker URL**: `https://tendhunt-enrichment.kozak-74d.workers.dev`
 **Secrets**: `MONGODB_URI`, `ANTHROPIC_API_KEY` (set via `wrangler secret put`)
@@ -131,18 +204,20 @@ The seed script parses markdown tables from DATA_SOURCES.md covering **20 catego
 
 Each DataSource record includes: `name`, `orgType`, `region`, `democracyPortalUrl`, `boardPapersUrl`, `platform` (ModernGov/CMIS/Custom/Jadu/None), `website`, `tier`, `status`.
 
-### 6-Stage Pipeline
+### 8-Stage Pipeline
 
 Stages run sequentially. Each stage processes all buyers before the next begins. The `EnrichmentJob` collection tracks cursor position per stage for crash-safe resume.
 
 | Stage | File | What it does |
 |-------|------|-------------|
 | 1. `classify` | `stages/01-classify.ts` | Fuzzy-match buyer names → DataSource via Fuse.js (threshold 0.3, 16 strip patterns for UK org name normalization). Sets `orgType`, `dataSourceId`, governance URLs. |
-| 2. `governance_urls` | `stages/02-governance-urls.ts` | Propagate `democracyPortalUrl`, `boardPapersUrl`, `platform` from DataSource to matched buyers. |
-| 3. `moderngov` | `stages/03-moderngov.ts` | Call ModernGov SOAP API for buyers on ModernGov platform. Fetch recent meetings + committees, upsert `BoardDocument` records. Uses double XML parse (SOAP envelope → inner result). |
-| 4. `scrape` | `stages/04-scrape.ts` | HTML scrape governance pages for non-ModernGov orgs. Extract board document links, descriptions, meeting dates. |
-| 5. `personnel` | `stages/05-personnel.ts` | Claude Haiku (`claude-haiku-4-5-20250401`) extracts key personnel from scraped content. p-limit(2) concurrency. Upserts `KeyPersonnel` records with role, confidence score. |
-| 6. `score` | `stages/06-score.ts` | Compute weighted enrichment score (0–100): orgType(15) + governance(10) + boardPapers(10) + website(5) + description(5) + staff(10) + budget(10) + personnel(20) + docs(15). |
+| 2. `website_discovery` | `stages/01b-website-discovery.ts` | Google Search via Apify to find missing buyer websites. |
+| 3. `logo_linkedin` | `stages/01c-logo-linkedin.ts` | logo.dev CDN + LinkedIn company search + og:image for buyer logos. |
+| 4. `governance_urls` | `stages/02-governance-urls.ts` | Propagate `democracyPortalUrl`, `boardPapersUrl`, `platform` from DataSource to matched buyers. |
+| 5. `moderngov` | `stages/03-moderngov.ts` | Call ModernGov SOAP API for buyers on ModernGov platform. Fetch recent meetings + committees, upsert `BoardDocument` records. Uses double XML parse (SOAP envelope → inner result). |
+| 6. `scrape` | `stages/04-scrape.ts` | HTML scrape governance pages for non-ModernGov orgs. Extract board document links, descriptions, meeting dates. |
+| 7. `personnel` | `stages/05-personnel.ts` | Claude Haiku extracts key personnel from scraped content. p-limit(2) concurrency. Upserts `KeyPersonnel` records with role, confidence score. |
+| 8. `score` | `stages/06-score.ts` | Compute weighted enrichment score (0–100): orgType(15) + governance(10) + boardPapers(10) + website(5) + description(5) + staff(10) + budget(10) + personnel(20) + docs(15). |
 
 ### Rate Limiting
 
@@ -230,7 +305,87 @@ feat(scope): add new feature
 ```bash
 # ALWAYS run before git push:
 pnpm typecheck
+cd apps/web && bun run lint
 ```
+
+## CI Lint Rules (React Compiler + ESLint)
+
+CI runs `bun run lint` which includes the React compiler plugin. These rules are stricter than local dev and MUST pass before merge.
+
+### No components defined inside render (`react-hooks/static-components`)
+
+Never define a component function inside another component's render body. It creates a new component identity on every render, resetting state.
+
+```typescript
+// ❌ WRONG — component defined inside render
+function MyList() {
+  function SortableHead({ field }: { field: string }) { return <th>...</th>; }
+  return <table><SortableHead field="name" /></table>;
+}
+
+// ✅ CORRECT — use a render function (not a component)
+function MyList() {
+  const renderSortableHead = (field: string) => <th>...</th>;
+  return <table>{renderSortableHead("name")}</table>;
+}
+```
+
+### No ref mutations during render (`react-hooks/refs`)
+
+Never assign to `ref.current` in the component body. Wrap in `useEffect`.
+
+```typescript
+// ❌ WRONG
+const myRef = useRef(someValue);
+myRef.current = someValue; // assigned during render
+
+// ✅ CORRECT
+const myRef = useRef(someValue);
+useEffect(() => { myRef.current = someValue; }, [someValue]);
+```
+
+### No impure functions during render (`react-hooks/purity`)
+
+`Math.random()` and similar impure functions cannot be called during render, even inside `useMemo`. Use `useState` initializer instead (runs once).
+
+```typescript
+// ❌ WRONG
+const width = useMemo(() => `${Math.floor(Math.random() * 40) + 50}%`, []);
+
+// ✅ CORRECT
+const [width] = useState(() => `${Math.floor(Math.random() * 40) + 50}%`);
+```
+
+### No `any` types (`@typescript-eslint/no-explicit-any`)
+
+Use `Record<string, unknown>` or proper types instead of `as any`.
+
+### No modifying values through ref props (React compiler)
+
+The React compiler doesn't allow mutating DOM elements through ref props. Use a local ref instead.
+
+```typescript
+// ❌ WRONG — mutating through prop ref
+function Input({ textareaRef }: { textareaRef: RefObject<HTMLTextAreaElement> }) {
+  const el = textareaRef.current;
+  el.style.height = "auto"; // "This value cannot be modified"
+}
+
+// ✅ CORRECT — use local ref synced via useEffect
+function Input({ textareaRef }: { textareaRef: RefObject<HTMLTextAreaElement> }) {
+  const localRef = useRef<HTMLTextAreaElement | null>(null);
+  useEffect(() => { localRef.current = textareaRef?.current ?? null; }, [textareaRef]);
+  // Now mutate localRef.current safely
+}
+```
+
+### No synchronous setState in effects
+
+Wrap `setState` calls inside `useEffect` with `requestAnimationFrame` to avoid cascading render warnings.
+
+### Scripts excluded from web typecheck
+
+`apps/web/tsconfig.json` excludes `scripts/` directory. Scripts use `mongodb`, `xlsx`, `pdf-parse` etc. which aren't in `apps/web` dependencies (they run via `tsx` independently). All apps must have their direct type dependencies installed — e.g. `apps/admin` needs `mongodb` even though `mongoose` bundles it.
 
 ## Common Issues
 
