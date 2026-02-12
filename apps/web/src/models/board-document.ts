@@ -26,6 +26,11 @@ const boardDocumentSchema = new Schema(
       enum: ["pending", "extracted", "failed"],
       default: "pending",
     },
+    signalExtractionStatus: {
+      type: String,
+      enum: ["pending", "extracted", "failed"],
+      default: "pending",
+    },
   },
   { timestamps: true }
 );
