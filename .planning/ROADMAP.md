@@ -265,14 +265,15 @@ Plans:
 
 **Goal:** Ingest local authority transparency spending data (over £500 CSV reports) to identify which buyers are SME-friendly, show spend patterns on buyer profiles, and surface procurement opportunities from historical invoice data
 **Depends on:** Phase 6
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] 11-01-PLAN.md -- Models (SpendTransaction, SpendSummary) + spend-ingest Cloudflare Worker scaffold with 4-stage pipeline engine
-- [ ] 11-02-PLAN.md -- Stage 1 (transparency page discovery via Claude Haiku) + Stage 2 (CSV link extraction)
-- [ ] 11-03-PLAN.md -- CSV normalization library (10 known schemas + AI fallback) + Stage 3 (download/parse) + Stage 4 (aggregation)
+- [x] 11-01-PLAN.md -- Models (SpendTransaction, SpendSummary) + spend-ingest Cloudflare Worker scaffold with 4-stage pipeline engine
+- [x] 11-02-PLAN.md -- Stage 1 (transparency page discovery via Claude Haiku) + Stage 2 (CSV link extraction)
+- [x] 11-03-PLAN.md -- CSV normalization library (10 known schemas + AI fallback) + Stage 3 (download/parse) + Stage 4 (aggregation)
 - [ ] 11-04-PLAN.md -- Install Recharts + shadcn chart, spending API route, spend analytics engine, chart components + spending tab shell
 - [ ] 11-05-PLAN.md -- Vendors table, breakdown table with filters, opportunity cards, Spending tab integration into buyer profile
+- [ ] 11-06-PLAN.md -- GOV.UK two-level scraping (buyer filtering + publication page following) + ODS/XLSX parsing via SheetJS
 
 **Reference specs:** `/Users/kirillkozak/projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
 
