@@ -84,7 +84,22 @@ export async function fetchContractById(id: string) {
   }
 
   const contract = await Contract.findById(id).select("-rawData").lean();
-  return contract;
+  if (!contract) return null;
+
+  // Resolve buyer data via buyerId (preferred) or nameLower fallback (pre-backfill contracts)
+  let buyer = null;
+  if (contract.buyerId) {
+    buyer = await Buyer.findById(contract.buyerId)
+      .select("name sector region orgType website logoUrl enrichmentScore linkedinUrl contractCount description")
+      .lean();
+  }
+  if (!buyer && contract.buyerName) {
+    buyer = await Buyer.findOne({ nameLower: contract.buyerName.toLowerCase().trim() })
+      .select("name sector region orgType website logoUrl enrichmentScore linkedinUrl contractCount description")
+      .lean();
+  }
+
+  return { ...contract, buyer };
 }
 
 export async function getContractStats() {

@@ -81,6 +81,8 @@ async function ContractFeed({
                 _id: String(contract._id),
                 title: contract.title,
                 buyerName: contract.buyerName,
+                buyerId: contract.buyerId ? String(contract.buyerId) : undefined,
+                buyerRegion: contract.buyerRegion,
                 valueMin: contract.valueMin,
                 valueMax: contract.valueMax,
                 publishedDate: contract.publishedDate,

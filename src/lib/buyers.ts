@@ -11,6 +11,7 @@ export interface BuyerFilters {
   order?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  q?: string;
   sector?: string;
   orgType?: string;
   region?: string;
@@ -26,6 +27,9 @@ export async function fetchBuyers(filters: BuyerFilters) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: Record<string, any>[] = [];
 
+  if (filters.q) {
+    conditions.push({ name: { $regex: filters.q, $options: "i" } });
+  }
   if (filters.sector) {
     conditions.push({ sector: filters.sector });
   }
@@ -85,7 +89,7 @@ export async function fetchBuyerById(buyerId: string) {
 
   // Parallel fetch: contracts, signals, board documents, key personnel
   const [contracts, signals, boardDocuments, keyPersonnel] = await Promise.all([
-    Contract.find({ buyerName: buyer.name })
+    Contract.find({ buyerId: buyer._id })
       .sort({ publishedDate: -1 })
       .limit(20)
       .select("-rawData")

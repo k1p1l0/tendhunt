@@ -12,6 +12,7 @@ interface ContractCardData {
   title: string;
   buyerName: string;
   buyerId?: string;
+  buyerRegion?: string | null;
   valueMin?: number | null;
   valueMax?: number | null;
   publishedDate?: string | Date | null;
