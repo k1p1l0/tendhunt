@@ -1,0 +1,26 @@
+{
+  "name": "tendhunt-landing",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-02-11",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Custom domain
+  "routes": [
+    { "pattern": "tendhunt.com", "custom_domain": true }
+  ],
+
+  // Static assets configuration
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // D1 Database for waitlist
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tendhunt-waitlist",
+      "database_id": "0d3ed94d-e66d-4fc0-b1a2-23cbbb4b31da"
+    }
+  ]
+}

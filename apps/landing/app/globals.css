@@ -1,0 +1,464 @@
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  /* Smooth scroll for anchor links */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  /* Better heading typography */
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  /* Antialiased font rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Prevent double-tap zoom on interactive elements */
+  button, a, input {
+    touch-action: manipulation;
+  }
+}
+
+/* ─── Reduced motion support ─────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-orbit,
+  .animate-counter-orbit {
+    animation: none;
+  }
+
+  .animate-spin {
+    animation: none;
+  }
+
+  .animate-pulse {
+    animation: none;
+  }
+
+  /* Disable all CSS transitions and smooth scroll for users who prefer reduced motion */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ─── Hover effects only on devices that support it ─── */
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift:hover {
+    transform: translateY(-1px);
+  }
+}
+@theme {
+  --font-primary: Inter Display, sans-serif;
+  --font-mono: DM Mono, monospace;
+  --color-charcoal-900: #202020;
+  --color-charcoal-800: #29292e;
+  --color-charcoal-700: #343434;
+
+  --color-gray-100: #f9f9f9;
+  --color-gray-200: #f5f5f5;
+  --color-gray-300: #eaedf1;
+  --color-gray-400: #d7d7d7;
+  --color-gray-500: #c0c0c0;
+  --color-gray-600: #8b8b8b;
+
+  --color-brand: #f17463;
+  --shadow-aceternity:
+    0px 2px 3px -1px rgba(0, 0, 0, 0.1), 0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+
+  --background-repeating-gradient: radial-gradient(
+    var(--color-gray-300) 1px,
+    transparent 1px
+  );
+  --repeat-gradient-size: 10px 10px;
+
+  --animate-orbit: orbit 24s linear infinite;
+  --animate-counter-orbit: counter-orbit 24s linear infinite;
+
+  @keyframes orbit {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes counter-orbit {
+    0% {
+      transform: rotate(360deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+}
+
+:root {
+  --divide: var(--color-gray-300);
+  --primary: var(--color-neutral-900);
+  --canvas: var(--color-neutral-400);
+  --canvas-fill: var(--color-neutral-300);
+  --dots: var(--color-gray-300);
+  --line: var(--color-neutral-200);
+  --footer-link: #676767;
+}
+
+.dark {
+  --divide: var(--color-neutral-800);
+  --primary: var(--color-neutral-100);
+  --canvas: var(--color-neutral-200);
+  --canvas-fill: var(--color-neutral-800);
+  --dots: var(--color-neutral-800);
+  --line: var(--color-neutral-700);
+  --footer-link: var(--color-neutral-300);
+}
+
+@theme inline {
+  --color-divide: var(--divide);
+  --color-primary: var(--primary);
+  --color-canvas: var(--canvas);
+  --color-canvas-fill: var(--canvas-fill);
+  --color-dots: var(--dots);
+  --color-line: var(--line);
+  --color-footer-link: var(--footer-link);
+}
+
+/* ─── Ghost content styles ─────────────────────────────── */
+
+.gh-content {
+  --ghost-accent: var(--color-brand);
+
+  /* Links */
+  & a {
+    color: var(--ghost-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  & a:hover {
+    opacity: 0.8;
+  }
+
+  /* Headings */
+  & h1,
+  & h2,
+  & h3,
+  & h4 {
+    font-weight: 600;
+  }
+
+  /* Code blocks */
+  & pre {
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-gray-300);
+    background: var(--color-gray-100) !important;
+  }
+  .dark & pre {
+    border-color: var(--color-neutral-800);
+    background: var(--color-neutral-900) !important;
+  }
+
+  & code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+  }
+
+  & :not(pre) > code {
+    padding: 0.15em 0.4em;
+    border-radius: 0.25rem;
+    background: var(--color-gray-200);
+  }
+  .dark & :not(pre) > code {
+    background: var(--color-neutral-800);
+  }
+
+  /* Blockquotes */
+  & blockquote {
+    border-left-color: var(--ghost-accent);
+    font-style: normal;
+  }
+
+  /* Figures & images */
+  & figure {
+    margin-top: 2em;
+    margin-bottom: 2em;
+  }
+
+  & figcaption {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray-600);
+    margin-top: 0.75em;
+  }
+
+  & img {
+    border-radius: 0.75rem;
+  }
+
+  /* HR */
+  & hr {
+    border-color: var(--color-gray-300);
+  }
+  .dark & hr {
+    border-color: var(--color-neutral-800);
+  }
+}
+
+/* ─── Ghost Koenig card styles ─────────────────────────── */
+
+/* Wide / full width */
+.gh-content .kg-width-wide {
+  max-width: 85vw;
+  margin-left: calc(50% - 42.5vw);
+  margin-right: calc(50% - 42.5vw);
+}
+
+.gh-content .kg-width-full {
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+/* Image card */
+.gh-content .kg-image-card img,
+.gh-content .kg-image-card picture {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Gallery card */
+.gh-content .kg-gallery-card {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.gh-content .kg-gallery-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gh-content .kg-gallery-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.gh-content .kg-gallery-row img {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+/* Bookmark card */
+.gh-content .kg-bookmark-card {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.gh-content .kg-bookmark-container {
+  display: flex;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  text-decoration: none !important;
+  color: inherit;
+  transition: box-shadow 0.2s;
+}
+.dark .gh-content .kg-bookmark-container {
+  border-color: var(--color-neutral-800);
+}
+.gh-content .kg-bookmark-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.gh-content .kg-bookmark-content {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gh-content .kg-bookmark-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-charcoal-900);
+}
+.dark .gh-content .kg-bookmark-title {
+  color: var(--color-neutral-100);
+}
+
+.gh-content .kg-bookmark-description {
+  font-size: 0.8125rem;
+  color: var(--color-gray-600);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.gh-content .kg-bookmark-metadata {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+.gh-content .kg-bookmark-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.gh-content .kg-bookmark-thumbnail {
+  width: 160px;
+  min-height: 100%;
+  flex-shrink: 0;
+}
+.gh-content .kg-bookmark-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+/* Callout card */
+.gh-content .kg-callout-card {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  background: var(--color-gray-100);
+}
+.dark .gh-content .kg-callout-card {
+  background: var(--color-neutral-900);
+}
+
+.gh-content .kg-callout-emoji {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.gh-content .kg-callout-text {
+  font-size: 0.9375rem;
+}
+
+/* Toggle card */
+.gh-content .kg-toggle-card {
+  border: 1px solid var(--color-gray-300);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+.dark .gh-content .kg-toggle-card {
+  border-color: var(--color-neutral-800);
+}
+
+.gh-content .kg-toggle-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.gh-content .kg-toggle-card[data-kg-toggle-state="close"] .kg-toggle-content {
+  display: none;
+}
+
+.gh-content .kg-toggle-content {
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+}
+
+/* Button card */
+.gh-content .kg-button-card {
+  display: flex;
+  justify-content: center;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.gh-content .kg-btn {
+  display: inline-block;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none !important;
+  background: var(--color-brand);
+  color: white !important;
+  transition: opacity 0.2s;
+}
+.gh-content .kg-btn:hover {
+  opacity: 0.9;
+}
+
+/* Video / audio */
+.gh-content .kg-video-card,
+.gh-content .kg-audio-card {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.gh-content .kg-video-card video {
+  width: 100%;
+  border-radius: 0.75rem;
+}
+
+/* Embed */
+.gh-content .kg-embed-card {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.gh-content .kg-embed-card iframe {
+  width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* Tables */
+.gh-content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.gh-content th,
+.gh-content td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-gray-300);
+  text-align: left;
+}
+.dark .gh-content th,
+.dark .gh-content td {
+  border-bottom-color: var(--color-neutral-800);
+}
+
+.gh-content th {
+  font-weight: 600;
+  font-size: 0.875rem;
+}

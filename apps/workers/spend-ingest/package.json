@@ -1,0 +1,22 @@
+{
+  "name": "@tendhunt/worker-spend-ingest",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250312.0",
+    "@types/papaparse": "^5.3.15",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "wrangler": "^4.12.0"
+  },
+  "dependencies": {
+    "mongodb": "^6.16.0",
+    "papaparse": "^5.5.0",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "p-limit": "^6.2.0",
+    "fuse.js": "^7.1.0"
+  }
+}

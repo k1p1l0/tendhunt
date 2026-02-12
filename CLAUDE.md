@@ -91,7 +91,7 @@ Pattern: requirement ID (e.g. `AUTH-01`) → Linear identifier (e.g. `HAC-1`).
 
 ### Overview
 
-A 6-stage Cloudflare Worker (`workers/enrichment/`) enriches 2,384 UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron (`0 * * * *`), processing 500 buyers per invocation with cursor-based resume.
+A 6-stage Cloudflare Worker (`apps/workers/enrichment/`) enriches 2,384 UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron (`0 * * * *`), processing 500 buyers per invocation with cursor-based resume.
 
 **Worker URL**: `https://tendhunt-enrichment.kozak-74d.workers.dev`
 **Secrets**: `MONGODB_URI`, `ANTHROPIC_API_KEY` (set via `wrangler secret put`)
@@ -100,8 +100,8 @@ A 6-stage Cloudflare Worker (`workers/enrichment/`) enriches 2,384 UK public sec
 
 The `DataSource` collection is seeded from an external spec file:
 - **Source**: `/Users/kirillkozak/Projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
-- **Script**: `scripts/seed-data-sources.ts`
-- **Run**: `DOTENV_CONFIG_PATH=.env.local npx tsx --require dotenv/config scripts/seed-data-sources.ts`
+- **Script**: `apps/web/scripts/seed-data-sources.ts`
+- **Run**: `DOTENV_CONFIG_PATH=apps/web/.env.local npx tsx --require dotenv/config apps/web/scripts/seed-data-sources.ts`
 - **Result**: ~2,361 documents (672 Tier 0, 1,693 Tier 1), idempotent via bulkWrite upsert on `name`
 
 The seed script parses markdown tables from DATA_SOURCES.md covering **20 categories** of UK public sector organisations:
@@ -146,7 +146,7 @@ Stages run sequentially. Each stage processes all buyers before the next begins.
 
 ### Rate Limiting
 
-Per-domain rate limiter (`api-clients/rate-limiter.ts`) with exponential backoff:
+Per-domain rate limiter (`apps/workers/enrichment/src/api-clients/rate-limiter.ts`) with exponential backoff:
 - `moderngov` domains: 2s delay
 - `nhs.uk`: 2s delay
 - `gov.uk`: 1s delay
@@ -157,26 +157,44 @@ Per-domain rate limiter (`api-clients/rate-limiter.ts`) with exponential backoff
 
 | Collection | Model File | Purpose |
 |------------|-----------|---------|
-| `DataSource` | `src/models/data-source.ts` | Seed data — UK public sector orgs with governance URLs |
-| `BoardDocument` | `src/models/board-document.ts` | Scraped board papers/meeting docs per buyer |
-| `KeyPersonnel` | `src/models/key-personnel.ts` | Extracted key people (CEO, CFO, etc.) per buyer |
-| `EnrichmentJob` | `src/models/enrichment-job.ts` | Pipeline state — cursor, stage, progress tracking |
+| `DataSource` | `apps/web/src/models/data-source.ts` | Seed data — UK public sector orgs with governance URLs |
+| `BoardDocument` | `apps/web/src/models/board-document.ts` | Scraped board papers/meeting docs per buyer |
+| `KeyPersonnel` | `apps/web/src/models/key-personnel.ts` | Extracted key people (CEO, CFO, etc.) per buyer |
+| `EnrichmentJob` | `apps/web/src/models/enrichment-job.ts` | Pipeline state — cursor, stage, progress tracking |
 
 ### Buyer Schema Extensions
 
-The `Buyer` model (`src/models/buyer.ts`) was extended with 12 enrichment fields:
+The `Buyer` model (`apps/web/src/models/buyer.ts`) was extended with 12 enrichment fields:
 `orgType`, `orgSubType`, `dataSourceId`, `democracyPortalUrl`, `democracyPlatform`, `boardPapersUrl`, `staffCount`, `annualBudget`, `enrichmentScore`, `enrichmentSources`, `lastEnrichedAt`, `enrichmentVersion`
 
 ## Git Rules
 
-- NEVER push or commit without explicit user command
+**These project-level git rules OVERRIDE any global `~/.claude/CLAUDE.md` git rules.**
+
+- ALWAYS commit changes after finishing a task — do not wait for explicit command to commit
+- NEVER push without explicit user command
 - NEVER force push
 - Use conventional commits: `feat:`, `fix:`, `docs:`, `chore:`
 
 ## Project Structure
 
-- `.planning/` — All planning documents (requirements, roadmap, research, state)
-- `.planning/research/` — Research outputs (stack, features, architecture, pitfalls)
+This is a **bun workspaces monorepo** with all deployable units under `apps/`.
+
+```
+tendhunt.com/
+├── apps/
+│   ├── web/          # @tendhunt/web — Next.js 16.1 dashboard (app.tendhunt.com)
+│   ├── landing/      # @tendhunt/landing — Next.js 15.4 marketing (tendhunt.com)
+│   └── workers/
+│       ├── data-sync/      # @tendhunt/worker-data-sync
+│       ├── enrichment/     # @tendhunt/worker-enrichment
+│       └── spend-ingest/   # @tendhunt/worker-spend-ingest
+├── .planning/        # Requirements, roadmap, research, state
+├── .claude/          # Claude Code config
+├── package.json      # Root workspace config
+└── CLAUDE.md
+```
+
 - `.planning/config.json` — Workflow config + Linear integration mapping
 
 ## Scanner Data Grid — Column & Icon System
@@ -185,7 +203,7 @@ The scanner grid uses **Glide Data Grid** (`@glideapps/glide-data-grid`) with fu
 
 ### Column Types
 
-Every column has a `type` field in `ColumnDef` (`src/components/scanners/table-columns.ts`):
+Every column has a `type` field in `ColumnDef` (`apps/web/src/components/scanners/table-columns.ts`):
 
 | Type | Icon | Rendered As | Example Columns |
 |------|------|-------------|-----------------|
@@ -201,17 +219,17 @@ Every column has a `type` field in `ColumnDef` (`src/components/scanners/table-c
 
 | File | Purpose |
 |------|---------|
-| `src/components/scanners/table-columns.ts` | `ColumnDef` interface + column arrays per scanner type (RFPs, Meetings, Buyers) |
-| `src/components/scanners/grid/glide-columns.ts` | Converts `ColumnDef[]` → Glide `GridColumn[]` + `ColumnMeta[]` |
-| `src/components/scanners/grid/custom-renderers.ts` | Canvas cell renderers: `score-badge`, `category-badge`, `entity-name` |
-| `src/components/scanners/grid/cell-content.ts` | `getCellContent` factory — maps column type → GridCellKind |
-| `src/components/scanners/grid/scanner-data-grid.tsx` | Main grid component — `drawHeader` draws type icons + AI sparkle headers |
-| `src/components/scanners/grid/glide-theme.ts` | Theme from CSS variables, dark mode via MutationObserver |
-| `src/components/scanners/grid/header-menu.tsx` | Column context menu (sort, rename, edit prompt, delete) |
+| `apps/web/src/components/scanners/table-columns.ts` | `ColumnDef` interface + column arrays per scanner type (RFPs, Meetings, Buyers) |
+| `apps/web/src/components/scanners/grid/glide-columns.ts` | Converts `ColumnDef[]` → Glide `GridColumn[]` + `ColumnMeta[]` |
+| `apps/web/src/components/scanners/grid/custom-renderers.ts` | Canvas cell renderers: `score-badge`, `category-badge`, `entity-name` |
+| `apps/web/src/components/scanners/grid/cell-content.ts` | `getCellContent` factory — maps column type → GridCellKind |
+| `apps/web/src/components/scanners/grid/scanner-data-grid.tsx` | Main grid component — `drawHeader` draws type icons + AI sparkle headers |
+| `apps/web/src/components/scanners/grid/glide-theme.ts` | Theme from CSS variables, dark mode via MutationObserver |
+| `apps/web/src/components/scanners/grid/header-menu.tsx` | Column context menu (sort, rename, edit prompt, delete) |
 
 ### Header Icon Drawing Rules
 
-- All icons are drawn via `drawTypeIcon()` in `scanner-data-grid.tsx`
+- All icons are drawn via `drawTypeIcon()` in `apps/web/src/components/scanners/grid/scanner-data-grid.tsx`
 - Icons are centered at `(rect.x + 14, rect.y + rect.height / 2)` — 14px from left edge
 - Title text starts at `rect.x + 26` — 12px gap after icon center
 - Stroke-based icons (date, badge, entity-name) use `lineWidth: 1.1`, `lineCap: "round"`
@@ -230,7 +248,7 @@ Four renderers registered in `customRenderers` array:
 
 ### AI Column Loading States
 
-AI columns have a 3-phase loading state machine managed via `ScoreEntry` in `scanner-store.ts`:
+AI columns have a 3-phase loading state machine managed via `ScoreEntry` in `apps/web/src/stores/scanner-store.ts`:
 - **Queued** (`isQueued: true`): All rows start here. Score-mode shows shimmer bar, text-mode shows text skeleton.
 - **Active** (`isLoading: true`, no `isQueued`): Max 2 concurrent (matches `pLimit(2)` in scoring engine). Score-mode shows spinning circle, text-mode shows text skeleton.
 - **Complete** (neither flag): Shows actual score badge or text result.
@@ -249,9 +267,9 @@ Without this, scoring ignores active column filters and processes ALL rows inste
 
 ### Adding a New Column Type
 
-1. Add type to union in `ColumnDef.type` (`table-columns.ts`)
-2. Add to `ColumnMeta` if extra metadata needed (`glide-columns.ts`)
-3. Add cell rendering case in `createGetCellContent` (`cell-content.ts`)
-4. If custom rendering needed, add renderer to `custom-renderers.ts` and include in `customRenderers` array
-5. Add icon drawing case in `drawTypeIcon` switch (`scanner-data-grid.tsx`)
-6. Add to column arrays for relevant scanner types (`table-columns.ts`)
+1. Add type to union in `ColumnDef.type` (`apps/web/src/components/scanners/table-columns.ts`)
+2. Add to `ColumnMeta` if extra metadata needed (`apps/web/src/components/scanners/grid/glide-columns.ts`)
+3. Add cell rendering case in `createGetCellContent` (`apps/web/src/components/scanners/grid/cell-content.ts`)
+4. If custom rendering needed, add renderer to `apps/web/src/components/scanners/grid/custom-renderers.ts` and include in `customRenderers` array
+5. Add icon drawing case in `drawTypeIcon` switch (`apps/web/src/components/scanners/grid/scanner-data-grid.tsx`)
+6. Add to column arrays for relevant scanner types (`apps/web/src/components/scanners/table-columns.ts`)

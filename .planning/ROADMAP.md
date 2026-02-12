@@ -231,6 +231,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 8. Landing & Pricing | 0/2 | Not started | - |
 | 13. Buyer Data Enrichment | 6/6 | ✓ Complete | 2026-02-11 |
 | 14. Buyer Explorer Filters | 3/3 | ✓ Complete | 2026-02-12 |
+| 17. Dashboard Home | 0/? | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -263,10 +264,14 @@ Plans:
 
 **Goal:** Ingest local authority transparency spending data (over £500 CSV reports) to identify which buyers are SME-friendly, show spend patterns on buyer profiles, and surface procurement opportunities from historical invoice data
 **Depends on:** Phase 6
-**Plans:** TBD
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 11 to break down)
+- [ ] 11-01-PLAN.md -- Models (SpendTransaction, SpendSummary) + spend-ingest Cloudflare Worker scaffold with 4-stage pipeline engine
+- [ ] 11-02-PLAN.md -- Stage 1 (transparency page discovery via Claude Haiku) + Stage 2 (CSV link extraction)
+- [ ] 11-03-PLAN.md -- CSV normalization library (10 known schemas + AI fallback) + Stage 3 (download/parse) + Stage 4 (aggregation)
+- [ ] 11-04-PLAN.md -- Install Recharts + shadcn chart, spending API route, spend analytics engine, chart components + spending tab shell
+- [ ] 11-05-PLAN.md -- Vendors table, breakdown table with filters, opportunity cards, Spending tab integration into buyer profile
 
 **Reference specs:** `/Users/kirillkozak/projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
 
@@ -319,3 +324,33 @@ Plans:
 - [x] 14-01-PLAN.md -- Server-side filtering backend: extend BuyerFilters, MongoDB query conditions, filters API endpoint, remove ContactReveal dependency
 - [x] 14-02-PLAN.md -- Remove credit gating UI + add enrichment columns: drop Locked/Unlocked status, remove blur/unlock from contacts, add orgType/score/website table columns
 - [x] 14-03-PLAN.md -- Filter dropdowns UI + page wiring: BuyerFilters component, pass filter params through page, serialize enrichment fields, filtered count display
+
+### Phase 15: Contract-Buyer Entity Linking & Region Humanization
+
+**Goal:** Connect contracts to buyer entities via ObjectId reference (replacing fragile buyerName string matching), humanize NUTS region codes to readable names across the entire platform, and enhance the contract detail page with a buyer intelligence section linking to the buyer profile
+**Depends on:** Phase 10, Phase 13, Phase 14
+**Plans:** 2 plans
+
+Plans:
+- [ ] 15-01-PLAN.md -- NUTS region mapping module, Contract schema buyerId field, data-sync worker forward-write buyerIdMap, backfill script
+- [ ] 15-02-PLAN.md -- fetchContractById buyer join, contract detail buyer intelligence section, region humanization across all UI, buyerId-based queries
+
+### Phase 16: Scanner UX Polish
+
+**Goal:** Remove threshold/dim controls from scanners, redesign filter toolbar with Notion-style chip filters (applied filter chips, add filter, clear filters), add double-click navigation (buyer rows → buyer detail page, contract rows → contract detail page, AI cells → AI-only drawer), and add polished animations for AI score completion and filter chip transitions
+**Depends on:** Phase 5, Phase 15
+**Plans:** 3 plans
+
+Plans:
+- [ ] 16-01-PLAN.md -- Remove threshold/dim controls, create Notion-style filter chip toolbar
+- [ ] 16-02-PLAN.md -- Double-click navigation: data cells → entity pages, AI cells → AI drawer
+- [ ] 16-03-PLAN.md -- AI score completion pop animation, filter chip CSS transitions
+
+### Phase 17: Dashboard Home
+
+**Goal:** Replace the generic dashboard with a personalized home page featuring an account manager card (Matt, email, "Book a meeting" CTA via Calendly), a saved scanners section showing the user's scanners with latest activity, and a fresh signals feed aggregating recent high-value results from the user's active scanners. Inspired by Tussell's dashboard pattern with quick-link cards and saved data sections.
+**Depends on:** Phase 4, Phase 5
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 17 to break down)
