@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 20 IN PROGRESS (2/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 20 IN PROGRESS (3/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 20 IN PROGRESS (2/4), 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
-Plan: 20-02 COMPLETE -- Schema extensions & worker chaining for board-minutes signals
-Status: Phase 20 Plan 02 complete -- Signal/BoardDocument model extensions, enrichment-to-board-minutes chaining, buyerId signal query
-Last activity: 2026-02-12 - Completed 20-02: Schema extensions & worker chaining
+Phase: 20 IN PROGRESS (3/4), 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
+Plan: 20-01 COMPLETE -- Board-minutes worker scaffold with pipeline engine and HTTP routes
+Status: Phase 20 Plan 01 complete -- Worker scaffold at apps/workers/board-minutes/ with 2-stage signal pipeline, job tracker, 4 HTTP routes
+Last activity: 2026-02-12 - Completed 20-01: Board-minutes worker scaffold
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 48
+- Total plans completed: 49
 - Average duration: 3.3 min
-- Total execution time: 2.80 hours
+- Total execution time: 2.83 hours
 
 **By Phase:**
 
@@ -42,10 +42,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
 | 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
-| 20-board-minutes-signals | 2/4 | 4 min | 2 min |
+| 20-board-minutes-signals | 3/4 | 6 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 20-02 (2 min), 20-01 (2 min), 19-04 (3 min), 19-03 (3 min), 19-02 (2 min)
+- Last 5 plans: 20-01 (2 min), 20-02 (2 min), 19-04 (3 min), 19-03 (3 min), 19-02 (2 min)
 - Trend: Consistent ~2-3 min per plan
 
 *Updated after each plan completion*
@@ -251,6 +251,11 @@ Recent decisions affecting current work:
 - [20-02]: entities subdoc uses _id:false to avoid unnecessary ObjectId generation
 - [20-02]: $or query for signals combines buyerId (new) + organizationName (legacy) for backward compat
 - [20-02]: signalExtractionStatus is independent from extractionStatus (text vs signal extraction)
+- [20-01]: Cron at :30 offset from enrichment worker's :00 to avoid concurrent DB load
+- [20-01]: Default batchSize 50 (vs enrichment's 100) since each buyer triggers Claude API calls
+- [20-01]: Default maxItems 100 per pipeline run (vs enrichment's 500) due to heavier Claude processing
+- [20-01]: No R2 bucket binding -- board-minutes worker reads text from MongoDB, not files
+- [20-01]: No [vars] section -- board-minutes is end-of-chain, no downstream worker
 
 ### Pending Todos
 
@@ -283,5 +288,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 20-02 -- Schema extensions & worker chaining for board-minutes signals
+Stopped at: Completed 20-01 -- Board-minutes worker scaffold with pipeline engine and HTTP routes
 Next: 20-03 (extraction pipeline), 20-04 (frontend). Also pending: 11-02, 15-02.
