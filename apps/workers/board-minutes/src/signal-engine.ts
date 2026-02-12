@@ -6,25 +6,16 @@ import {
   markJobComplete,
   markJobError,
 } from "./db/signal-jobs";
+import { extractSignals } from "./stages/01-extract-signals";
+import { deduplicateSignals } from "./stages/02-deduplicate";
 
 // ---------------------------------------------------------------------------
 // Stage registry -- maps stage name to its implementation function
-// Placeholder stages will be replaced by Plan 03 with real extraction logic.
 // ---------------------------------------------------------------------------
 
-const extractSignalsPlaceholder: StageFn = async (_db, _env, _job, _maxItems) => {
-  console.log("Stage extract_signals not yet implemented (placeholder)");
-  return { processed: 0, errors: 0, done: true };
-};
-
-const deduplicatePlaceholder: StageFn = async (_db, _env, _job, _maxItems) => {
-  console.log("Stage deduplicate not yet implemented (placeholder)");
-  return { processed: 0, errors: 0, done: true };
-};
-
 const STAGE_FUNCTIONS: Record<SignalIngestStage, StageFn> = {
-  extract_signals: extractSignalsPlaceholder,
-  deduplicate: deduplicatePlaceholder,
+  extract_signals: extractSignals,
+  deduplicate: deduplicateSignals,
 };
 
 // ---------------------------------------------------------------------------

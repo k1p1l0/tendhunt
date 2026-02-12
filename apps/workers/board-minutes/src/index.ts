@@ -4,6 +4,8 @@ import type { Env, SignalIngestStage, SignalJobDoc, StageFn } from "./types";
 import { STAGE_ORDER } from "./types";
 import { getDb, closeDb } from "./db/client";
 import { processSignalPipeline } from "./signal-engine";
+import { extractSignals } from "./stages/01-extract-signals";
+import { deduplicateSignals } from "./stages/02-deduplicate";
 
 // ---------------------------------------------------------------------------
 // Board Minutes Signal Worker entry point
@@ -147,16 +149,9 @@ export default {
 // Single-buyer signal extraction -- runs all stages for one buyer
 // ---------------------------------------------------------------------------
 
-// Placeholder stage functions (same as signal-engine.ts placeholders)
 const SINGLE_BUYER_STAGES: Record<SignalIngestStage, StageFn> = {
-  extract_signals: async (_db, _env, _job, _maxItems) => {
-    console.log("Single-buyer extract_signals not yet implemented (placeholder)");
-    return { processed: 0, errors: 0, done: true };
-  },
-  deduplicate: async (_db, _env, _job, _maxItems) => {
-    console.log("Single-buyer deduplicate not yet implemented (placeholder)");
-    return { processed: 0, errors: 0, done: true };
-  },
+  extract_signals: extractSignals,
+  deduplicate: deduplicateSignals,
 };
 
 async function runSingleBuyerSignals(
