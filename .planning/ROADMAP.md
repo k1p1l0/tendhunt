@@ -307,3 +307,14 @@ Plans:
 - [x] 13-04-PLAN.md — Stage 4 (website scraping) + Stage 5 (key personnel): NHS/ICB governance scraping, Claude Haiku extraction
 - [x] 13-05-PLAN.md — Stage 6 (enrichment scoring) + pipeline wiring: enrichment score computation, all 6 stages wired
 - [x] 13-06-PLAN.md — Buyer profile UI enhancement: enrichment badge, Board Documents tab, Key Personnel tab, extended header
+
+### Phase 14: Buyer Explorer Filters & Data Visibility
+
+**Goal:** Enhance the buyers page with filter dropdowns (sector, orgType, region), show enrichment data columns (orgType, enrichment score, website), remove credit-gating lock/unlock status, and display all buyer data freely. Add server-side filtering to the buyers API. Keep the existing HTML table (buyer-table.tsx), don't migrate to scanner grid.
+**Depends on:** Phase 13
+**Plans:** 3 plans
+
+Plans:
+- [ ] 14-01-PLAN.md -- Server-side filtering backend: extend BuyerFilters, MongoDB query conditions, filters API endpoint, remove ContactReveal dependency
+- [ ] 14-02-PLAN.md -- Remove credit gating UI + add enrichment columns: drop Locked/Unlocked status, remove blur/unlock from contacts, add orgType/score/website table columns
+- [ ] 14-03-PLAN.md -- Filter dropdowns UI + page wiring: BuyerFilters component, pass filter params through page, serialize enrichment fields, filtered count display
