@@ -98,8 +98,8 @@ A 6-stage Cloudflare Worker (`apps/workers/enrichment/`) enriches 2,384 UK publi
 
 ### DataSource Seeding
 
-The `DataSource` collection is seeded from an external spec file:
-- **Source**: `/Users/kirillkozak/Projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
+The `DataSource` collection is seeded from a spec file in this repo:
+- **Source**: `.planning/DATA_SOURCES.md`
 - **Script**: `apps/web/scripts/seed-data-sources.ts`
 - **Run**: `DOTENV_CONFIG_PATH=apps/web/.env.local npx tsx --require dotenv/config apps/web/scripts/seed-data-sources.ts`
 - **Result**: ~2,361 documents (672 Tier 0, 1,693 Tier 1), idempotent via bulkWrite upsert on `name`
@@ -241,6 +241,22 @@ Avoid cherry-picking commits between branches with significantly different file 
 ### Interface changes
 
 When adding optional parameters to a method, update BOTH the base class/interface definition AND all implementing classes. TypeScript won't always catch missing fields in base interfaces due to structural typing.
+
+### MongoDB $text search — quoted phrases are AND'd
+
+MongoDB `$text` search treats **unquoted words as OR** but **quoted phrases as AND** — every quoted phrase must appear in the same document. When the agent generates search queries with multiple quoted phrases (e.g. `"special educational needs" "functional skills"`), they return 0 results because no single document contains ALL phrases.
+
+**Rule:** Always strip double quotes from agent-generated search queries before passing to `$text`. The scanner page (`apps/web/src/app/(dashboard)/scanners/[id]/page.tsx`) does this via `.replace(/"/g, "")`.
+
+### Shared constants — avoid taxonomy duplication
+
+Enum-like values (sectors, regions, signal types) must come from a **single shared constant**, not be hardcoded in multiple files. The sector list source of truth is `apps/web/src/lib/constants/sectors.ts`, derived from CPV codes in the data-sync worker (`apps/workers/data-sync/src/mappers/ocds-mapper.ts`).
+
+**Rule:** When adding a new dropdown/filter that references database enum values, import from the shared constant file. Never hardcode the list inline.
+
+### Agent tool handler actions
+
+Tool handlers in `apps/web/src/lib/agent/tool-handlers.ts` return `action` objects that are processed by `apps/web/src/hooks/use-agent.ts`. The action `type` field must match between both files. Currently supported: `action.type === "navigate"` with `action.url`.
 
 ## Project Structure
 
