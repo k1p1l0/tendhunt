@@ -209,10 +209,34 @@ export default function ScannerDetailPage({
       const cols = getColumnsForType(scannerData.type, scannerData.aiColumns, scannerData.customColumns, scannerData.columnRenames);
       setColumns(cols);
 
-      // 6. Fetch entity data based on scanner type
+      // 6. Fetch entity data based on scanner type (with search query + filters)
       const dataEndpoint = DATA_ENDPOINTS[scannerData.type];
       const dataKey = DATA_KEYS[scannerData.type];
-      const dataRes = await fetch(dataEndpoint);
+
+      const params = new URLSearchParams();
+      if (scannerData.searchQuery) {
+        // MongoDB $text treats spaces as implicit OR, strip explicit "OR"/"AND" operators
+        const mongoQuery = scannerData.searchQuery
+          .replace(/\bOR\b/gi, " ")
+          .replace(/\bAND\b/gi, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        params.set("q", mongoQuery);
+      }
+      if (scannerData.filters) {
+        const f = scannerData.filters;
+        if (f.sector) params.set("sector", String(f.sector));
+        if (f.region) params.set("region", String(f.region));
+        if (f.minValue) params.set("minValue", String(f.minValue));
+        if (f.maxValue) params.set("maxValue", String(f.maxValue));
+        if (f.signalType) params.set("signalType", String(f.signalType));
+      }
+
+      const queryString = params.toString();
+      const dataUrl = queryString
+        ? `${dataEndpoint}?${queryString}`
+        : dataEndpoint;
+      const dataRes = await fetch(dataUrl);
       if (!dataRes.ok) {
         throw new Error("Failed to load data");
       }
@@ -793,6 +817,8 @@ export default function ScannerDetailPage({
       filters: updated.filters,
     };
     setScanner(updatedScanner);
+    // Reload data with new search query / filters
+    loadData();
   }
 
   function handleRunColumn(options: RunColumnOptions) {

@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
 import Signal from "@/models/signal";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -11,7 +11,27 @@ export async function GET() {
 
     await dbConnect();
 
-    const signals = await Signal.find({})
+    const { searchParams } = new URL(request.url);
+    const q = searchParams.get("q");
+    const signalType = searchParams.get("signalType");
+    const sector = searchParams.get("sector");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: Record<string, any>[] = [];
+
+    if (q) {
+      conditions.push({ $text: { $search: q } });
+    }
+    if (signalType) {
+      conditions.push({ signalType });
+    }
+    if (sector) {
+      conditions.push({ sector });
+    }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
+
+    const signals = await Signal.find(query)
       .select(
         "organizationName title signalType insight source sourceDate sector confidence"
       )

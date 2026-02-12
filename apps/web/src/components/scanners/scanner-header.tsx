@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SearchQueryDisplay } from "@/components/scanners/search-query-display";
 import type { ScannerType } from "@/models/scanner";
 
 interface ScannerHeaderProps {
@@ -19,6 +20,7 @@ interface ScannerHeaderProps {
     name: string;
     type: ScannerType;
     description?: string;
+    searchQuery?: string;
     autoRun?: boolean;
   };
   rowCount: number;
@@ -76,6 +78,11 @@ export function ScannerHeader({
         <p className="text-sm text-muted-foreground line-clamp-2">
           {scanner.description}
         </p>
+      )}
+
+      {/* Search Query */}
+      {scanner.searchQuery && (
+        <SearchQueryDisplay query={scanner.searchQuery} />
       )}
 
       {/* Toolbar */}
