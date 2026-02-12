@@ -232,7 +232,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 13. Buyer Data Enrichment | 6/6 | ✓ Complete | 2026-02-11 |
 | 14. Buyer Explorer Filters | 3/3 | ✓ Complete | 2026-02-12 |
 | 17. Dashboard Home | 0/? | Not started | - |
-| 18. Admin Panel | 0/4 | Not started | - |
+| 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -273,7 +273,7 @@ Plans:
 - [x] 11-03-PLAN.md -- CSV normalization library (10 known schemas + AI fallback) + Stage 3 (download/parse) + Stage 4 (aggregation)
 - [ ] 11-04-PLAN.md -- Install Recharts + shadcn chart, spending API route, spend analytics engine, chart components + spending tab shell
 - [ ] 11-05-PLAN.md -- Vendors table, breakdown table with filters, opportunity cards, Spending tab integration into buyer profile
-- [ ] 11-06-PLAN.md -- GOV.UK two-level scraping (buyer filtering + publication page following) + ODS/XLSX parsing via SheetJS
+- [x] 11-06-PLAN.md -- GOV.UK two-level scraping (buyer filtering + publication page following) + ODS/XLSX parsing via SheetJS
 
 **Reference specs:** `/Users/kirillkozak/projects/board-minutes-intelligence/specs/DATA_SOURCES.md`
 
@@ -364,7 +364,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 18-01-PLAN.md -- Admin app scaffold: Next.js 16.1, Clerk admin role guard, sidebar layout, MongoDB connection, shadcn/ui components
-- [ ] 18-02-PLAN.md -- Overview dashboard + worker health monitoring: stats cards, worker status cards with stage breakdowns, recent activity feed, 15s polling
-- [ ] 18-03-PLAN.md -- Data explorer pages: recent contracts/buyers/signals tables with sortable columns, total counts, source badges, 30s polling
-- [ ] 18-04-PLAN.md -- Users management page: Clerk user list enriched with MongoDB data (company profiles, credit balances), summary stats
+- [x] 18-01-PLAN.md -- Admin app scaffold: Next.js 16.1, Clerk admin role guard, sidebar layout, MongoDB connection, shadcn/ui components
+- [x] 18-02-PLAN.md -- Overview dashboard + worker health monitoring: stats cards, worker status cards with stage breakdowns, recent activity feed, 15s polling
+- [x] 18-03-PLAN.md -- Data explorer pages: recent contracts/buyers/signals tables with sortable columns, total counts, source badges, 30s polling
+- [x] 18-04-PLAN.md -- Users management page: Clerk user list enriched with MongoDB data (company profiles, credit balances), summary stats

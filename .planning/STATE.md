@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 18 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans) -- parallel execution
+**Current focus:** Phase 18 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 11 + 15 + 18 (parallel: Invoice & Spend Data + Contract-Buyer Linking + Admin Panel)
-Plan: 18-03 COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Plan 18-03 complete -- Data explorer pages for contracts, buyers, signals with sortable tables and auto-refresh
-Last activity: 2026-02-12 -- Plan 18-03 executed (4 min)
+Phase: 18 COMPLETE, 11 + 15 in progress
+Plan: 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
+Status: Phase 18 complete -- Admin panel with worker monitoring, data explorer, user management
+Last activity: 2026-02-12 -- Phase 18 executed (4 plans, ~15 min total)
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~90% (Phases 11 + 15 in progress)
 
