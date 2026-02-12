@@ -133,11 +133,10 @@ export default async function BuyerDetailPage({
           lastEnrichedAt: buyer.lastEnrichedAt ? String(buyer.lastEnrichedAt) : undefined,
           logoUrl: buyer.logoUrl ?? undefined,
           linkedinUrl: buyer.linkedinUrl ?? undefined,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           linkedin: buyer.linkedin ? {
-            ...buyer.linkedin as any,
-            lastFetchedAt: (buyer.linkedin as any)?.lastFetchedAt
-              ? String((buyer.linkedin as any).lastFetchedAt)
+            ...(buyer.linkedin as Record<string, unknown>),
+            lastFetchedAt: (buyer.linkedin as Record<string, unknown>)?.lastFetchedAt
+              ? String((buyer.linkedin as Record<string, unknown>).lastFetchedAt)
               : undefined,
           } : undefined,
           hasSpendData,

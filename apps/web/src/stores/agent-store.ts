@@ -42,7 +42,7 @@ interface AgentStore {
   clearConversation: (conversationId: string) => void;
 }
 
-export const useAgentStore = create<AgentStore>((set, get) => ({
+export const useAgentStore = create<AgentStore>((set) => ({
   panelOpen: false,
   conversations: [],
   activeConversationId: null,

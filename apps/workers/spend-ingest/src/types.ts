@@ -7,6 +7,7 @@ import type { ObjectId } from "mongodb";
 export interface Env {
   MONGODB_URI: string;
   ANTHROPIC_API_KEY: string;
+  DOCS: R2Bucket;
 }
 
 // ---------------------------------------------------------------------------

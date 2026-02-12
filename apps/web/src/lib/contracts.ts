@@ -26,7 +26,10 @@ export async function fetchContracts(filters: ContractFilters) {
   const conditions: Record<string, any>[] = [];
 
   if (filters.query) {
-    conditions.push({ $text: { $search: filters.query } });
+    const sanitized = filters.query.replace(/"/g, "").replace(/\s+/g, " ").trim();
+    if (sanitized) {
+      conditions.push({ $text: { $search: sanitized } });
+    }
   }
 
   if (filters.sector) {

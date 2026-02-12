@@ -7,6 +7,7 @@ import { buildSystemPrompt } from "@/lib/agent/system-prompt";
 import { getToolDefinitions } from "@/lib/agent/tools";
 import { executeToolHandler } from "@/lib/agent/tool-handlers";
 
+import type Anthropic from "@anthropic-ai/sdk";
 import type { AgentPageContext } from "@/lib/agent/system-prompt";
 
 export async function POST(request: Request) {
@@ -28,17 +29,24 @@ export async function POST(request: Request) {
   const tools = getToolDefinitions();
 
   const encoder = new TextEncoder();
+  let cancelled = false;
+
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: Record<string, unknown>) => {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
-        );
+        if (cancelled) return;
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
+          );
+        } catch {
+          cancelled = true;
+        }
       };
 
       try {
         // Build message history for Anthropic
-        let currentMessages = messages.map((m) => ({
+        let currentMessages: Anthropic.MessageParam[] = messages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
         }));
@@ -58,6 +66,7 @@ export async function POST(request: Request) {
           [];
 
         while (continueLoop && iteration < MAX_ITERATIONS) {
+          if (cancelled) break;
           iteration++;
 
           const response = await anthropic.messages.create({
@@ -92,6 +101,7 @@ export async function POST(request: Request) {
             }> = [];
 
             for (const block of toolUseBlocks) {
+              if (cancelled) break;
               if (block.type === "tool_use") {
                 send({
                   type: "tool_call_start",
@@ -130,11 +140,11 @@ export async function POST(request: Request) {
               ...currentMessages,
               {
                 role: "assistant" as const,
-                content: response.content as unknown as string,
+                content: response.content,
               },
               {
                 role: "user" as const,
-                content: toolResults as unknown as string,
+                content: toolResults,
               },
             ];
           }
@@ -207,7 +217,16 @@ export async function POST(request: Request) {
           message: err instanceof Error ? err.message : "Agent error",
         });
       }
-      controller.close();
+      if (!cancelled) {
+        try {
+          controller.close();
+        } catch {
+          // Already closed
+        }
+      }
+    },
+    cancel() {
+      cancelled = true;
     },
   });
 

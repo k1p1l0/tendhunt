@@ -9,6 +9,11 @@ import type { MappedContract } from "../types";
  * and concurrent invocations — unlike regex-based filters which don't work
  * reliably with MongoDB bulkWrite upserts.
  *
+ * The unique index on `nameLower` is managed by the Mongoose Buyer model in
+ * the web app (apps/web/src/models/buyer.ts). This worker does NOT create or
+ * manage indexes — it relies on the existing `nameLower_1` index for upsert
+ * deduplication.
+ *
  * Groups contracts by lowercased name within the batch, then does one upsert
  * per unique name. The unique index on `nameLower` guarantees no duplicates
  * even across separate Worker invocations.
@@ -20,7 +25,7 @@ import type { MappedContract } from "../types";
 export async function autoExtractBuyers(
   db: Db,
   contracts: MappedContract[]
-): Promise<{ created: number; buyerIdMap: Map<string, ObjectId> }> {
+): Promise<{ created: number; buyerIdMap: Map<string, ObjectId>; newBuyerIds: ObjectId[] }> {
   // Group by lowercased name to deduplicate within this batch
   const uniqueByName = new Map<
     string,
@@ -47,15 +52,9 @@ export async function autoExtractBuyers(
     }
   }
 
-  if (uniqueByName.size === 0) return { created: 0, buyerIdMap: new Map() };
+  if (uniqueByName.size === 0) return { created: 0, buyerIdMap: new Map(), newBuyerIds: [] };
 
   const collection = db.collection("buyers");
-
-  // Ensure unique index on nameLower (idempotent — no-op if already exists)
-  await collection.createIndex(
-    { nameLower: 1 },
-    { unique: true, sparse: true, name: "nameLower_1_unique" }
-  );
 
   // Upsert by exact nameLower match — deterministic, index-backed, no duplicates
   const ops = Array.from(uniqueByName.entries()).map(([nameKey, buyer]) => ({
@@ -96,5 +95,7 @@ export async function autoExtractBuyers(
     buyerIdMap.set(doc.nameLower as string, doc._id as ObjectId);
   }
 
-  return { created: result.upsertedCount, buyerIdMap };
+  const newBuyerIds: ObjectId[] = Object.values(result.upsertedIds ?? {});
+
+  return { created: result.upsertedCount, buyerIdMap, newBuyerIds };
 }

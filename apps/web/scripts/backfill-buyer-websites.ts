@@ -44,7 +44,7 @@ async function backfill() {
   }> = [];
 
   let websiteCount = 0;
-  let regionCount = 0;
+  const regionCount = 0;
 
   for (const buyer of buyers) {
     const ds = dsMap.get(buyer.dataSourceId?.toString() ?? "");

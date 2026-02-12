@@ -1,5 +1,6 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 
 import { fetchEnrichedUsers } from "@/lib/users";
 
@@ -10,12 +11,8 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Defense-in-depth: verify admin role beyond middleware
-  const client = await clerkClient();
-  const user = await client.users.getUser(userId);
-  const role = (user.publicMetadata as Record<string, unknown>)?.role;
-
-  if (role !== "admin") {
+  const isAdmin = await requireAdmin(userId);
+  if (!isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
