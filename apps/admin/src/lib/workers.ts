@@ -103,6 +103,15 @@ const WORKER_URLS: Record<string, string> = {
   "spend-ingest": process.env.SPEND_INGEST_WORKER_URL ?? "https://tendhunt-spend-ingest.kozak-74d.workers.dev",
 };
 
+const WORKER_SECRET = process.env.WORKER_SECRET ?? "";
+
+function buildWorkerUrl(workerName: string, path: string, needsAuth = false): string {
+  const base = WORKER_URLS[workerName] ?? "";
+  const url = `${base}${path}`;
+  if (needsAuth && WORKER_SECRET) return `${url}${url.includes("?") ? "&" : "?"}secret=${WORKER_SECRET}`;
+  return url;
+}
+
 async function checkWorkerHealth(workerName: string): Promise<WorkerHealthCheck> {
   const url = WORKER_URLS[workerName];
   if (!url) return { reachable: false, latencyMs: 0, url: "", error: "No URL configured" };
@@ -240,4 +249,30 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
   };
 
   return [dataSyncWorker, enrichmentWorker, spendIngestWorker];
+}
+
+// ---------------------------------------------------------------------------
+// Worker actions (trigger run, fetch debug)
+// ---------------------------------------------------------------------------
+
+export async function triggerWorkerRun(workerName: string): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  const url = buildWorkerUrl(workerName, "/run", true);
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function fetchWorkerDebug(workerName: string): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  const url = buildWorkerUrl(workerName, "/debug", true);
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
