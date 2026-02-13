@@ -9,7 +9,6 @@ import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { AccountManagerCard } from "@/components/dashboard/account-manager-card";
 import { SavedScannersSection } from "@/components/dashboard/saved-scanners-section";
 import { FreshSignalsFeed } from "@/components/dashboard/fresh-signals-feed";
-import { ACCOUNT_MANAGER } from "@/lib/dashboard";
 import { useAgent } from "@/hooks/use-agent";
 import { useAgentStore } from "@/stores/agent-store";
 
@@ -22,11 +21,19 @@ const SUGGESTIONS = [
   "Which buyers have the highest budgets?",
 ];
 
+interface AccountManager {
+  name: string;
+  email: string;
+  calendlyUrl: string;
+  greeting: string;
+}
+
 interface SculptorHomepageProps {
   userName: string;
   scanners: ScannerSummary[];
   topScores: TopScore[];
   recentConversations: RecentConversation[];
+  accountManager: AccountManager;
 }
 
 export function SculptorHomepage({
@@ -34,6 +41,7 @@ export function SculptorHomepage({
   scanners,
   topScores,
   recentConversations,
+  accountManager,
 }: SculptorHomepageProps) {
   const { sendMessage, isStreaming } = useAgent();
   const prefersReducedMotion = useReducedMotion();
@@ -126,7 +134,7 @@ export function SculptorHomepage({
 
         <SavedScannersSection scanners={scanners} />
         <FreshSignalsFeed signals={topScores} />
-        <AccountManagerCard {...ACCOUNT_MANAGER} />
+        <AccountManagerCard {...accountManager} />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import {
   getUserScanners,
   getTopScores,
   getRecentConversations,
+  ACCOUNT_MANAGER,
 } from "@/lib/dashboard";
 import { SculptorHomepage } from "@/components/sculptor/sculptor-homepage";
 
@@ -24,6 +25,7 @@ export default async function DashboardPage() {
       scanners={scanners}
       topScores={topScores}
       recentConversations={recentConversations}
+      accountManager={ACCOUNT_MANAGER}
     />
   );
 }
