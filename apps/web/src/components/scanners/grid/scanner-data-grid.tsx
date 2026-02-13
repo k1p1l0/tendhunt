@@ -2,24 +2,22 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect, useReducer } from "react";
 import DataEditor, {
-  type GridColumn,
-  type GridSelection,
-  type Item,
-  type Theme,
-  type Rectangle,
   CompactSelection,
 } from "@glideapps/glide-data-grid";
+import type { GridColumn, GridSelection, Item, Theme, Rectangle } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import type { ScannerType } from "@/models/scanner";
-import { toGlideColumns, type ColumnMeta } from "./glide-columns";
+import { toGlideColumns } from "./glide-columns";
+import type { ColumnMeta } from "./glide-columns";
 import { createGetCellContent } from "./cell-content";
 import { customRenderers, setLogoRedrawCallback } from "./custom-renderers";
 import { useGlideTheme } from "./glide-theme";
 import { resolveAccessor, getUniqueColumnValues } from "./format-utils";
-import { HeaderMenu, type RunColumnOptions } from "./header-menu";
+import { HeaderMenu } from "./header-menu";
+import type { RunColumnOptions } from "./header-menu";
 import { isTextUseCase } from "@/lib/ai-column-config";
 
 // Play button hit area: 24×24 icon in the right side of the header

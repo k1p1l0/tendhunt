@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { fetchBuyers, type BuyerFilters } from "@/lib/buyers";
+import { fetchBuyers } from "@/lib/buyers";
+import type { BuyerFilters } from "@/lib/buyers";
 
 export async function GET(request: Request) {
   try {

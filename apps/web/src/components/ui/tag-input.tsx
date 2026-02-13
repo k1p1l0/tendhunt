@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
+import { useState, useCallback } from "react";
+import type { KeyboardEvent, ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";

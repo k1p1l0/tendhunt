@@ -22,7 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Sparkles, RefreshCw } from "lucide-react";
-import { AI_USE_CASES, AI_MODELS, type AIModel } from "@/lib/ai-column-config";
+import { AI_USE_CASES, AI_MODELS } from "@/lib/ai-column-config";
+import type { AIModel } from "@/lib/ai-column-config";
 
 export interface EditColumnData {
   columnId: string;
