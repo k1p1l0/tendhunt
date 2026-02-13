@@ -40,15 +40,21 @@ function StageIcon({ status }: { status: EnrichmentStage["status"] }) {
   }
 }
 
-function ElapsedTime({ startedAt }: { startedAt: Date }) {
+function ElapsedTime({ startedAt, completedAt }: { startedAt: Date; completedAt?: Date }) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
+    if (completedAt) {
+      requestAnimationFrame(() => {
+        setElapsed(Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000));
+      });
+      return;
+    }
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startedAt.getTime()) / 1000));
     }, 1000);
     return () => clearInterval(interval);
-  }, [startedAt]);
+  }, [startedAt, completedAt]);
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
@@ -100,7 +106,7 @@ export function EnrichmentProgress() {
           <span className="text-[10px] text-muted-foreground tabular-nums">
             {completedCount}/{enrichment.stages.length}
           </span>
-          <ElapsedTime startedAt={enrichment.startedAt} />
+          <ElapsedTime startedAt={enrichment.startedAt} completedAt={enrichment.completedAt} />
         </div>
       </div>
 

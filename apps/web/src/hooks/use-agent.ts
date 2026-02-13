@@ -350,6 +350,9 @@ export function useAgent(): UseAgentReturn {
                   break;
                 case "done":
                   s.completeEnrichment(data.enrichmentScore as number);
+                  window.dispatchEvent(
+                    new CustomEvent("enrichment-complete", { detail: { buyerId } })
+                  );
                   break;
               }
             } catch {

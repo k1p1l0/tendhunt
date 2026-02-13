@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { fetchBuyerById } from "@/lib/buyers";
 import { BuyerDetailClient } from "@/components/buyers/buyer-detail-client";
 import { AgentContextSetter } from "@/components/agent/agent-context-setter";
+import { EnrichmentRefresh } from "@/components/agent/enrichment-refresh";
 import { BuyerBreadcrumb } from "./breadcrumb";
 import { Button } from "@/components/ui/button";
 import { dbConnect } from "@/lib/mongodb";
@@ -108,6 +109,7 @@ export default async function BuyerDetailPage({
           buyerOrgType: buyer.orgType ?? undefined,
         }}
       />
+      <EnrichmentRefresh buyerId={buyerId} />
       <BuyerBreadcrumb name={buyerName} />
 
       {/* Sticky Header */}
