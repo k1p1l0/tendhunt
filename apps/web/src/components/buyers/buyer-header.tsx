@@ -1,10 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   MapPin,
@@ -14,6 +10,7 @@ import {
   PoundSterling,
   Landmark,
   Linkedin,
+  Building2,
 } from "lucide-react";
 import { EnrichmentBadge } from "@/components/buyers/enrichment-badge";
 import { resolveRegionName } from "@/lib/nuts-regions";
@@ -81,151 +78,126 @@ const budgetFormatter = new Intl.NumberFormat("en-GB", {
   maximumFractionDigits: 1,
 });
 
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-const avatarColors = [
-  "bg-blue-500",
-  "bg-purple-500",
-  "bg-green-500",
-  "bg-orange-500",
-  "bg-pink-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-rose-500",
-];
-
 export function BuyerHeader({ buyer }: BuyerHeaderProps) {
-  const initial = buyer.name.charAt(0).toUpperCase();
-  const colorIndex = hashCode(buyer.name) % avatarColors.length;
-  const avatarColor = avatarColors[colorIndex];
   const [logoError, setLogoError] = useState(false);
-
   const showLogo = buyer.logoUrl && !logoError;
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-start gap-4">
-          {/* Avatar / Logo */}
-          {showLogo ? (
-            <img
-              src={buyer.logoUrl}
-              alt={`${buyer.name} logo`}
-              className="h-14 w-14 rounded-xl object-contain shrink-0 bg-muted"
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <div
-              className={`${avatarColor} h-14 w-14 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0`}
-            >
-              {initial}
-            </div>
-          )}
+    <div className="bg-card border border-border rounded-xl p-6 flex flex-col md:flex-row items-start gap-6 relative overflow-hidden">
+      {/* Logo */}
+      <div className="w-20 h-20 rounded-xl bg-muted flex-shrink-0 flex items-center justify-center border border-border">
+        {showLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={buyer.logoUrl}
+            alt=""
+            className="w-14 h-14 object-contain rounded-lg"
+            onError={() => setLogoError(true)}
+          />
+        ) : (
+          <Building2 className="w-10 h-10 text-muted-foreground" />
+        )}
+      </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <h1 className="text-2xl font-bold tracking-tight truncate">
-                {buyer.name}
-              </h1>
-              <div className="flex items-center gap-2 shrink-0">
-                {buyer.enrichmentScore != null && buyer.enrichmentScore > 0 && (
-                  <EnrichmentBadge score={buyer.enrichmentScore} size="md" />
-                )}
-              </div>
-            </div>
+      {/* Content */}
+      <div className="flex-1 min-w-0 pt-1">
+        <h2 className="text-2xl font-bold tracking-tight mb-1.5">
+          {buyer.name}
+        </h2>
 
-            {/* Description */}
-            {buyer.description && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {buyer.description}
-              </p>
+        {buyer.description && (
+          <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed line-clamp-2">
+            {buyer.description}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3">
+          {/* Badges Row */}
+          <div className="flex flex-wrap items-center gap-2">
+            {buyer.sector && (
+              <Badge variant="outline" className="rounded-full">
+                {buyer.sector}
+              </Badge>
             )}
+            {buyer.orgType && (
+              <Badge variant="outline" className="rounded-full">
+                {orgTypeLabel(buyer.orgType)}
+              </Badge>
+            )}
+            {buyer.industry && (
+              <Badge variant="outline" className="rounded-full">
+                {buyer.industry}
+              </Badge>
+            )}
+          </div>
 
-            {/* Metadata row */}
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-              {buyer.sector && (
-                <Badge variant="outline">{buyer.sector}</Badge>
-              )}
-              {buyer.orgType && (
-                <Badge variant="outline">{orgTypeLabel(buyer.orgType)}</Badge>
-              )}
-              {buyer.industry && (
-                <Badge variant="outline">{buyer.industry}</Badge>
-              )}
-              {buyer.address && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {buyer.address}
-                </span>
-              )}
-              {!buyer.address && buyer.region && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {resolveRegionName(buyer.region)}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <FileText className="h-3.5 w-3.5" />
-                {buyer.contractCount} contract{buyer.contractCount !== 1 ? "s" : ""}
+          {/* Icons Row */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            {(buyer.address || buyer.region) && (
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {buyer.address ?? resolveRegionName(buyer.region)}
               </span>
-              {buyer.staffCount != null && buyer.staffCount > 0 && (
-                <span className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  {buyer.staffCount.toLocaleString("en-GB")} staff
-                </span>
-              )}
-              {buyer.annualBudget != null && buyer.annualBudget > 0 && (
-                <span className="flex items-center gap-1">
-                  <PoundSterling className="h-3.5 w-3.5" />
-                  {budgetFormatter.format(buyer.annualBudget)}
-                </span>
-              )}
-              {buyer.website && (
-                <a
-                  href={buyer.website.startsWith("http") ? buyer.website : `https://${buyer.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Website
-                </a>
-              )}
-              {buyer.linkedinUrl && (
-                <a
-                  href={buyer.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-primary hover:underline"
-                >
-                  <Linkedin className="h-3.5 w-3.5" />
-                  LinkedIn
-                </a>
-              )}
-              {buyer.democracyPortalUrl && (
-                <a
-                  href={buyer.democracyPortalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-primary hover:underline"
-                >
-                  <Landmark className="h-3.5 w-3.5" />
-                  Governance Portal
-                </a>
-              )}
-            </div>
+            )}
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              {buyer.contractCount.toLocaleString()} contract{buyer.contractCount !== 1 ? "s" : ""}
+            </span>
+            {buyer.staffCount != null && buyer.staffCount > 0 && (
+              <span className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                {buyer.staffCount.toLocaleString("en-GB")} staff
+              </span>
+            )}
+            {buyer.annualBudget != null && buyer.annualBudget > 0 && (
+              <span className="flex items-center gap-2">
+                <PoundSterling className="h-4 w-4" />
+                {budgetFormatter.format(buyer.annualBudget)}
+              </span>
+            )}
+            {buyer.website && (
+              <a
+                href={buyer.website.startsWith("http") ? buyer.website : `https://${buyer.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 transition-colors hover:text-foreground"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Website
+              </a>
+            )}
+            {buyer.linkedinUrl && (
+              <a
+                href={buyer.linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 transition-colors hover:text-foreground"
+              >
+                <Linkedin className="h-4 w-4" />
+                LinkedIn
+              </a>
+            )}
+            {buyer.democracyPortalUrl && (
+              <a
+                href={buyer.democracyPortalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 transition-colors hover:text-foreground"
+              >
+                <Landmark className="h-4 w-4" />
+                Governance Portal
+              </a>
+            )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Enrichment Score Circle */}
+      {buyer.enrichmentScore != null && buyer.enrichmentScore > 0 && (
+        <div className="flex-shrink-0 self-center md:self-start md:mt-2">
+          <EnrichmentBadge score={buyer.enrichmentScore} size="md" />
+        </div>
+      )}
+    </div>
   );
 }
