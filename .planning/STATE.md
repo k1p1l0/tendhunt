@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 22 COMPLETE (5/5 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 30 IN PROGRESS (3/3 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 22-crm-pipeline-procurement-inbox COMPLETE (5/5 plans)
-Plan: 22-05 COMPLETE -- Auto-send rules with threshold-based scoring integration
-Status: Phase 22 complete -- Full CRM pipeline with Kanban board, card detail, and auto-send automation
-Last activity: 2026-02-13 - Completed quick task 6: Redirect root to dashboard
+Phase: 30-sculptor-ai-homepage-floating-assistant (3/3 plans)
+Plan: 30-03 COMPLETE -- SculptorHomepage AI-first dashboard with hero input and conversation cards
+Status: Phase 30 complete -- Sculptor branding, floating bubble, hero input, AI-first homepage
+Last activity: 2026-02-13 - Completed 30-03: SculptorHomepage composition
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 54
-- Average duration: 3.3 min
-- Total execution time: 2.88 hours
+- Total plans completed: 57
+- Average duration: 3.2 min
+- Total execution time: 2.98 hours
 
 **By Phase:**
 
@@ -44,10 +44,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15 in progress)
 | 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
 | 20-board-minutes-signals | 4/4 | 8 min | 2 min |
 | 22-crm-pipeline-procurement-inbox | 5/5 | 6 min | 1.2 min |
+| 30-sculptor-ai-homepage | 3/3 | 6 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 22-05 (2 min), 22-04 (1 min), 22-03 (2 min), 22-01 (1 min), 20-04 (2 min)
-- Trend: Consistent ~1-2 min per plan
+- Last 5 plans: 30-03 (2 min), 30-02 (2 min), 30-01 (2 min), 22-05 (2 min), 22-04 (1 min)
+- Trend: Consistent ~2 min per plan
 
 *Updated after each plan completion*
 
@@ -281,6 +282,9 @@ Recent decisions affecting current work:
 - [22-05]: Non-blocking void PipelineCard upsert to avoid blocking SSE stream
 - [22-05]: onAutoRule callback pattern through ScannerDataGrid to scanner page for dialog rendering
 - [22-05]: getEntityDisplayFields helper maps scanner type to appropriate entity fields for card creation
+- [30-03]: Module-level SUGGESTIONS and getRelativeTime to satisfy react-hooks/static-components lint rule
+- [30-03]: useAgentStore.getState().setPanelOpen(true) before sendMessage for immediate panel open on hero send
+- [30-03]: Stagger delays 0.1/0.2/0.3s for hero section entry animation sequence
 
 ### Pending Todos
 
@@ -299,6 +303,7 @@ Recent decisions affecting current work:
 - Phase 19 added: Research Agent Chat Panel (backend tools, SSE streaming, chat UI, conversation persistence)
 - Phase 20 added: Board Minutes Signals (worker scaffold, schema extensions, extraction pipeline, frontend display)
 - Phase 22 added: CRM Pipeline Procurement Inbox (data layer, Kanban UI, send-to-inbox, card detail)
+- Phase 30 added: Sculptor AI Homepage & Floating Assistant (branding rename, floating bubble, hero input, AI-first dashboard)
 
 ### Blockers/Concerns
 
@@ -317,5 +322,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-13
-Stopped at: Completed quick task 6 -- Redirect root to dashboard
+Stopped at: Completed 30-03-PLAN.md -- SculptorHomepage AI-first dashboard
 Next: Continue with 11-02 (spend intelligence), 15-02 (entity linking).
