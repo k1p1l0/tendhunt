@@ -46,7 +46,7 @@ export function AgentPanel() {
         className="w-full sm:w-[480px] sm:max-w-[480px] p-0 flex flex-col"
         showCloseButton={false}
       >
-        <SheetTitle className="sr-only">Research Agent</SheetTitle>
+        <SheetTitle className="sr-only">Sculptor</SheetTitle>
         <AgentPanelHeader onNewChat={startNewConversation} />
         <AgentMessageList
           messages={messages}

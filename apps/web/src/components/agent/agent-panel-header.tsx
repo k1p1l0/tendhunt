@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { useAgentContext } from "./agent-provider";
 import { useAgentStore } from "@/stores/agent-store";
+import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
 
 function getContextLabel(context: ReturnType<typeof useAgentContext>["context"]): string {
   if (context.buyerName) return context.buyerName;
@@ -46,9 +47,9 @@ export function AgentPanelHeader({ onNewChat }: AgentPanelHeaderProps) {
 
   return (
     <div className="px-4 py-3 border-b flex items-center gap-3">
-      <span className="agent-trigger-orb !w-6 !h-6 shrink-0" aria-hidden="true" />
+      <SculptorIcon size={24} animate className="shrink-0" />
       <div className="flex-1 min-w-0">
-        <h2 className="text-sm font-semibold leading-tight">Research Agent</h2>
+        <h2 className="text-sm font-semibold leading-tight">Sculptor</h2>
         <p className="text-[11px] text-muted-foreground truncate mt-0.5">
           {getContextLabel(context)}
         </p>

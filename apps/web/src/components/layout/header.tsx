@@ -4,6 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { useBreadcrumb } from "./breadcrumb-context";
 import { useAgentStore } from "@/stores/agent-store";
+import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
 
 export function Header() {
   const { breadcrumb } = useBreadcrumb();
@@ -23,10 +24,10 @@ export function Header() {
         type="button"
         className="agent-trigger-btn"
         onClick={() => useAgentStore.getState().setPanelOpen(true)}
-        aria-label="Open research agent (Cmd+K)"
+        aria-label="Open Sculptor (Cmd+K)"
       >
-        <span className="agent-trigger-orb" aria-hidden="true" />
-        <span className="text-sm font-medium">Chat with AI</span>
+        <SculptorIcon size={20} animate />
+        <span className="text-sm font-medium">Sculptor</span>
         <kbd className="agent-trigger-kbd">⌘K</kbd>
       </button>
     </header>

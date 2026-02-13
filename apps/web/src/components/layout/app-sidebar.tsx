@@ -98,7 +98,7 @@ export function AppSidebar() {
                   onClick={() => useAgentStore.getState().setPanelOpen(true)}
                 >
                   <Search className="h-4 w-4" />
-                  <span>Research</span>
+                  <span>Sculptor</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {platformItems.map((item) => (

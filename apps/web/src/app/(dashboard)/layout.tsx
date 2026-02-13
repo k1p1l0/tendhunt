@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { BreadcrumbProvider } from "@/components/layout/breadcrumb-context";
 import { AgentProvider } from "@/components/agent/agent-provider";
 import { AgentPanel } from "@/components/agent/agent-panel";
+import { FloatingBubble } from "@/components/sculptor/floating-bubble";
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +28,7 @@ export default async function DashboardLayout({
             <Header />
             <main className="flex-1 p-6">{children}</main>
             <AgentPanel />
+            <FloatingBubble />
           </AgentProvider>
         </BreadcrumbProvider>
       </SidebarInset>
