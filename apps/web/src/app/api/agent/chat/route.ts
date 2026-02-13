@@ -1,11 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
-import { anthropic } from "@/lib/anthropic";
+import { getAnthropicKey, getModelForAgent } from "@/lib/ai-key-resolver";
+import AnthropicSDK from "@anthropic-ai/sdk";
 import CompanyProfile from "@/models/company-profile";
 import ChatConversation from "@/models/chat-conversation";
 import { buildSystemPrompt } from "@/lib/agent/system-prompt";
 import { getToolDefinitions } from "@/lib/agent/tools";
 import { executeToolHandler } from "@/lib/agent/tool-handlers";
+import { getContext, saveMemory } from "@/lib/graphiti-client";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { AgentPageContext } from "@/lib/agent/system-prompt";
@@ -24,8 +26,21 @@ export async function POST(request: Request) {
 
   await dbConnect();
 
+  // Resolve BYOK key + preferred agent model
+  const apiKey = await getAnthropicKey(userId);
+  const agentModel = await getModelForAgent(userId);
+  const client = new AnthropicSDK({ apiKey });
+
   const profile = await CompanyProfile.findOne({ userId }).lean();
-  const systemPrompt = buildSystemPrompt(context, profile);
+
+  // Fetch user-scoped memory context from Graphiti (non-blocking on failure)
+  const userMessage = messages[messages.length - 1]?.content || "";
+  const memoryContext = await getContext(userId, userMessage);
+
+  const baseSystemPrompt = buildSystemPrompt(context, profile);
+  const systemPrompt = memoryContext
+    ? `${memoryContext}\n\n${baseSystemPrompt}`
+    : baseSystemPrompt;
   const tools = getToolDefinitions();
 
   const encoder = new TextEncoder();
@@ -73,8 +88,8 @@ export async function POST(request: Request) {
             send({ type: "thinking" });
           }
 
-          const response = await anthropic.messages.create({
-            model: "claude-sonnet-4-5-20250929",
+          const response = await client.messages.create({
+            model: agentModel,
             max_tokens: 4096,
             system: systemPrompt,
             messages: currentMessages,
@@ -156,9 +171,15 @@ export async function POST(request: Request) {
           continueLoop = response.stop_reason === "tool_use";
         }
 
-        // Persist conversation to MongoDB
+        // Save conversation to Graphiti user-scoped memory (fire and forget)
         const userContent =
           messages[messages.length - 1]?.content || "";
+        if (userContent && assistantText) {
+          saveMemory(userId, "user", userContent).catch(() => {});
+          saveMemory(userId, "tendhunt_assistant", assistantText).catch(() => {});
+        }
+
+        // Persist conversation to MongoDB
         const now = new Date();
 
         try {

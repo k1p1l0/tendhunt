@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, type ChangeEvent } from "react";
+import { useState, useCallback, useRef } from "react";
+import type { ChangeEvent } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { LogoUpload } from "@/components/settings/logo-upload";
 import { DocumentsSection } from "@/components/settings/documents-section";
 import { ApiKeysSection } from "@/components/settings/api-keys-section";
 import { AiKeysSection } from "@/components/settings/ai-keys-section";
+import { AiConfigSection } from "@/components/settings/ai-config-section";
 import { SlackIntegrationSection } from "@/components/settings/slack-integration-section";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
@@ -408,7 +410,15 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         <ApiKeysSection />
       </section>
 
-      {/* Section 5: AI Provider Keys */}
+      {/* Section 5: AI Configuration (BYOK + Model Preferences) */}
+      <section>
+        <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
+          AI Configuration
+        </h2>
+        <AiConfigSection />
+      </section>
+
+      {/* Section 5b: AI Provider Keys (legacy) */}
       <section>
         <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
           AI Provider Keys

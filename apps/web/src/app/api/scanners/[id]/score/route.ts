@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
+import { getAnthropicKey } from "@/lib/ai-key-resolver";
 import Scanner from "@/models/scanner";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
@@ -52,6 +53,9 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Resolve BYOK key (falls back to platform key)
+    const apiKey = await getAnthropicKey(userId);
 
     // Load company profile for base scoring prompt generation
     const profile = await CompanyProfile.findOne({ userId });
@@ -149,7 +153,8 @@ export async function POST(
               type: scanner.type,
             },
             entities,
-            baseScoringPrompt
+            baseScoringPrompt,
+            apiKey
           )) {
             if (cancelled) break;
 

@@ -1,7 +1,10 @@
 import pLimit from "p-limit";
-import { anthropic } from "@/lib/anthropic";
+import Anthropic from "@anthropic-ai/sdk";
+import { anthropic as defaultClient } from "@/lib/anthropic";
+import { resolveModelId, resolveMaxTokens, isTextUseCase } from "@/lib/ai-column-config";
+
 import type { ScannerType } from "@/models/scanner";
-import { resolveModelId, resolveMaxTokens, isTextUseCase, type AIModel } from "@/lib/ai-column-config";
+import type { AIModel } from "@/lib/ai-column-config";
 
 /**
  * Scoring engine for batch AI scoring of scanner entities.
@@ -43,6 +46,21 @@ interface ScannerLike {
   aiColumns: AIColumn[];
   searchQuery?: string;
   type: ScannerType;
+}
+
+// ---------------------------------------------------------------------------
+// Client factory
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns an Anthropic client for the given API key, or the default platform
+ * client when no key is provided.
+ */
+function getClient(apiKey?: string): Anthropic {
+  if (apiKey) {
+    return new Anthropic({ apiKey });
+  }
+  return defaultClient;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +173,8 @@ export async function scoreOneEntity(
   systemPrompt: string,
   searchQuery?: string,
   model: AIModel = "haiku",
-  useCase?: string
+  useCase?: string,
+  apiKey?: string
 ): Promise<{ score: number | null; reasoning: string; response: string }> {
   const userMessage = buildEntityUserPrompt(entity, scannerType, searchQuery);
   const maxRetries = 4;
@@ -196,7 +215,8 @@ export async function scoreOneEntity(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await anthropic.messages.create({
+      const client = getClient(apiKey);
+      const response = await client.messages.create({
         model: resolveModelId(model),
         max_tokens: resolveMaxTokens(model),
         system: [
@@ -299,7 +319,8 @@ export async function scoreOneEntity(
 export async function* scoreEntities(
   scanner: ScannerLike,
   entities: Array<Record<string, unknown>>,
-  baseScoringPrompt: string
+  baseScoringPrompt: string,
+  apiKey?: string
 ): AsyncGenerator<ScoringEvent> {
   const limit = pLimit(2);
 
@@ -335,7 +356,8 @@ export async function* scoreEntities(
             systemPrompt,
             scanner.searchQuery,
             (column.model as AIModel) || "haiku",
-            column.useCase
+            column.useCase,
+            apiKey
           );
 
           scored++;

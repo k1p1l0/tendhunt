@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
+import { getAnthropicKey } from "@/lib/ai-key-resolver";
 import Scanner from "@/models/scanner";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
@@ -13,10 +14,11 @@ import {
   buildScoringSystemPrompt,
 } from "@/lib/scoring-engine";
 import { dispatchScannerAlert } from "@/lib/slack/dispatch";
-import type { AIModel } from "@/lib/ai-column-config";
-import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
 import pLimit from "p-limit";
+
+import type { AIModel } from "@/lib/ai-column-config";
+import type { ScannerType } from "@/models/scanner";
 
 const ENTITY_TYPE_MAP: Record<string, "contract" | "buyer" | "signal"> = {
   rfps: "contract",
@@ -132,6 +134,9 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Resolve BYOK key (falls back to platform key)
+    const apiKey = await getAnthropicKey(userId);
 
     // Load company profile for base scoring prompt
     const profile = await CompanyProfile.findOne({ userId });
@@ -318,7 +323,8 @@ export async function POST(
                   systemPrompt,
                   scanner.searchQuery || "",
                   (column.model as AIModel) || "haiku",
-                  column.useCase
+                  column.useCase,
+                  apiKey
                 );
 
                 if (cancelled) return;
