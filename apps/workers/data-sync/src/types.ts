@@ -53,6 +53,7 @@ export interface OcdsRelease {
       submissionTerms?: { variantPolicy?: string };
       awardCriteria?: {
         criteria?: Array<{
+          name?: string;
           type?: string;
           description?: string;
           numbers?: Array<{

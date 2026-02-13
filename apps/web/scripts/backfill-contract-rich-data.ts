@@ -49,6 +49,7 @@ interface RawRelease {
       submissionTerms?: { variantPolicy?: string };
       awardCriteria?: {
         criteria?: Array<{
+          name?: string;
           type?: string;
           description?: string;
           numbers?: Array<{ number?: number }>;
@@ -123,9 +124,15 @@ function extractRichFields(rawData: unknown): ExtractedFields | null {
     const rawCriteria = lot.awardCriteria?.criteria;
     if (rawCriteria && Array.isArray(rawCriteria)) {
       for (const c of rawCriteria) {
-        const weight = c.numbers?.[0]?.number ?? null;
+        // FaT stores weights in description ("30", "80%"), not in numbers[]
+        const numWeight = c.numbers?.[0]?.number ?? null;
+        const descWeight =
+          numWeight == null && c.description
+            ? parseFloat(c.description.replace("%", ""))
+            : null;
+        const weight = numWeight ?? descWeight;
         criteria.push({
-          name: c.description ?? c.type ?? "Unknown",
+          name: c.name ?? c.type ?? "Unknown",
           criteriaType: c.type ?? "unknown",
           weight: weight != null && isFinite(weight) ? weight : null,
         });
