@@ -14,7 +14,7 @@ import { AgentPanelHeader } from "./agent-panel-header";
 import { AgentMessageList } from "./agent-message-list";
 import { AgentInput } from "./agent-input";
 
-const PANEL_WIDTH = 480;
+const PANEL_WIDTH = 420;
 
 function PanelContent({
   textareaRef,
@@ -108,7 +108,7 @@ export function AgentPanel() {
               ? { duration: 0 }
               : { duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }
           }
-          className="h-svh shrink-0 overflow-hidden border-l bg-background"
+          className="sticky top-0 h-svh shrink-0 overflow-hidden border-l bg-background"
         >
           <div
             className="flex h-full flex-col"
