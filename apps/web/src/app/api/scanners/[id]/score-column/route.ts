@@ -12,6 +12,7 @@ import {
   scoreOneEntity,
   buildScoringSystemPrompt,
 } from "@/lib/scoring-engine";
+import { dispatchScannerAlert } from "@/lib/slack/dispatch";
 import type { AIModel } from "@/lib/ai-column-config";
 import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
@@ -374,6 +375,16 @@ export async function POST(
                     }
                   }
                 }
+
+                void dispatchScannerAlert(
+                  userId,
+                  String(scanner._id),
+                  column.columnId,
+                  entityId,
+                  result.score ?? 0,
+                  entity as { name?: string; title?: string },
+                  result.reasoning || ""
+                );
 
                 send({
                   type: "progress",

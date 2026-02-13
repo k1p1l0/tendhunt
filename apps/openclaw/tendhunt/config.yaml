@@ -1,0 +1,30 @@
+name: tendhunt
+description: UK Procurement Intelligence Assistant
+
+agent:
+  model: claude-sonnet-4-5-20250929
+  temperature: 0.3
+  max_tokens: 4096
+
+slack:
+  enabled: true
+  socket_mode: true
+  respond_to_dms: true
+  respond_in_channels: false
+  thread_replies: true
+
+memory:
+  enabled: true
+  graphiti:
+    url: ${GRAPHITI_URL}
+    group_id: tendhunt
+  native:
+    auto_save_sessions: true
+    search_on_conversation_start: true
+
+tools:
+  allowed:
+    - tendhunt_api
+    - graphiti_memory
+  rate_limits:
+    tendhunt_api: 30/min

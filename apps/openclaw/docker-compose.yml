@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-changeme}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+
+  graphiti:
+    image: zepai/graphiti:latest
+    depends_on:
+      - neo4j
+    ports:
+      - "8000:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  openclaw:
+    image: openclaw/openclaw:latest
+    depends_on:
+      graphiti:
+        condition: service_healthy
+    volumes:
+      - ./tendhunt:/app/skills/tendhunt
+      - openclaw_memory:/app/memory
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      TENDHUNT_API_KEY: ${TENDHUNT_API_KEY}
+      TENDHUNT_BASE_URL: ${TENDHUNT_BASE_URL:-https://app.tendhunt.com}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      GRAPHITI_URL: http://graphiti:8000
+      MEMORY_ENABLED: "true"
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:
+  openclaw_memory:

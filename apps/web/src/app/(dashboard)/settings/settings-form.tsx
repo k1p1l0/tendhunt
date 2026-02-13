@@ -16,6 +16,9 @@ import {
 import { TagInput } from "@/components/ui/tag-input";
 import { LogoUpload } from "@/components/settings/logo-upload";
 import { DocumentsSection } from "@/components/settings/documents-section";
+import { ApiKeysSection } from "@/components/settings/api-keys-section";
+import { AiKeysSection } from "@/components/settings/ai-keys-section";
+import { SlackIntegrationSection } from "@/components/settings/slack-integration-section";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
 
@@ -395,6 +398,30 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
           documentKeys={documentKeys}
           onDocumentsUpdated={handleDocumentsUpdated}
         />
+      </section>
+
+      {/* Section 4: API & Integrations */}
+      <section>
+        <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
+          API & Integrations
+        </h2>
+        <ApiKeysSection />
+      </section>
+
+      {/* Section 5: AI Provider Keys */}
+      <section>
+        <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
+          AI Provider Keys
+        </h2>
+        <AiKeysSection />
+      </section>
+
+      {/* Section 6: Slack Integration */}
+      <section>
+        <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
+          Slack Integration
+        </h2>
+        <SlackIntegrationSection />
       </section>
     </>
   );
