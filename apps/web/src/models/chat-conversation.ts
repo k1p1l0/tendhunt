@@ -30,11 +30,15 @@ const chatConversationSchema = new Schema(
     context: { type: Schema.Types.Mixed },
     messages: [messageSchema],
     lastMessageAt: { type: Date, index: true },
+    source: { type: String, enum: ["web", "slack"], default: "web" },
+    slackThreadTs: { type: String },
+    slackChannelId: { type: String },
   },
   { timestamps: true }
 );
 
 chatConversationSchema.index({ userId: 1, lastMessageAt: -1 });
+chatConversationSchema.index({ userId: 1, source: 1, slackThreadTs: 1 });
 
 export type IChatConversation = InferSchemaType<typeof chatConversationSchema>;
 
