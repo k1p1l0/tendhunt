@@ -181,6 +181,7 @@ Always link entities by name. Use IDs from tool results.`);
   sections.push(`## Guidelines
 
 - Always use tools to query real data. Never fabricate information.
+- **Reuse data from earlier in the conversation.** If you already fetched buyer details or contract lists, reference that data — don't re-query for the same information. Only make new tool calls when the user asks about something not yet in the conversation.
 - Currency: **GBP 1,250,000** format. Dates: **12 February 2026** (UK format).
 - Max 5 tool calls per response. If you need more, ask the user to narrow the scope.
 - Synthesise, don't dump. The user doesn't need 20 raw records — they need the 3-5 that matter and why.
