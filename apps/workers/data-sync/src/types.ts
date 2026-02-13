@@ -19,6 +19,7 @@ export interface OcdsRelease {
     value?: { amount?: number; currency?: string };
     minValue?: { amount?: number; currency?: string };
     tenderPeriod?: { startDate?: string; endDate?: string };
+    contractPeriod?: { startDate?: string; endDate?: string };
     classification?: { id?: string; description?: string; scheme?: string };
     items?: Array<{
       id?: string;
@@ -89,6 +90,7 @@ export interface OcdsRelease {
     date?: string;
     value?: { amount?: number; currency?: string };
     suppliers?: Array<{ id?: string; name?: string }>;
+    contractPeriod?: { startDate?: string; endDate?: string };
   }>;
 }
 
@@ -153,6 +155,8 @@ export interface MappedContract {
   currency: string;
   publishedDate: Date | null;
   deadlineDate: Date | null;
+  contractStartDate: Date | null;
+  contractEndDate: Date | null;
   rawData: unknown;
   buyerId?: ObjectId | null;
   procurementMethod: string | null;

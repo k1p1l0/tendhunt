@@ -171,6 +171,27 @@ function mapStage(tags?: string[]): "PLANNING" | "TENDER" | "AWARD" {
 }
 
 // ---------------------------------------------------------------------------
+// Contract period extraction (start/end dates)
+// Priority: awards[0].contractPeriod > tender.contractPeriod
+// ---------------------------------------------------------------------------
+
+function extractContractStartDate(release: OcdsRelease): Date | null {
+  const awardStart = release.awards?.[0]?.contractPeriod?.startDate;
+  if (awardStart) return new Date(awardStart);
+  const tenderStart = release.tender?.contractPeriod?.startDate;
+  if (tenderStart) return new Date(tenderStart);
+  return null;
+}
+
+function extractContractEndDate(release: OcdsRelease): Date | null {
+  const awardEnd = release.awards?.[0]?.contractPeriod?.endDate;
+  if (awardEnd) return new Date(awardEnd);
+  const tenderEnd = release.tender?.contractPeriod?.endDate;
+  if (tenderEnd) return new Date(tenderEnd);
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Main mapper
 // ---------------------------------------------------------------------------
 
@@ -247,6 +268,8 @@ export function mapOcdsToContract(
     deadlineDate: release.tender?.tenderPeriod?.endDate
       ? new Date(release.tender.tenderPeriod.endDate)
       : null,
+    contractStartDate: extractContractStartDate(release),
+    contractEndDate: extractContractEndDate(release),
     rawData: release,
     procurementMethod: release.tender?.procurementMethod ?? null,
     procurementMethodDetails: release.tender?.procurementMethodDetails ?? null,
