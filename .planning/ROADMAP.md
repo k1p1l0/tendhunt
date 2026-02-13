@@ -477,3 +477,44 @@ Plans:
 - [x] 22-03-PLAN.md -- "Send to Inbox" button component + integration into contract, buyer, and scanner entity pages
 - [x] 22-04-PLAN.md -- Card detail sheet with notes/comments, priority controls, source entity link, archive/delete actions
 - [x] 22-05-PLAN.md -- Scanner auto-send rules: AutoSendRule model, config dialog, scoring endpoint integration
+
+### Phase 24: BYOK + Agent Settings & Onboarding UX
+
+**Goal:** Users bring their own Anthropic API key to power AI scoring and agent chat (BYOK), with encrypted key storage and settings UI. Plus introduce Sculptor during onboarding with a guided "Meet your AI assistant" step, first-time agent panel tour, and Connect-to-Slack CTA. Inspired by Tensol.ai's model where each user configures their own AI capabilities.
+**Depends on:** Phase 19 (Agent Chat Panel), Phase 21/23 (Slack + Sculptor)
+**Success Criteria** (what must be TRUE):
+  1. Settings page has "AI Configuration" section with Anthropic API key input (encrypted at rest)
+  2. Key validation on save (test API call to verify key works)
+  3. AI scoring routes through user's key when set, falls back to platform credits when not
+  4. Agent chat uses user's BYOK key for Claude calls
+  5. Onboarding wizard has "Meet Sculptor" step after company profile, showing agent capabilities
+  6. First-time agent panel shows guided tour overlay explaining what Sculptor can do
+  7. Onboarding includes "Connect to Slack" CTA linking to the Slack wizard
+  8. Agent model selector in settings (Haiku for scoring, Sonnet for research)
+**Plans:** TBD
+
+### Phase 26: Per-User OpenClaw Architecture
+
+**Goal:** Architect isolated OpenClaw instances per user with user-scoped Graphiti memory groups. For hackathon: 1-2 hard-coded instances showing the architecture works. Each user's conversations (web + Slack) flow through their own OpenClaw instance with isolated memory — user A's conversations never leak to user B. Web agent chat routes through OpenClaw instead of direct Claude API. Slack DM user maps to their OpenClaw instance.
+**Depends on:** Phase 24 (BYOK), Phase 23 (Sculptor Memory)
+**Success Criteria** (what must be TRUE):
+  1. Graphiti memory uses user-scoped group IDs (e.g., `user_{clerkId}`) instead of shared `tendhunt` group
+  2. Web agent chat API routes messages through user's OpenClaw instance
+  3. Slack bot maps DM sender to correct OpenClaw instance
+  4. Memory isolation verified: user A saves preference, user B cannot see it
+  5. Docker Compose template exists for spinning up per-user OpenClaw stack
+  6. For hackathon: 1-2 instances hard-coded with user mapping in settings
+**Plans:** TBD
+
+### Phase 27: Multi-Channel + Integrations
+
+**Goal:** Extend Sculptor beyond Slack to WhatsApp and Telegram, plus add MCP tool integrations (LinkedIn scraping, Google search, website scraping) that users can configure in settings. Settings UI shows "Connected Channels" with status indicators and "Integrations" with toggle/API key inputs per tool.
+**Depends on:** Phase 26 (Per-User OpenClaw)
+**Success Criteria** (what must be TRUE):
+  1. WhatsApp Business API connector for OpenClaw instances
+  2. Telegram bot connector for OpenClaw instances
+  3. Settings UI: "Connected Channels" section showing Slack/WhatsApp/Telegram with connect buttons and status
+  4. Settings UI: "Integrations" section showing available MCP tools (LinkedIn, Google, website scraper) with toggle and API key inputs
+  5. MCP tools configurable per user — their Apify key for LinkedIn, etc.
+  6. Sculptor can use configured integrations in conversations
+**Plans:** TBD
