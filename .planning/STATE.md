@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 22 IN PROGRESS (3/5 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 22 IN PROGRESS (4/5 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 22-crm-pipeline-procurement-inbox IN PROGRESS (3/5 plans)
-Plan: 22-03 COMPLETE -- Send to Inbox button integrated into contract, buyer, and scanner pages
-Status: Phase 22 plan 03 complete -- SendToInboxButton component in 3 entity pages
-Last activity: 2026-02-13 - Completed 22-03: Send to Inbox button integration
+Phase: 22-crm-pipeline-procurement-inbox IN PROGRESS (4/5 plans)
+Plan: 22-04 COMPLETE -- Card detail sheet with notes, priority, source link, archive/delete
+Status: Phase 22 plan 04 complete -- CardDetailSheet + CardNotes wired to Kanban board
+Last activity: 2026-02-13 - Completed 22-04: Card detail sheet and notes system
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15, 22 in progress)
 
@@ -43,10 +43,10 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15, 22 in progress)
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
 | 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
 | 20-board-minutes-signals | 4/4 | 8 min | 2 min |
-| 22-crm-pipeline-procurement-inbox | 3/5 | 3 min | 1 min |
+| 22-crm-pipeline-procurement-inbox | 4/5 | 4 min | 1 min |
 
 **Recent Trend:**
-- Last 5 plans: 22-03 (2 min), 22-01 (1 min), 20-04 (2 min), 20-01 (2 min), 20-02 (2 min)
+- Last 5 plans: 22-04 (1 min), 22-03 (2 min), 22-01 (1 min), 20-04 (2 min), 20-01 (2 min)
 - Trend: Consistent ~1-2 min per plan
 
 *Updated after each plan completion*
@@ -274,6 +274,9 @@ Recent decisions affecting current work:
 - [22-02]: AnimatePresence for card enter/exit animations in columns
 - [22-03]: SendToInboxButton replaces Track Opportunity (contracts) and Export Report (buyers) -- one CTA per entity
 - [22-03]: Scanner type to entity type mapping: rfps->contract, meetings->signal, buyers->buyer
+- [22-04]: Dialog for delete confirmation (no alert-dialog component available)
+- [22-04]: onCardClick threaded board->column->card, works with PointerSensor 8px distance
+- [22-04]: Optimistic updates via onCardUpdate/onCardDelete callbacks with server rollback
 
 ### Pending Todos
 
@@ -309,5 +312,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-13
-Stopped at: Completed 22-03 -- Send to Inbox button integration (contract, buyer, scanner entity pages)
-Next: 22-04 (card detail panel), 22-05 (automation rules), then 11-02 (spend intelligence), 15-02 (entity linking).
+Stopped at: Completed 22-04 -- Card detail sheet with notes, priority, source link, archive/delete
+Next: 22-05 (automation rules), then 11-02 (spend intelligence), 15-02 (entity linking).
