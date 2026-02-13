@@ -1,4 +1,11 @@
-import type { OcdsRelease, MappedContract } from "../types";
+import type {
+  OcdsRelease,
+  MappedContract,
+  MappedContractDocument,
+  MappedContractLot,
+  MappedContractLotCriterion,
+  MappedBuyerContact,
+} from "../types";
 
 // ---------------------------------------------------------------------------
 // CPV 2-digit division -> sector mapping (EU standard vocabulary)
@@ -58,6 +65,78 @@ export function deriveSectorFromCpv(cpvCode?: string): string | undefined {
   if (!cpvCode) return undefined;
   const division = cpvCode.slice(0, 2);
   return CPV_SECTOR_MAP[division];
+}
+
+// ---------------------------------------------------------------------------
+// Rich field extraction helpers
+// ---------------------------------------------------------------------------
+
+function extractDocuments(
+  release: OcdsRelease
+): MappedContractDocument[] {
+  const docs = release.tender?.documents;
+  if (!docs || !Array.isArray(docs)) return [];
+  return docs.map((d) => ({
+    id: d.id ?? undefined,
+    documentType: d.documentType ?? undefined,
+    description: d.description ?? undefined,
+    url: d.url ?? undefined,
+    datePublished: d.datePublished ?? undefined,
+    format: d.format ?? undefined,
+  }));
+}
+
+function extractLots(release: OcdsRelease): MappedContractLot[] {
+  const lots = release.tender?.lots;
+  if (!lots || !Array.isArray(lots)) return [];
+  return lots.map((lot) => {
+    const criteria: MappedContractLotCriterion[] = [];
+    const rawCriteria = lot.awardCriteria?.criteria;
+    if (rawCriteria && Array.isArray(rawCriteria)) {
+      for (const c of rawCriteria) {
+        const weight = c.numbers?.[0]?.number ?? null;
+        criteria.push({
+          name: c.description ?? c.type ?? "Unknown",
+          criteriaType: c.type ?? "unknown",
+          weight: weight != null && isFinite(weight) ? weight : null,
+        });
+      }
+    }
+
+    const variantPolicy =
+      lot.submissionTerms?.variantPolicy ?? lot.variants?.policy ?? null;
+
+    return {
+      lotId: lot.id ?? "",
+      title: lot.title ?? null,
+      description: lot.description ?? null,
+      value: lot.value?.amount ?? null,
+      currency: lot.value?.currency ?? "GBP",
+      contractPeriodDays: lot.contractPeriod?.durationInDays ?? null,
+      hasRenewal: lot.renewal?.description != null,
+      renewalDescription: lot.renewal?.description ?? null,
+      hasOptions: lot.options?.description != null,
+      optionsDescription: lot.options?.description ?? null,
+      variantPolicy,
+      status: lot.status ?? null,
+      awardCriteria: criteria,
+    };
+  });
+}
+
+function extractBuyerContact(
+  release: OcdsRelease
+): MappedBuyerContact | null {
+  const buyerParty = release.parties?.find((p) =>
+    p.roles?.some((r) => r.toLowerCase() === "buyer")
+  );
+  const cp = buyerParty?.contactPoint;
+  if (!cp || (!cp.name && !cp.email && !cp.telephone)) return null;
+  return {
+    name: cp.name ?? null,
+    email: cp.email ?? null,
+    telephone: cp.telephone ?? null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -131,6 +210,15 @@ export function mapOcdsToContract(
   const amount = release.tender?.value?.amount ?? null;
   const minAmount = release.tender?.minValue?.amount ?? null;
 
+  // Rich procurement fields
+  const documents = extractDocuments(release);
+  const lots = extractLots(release);
+  const buyerContact = extractBuyerContact(release);
+
+  const maxLotsBid = release.tender?.lotDetails?.maximumLotsBidPerSupplier;
+  const maxLotsBidPerSupplier =
+    maxLotsBid != null && isFinite(maxLotsBid) ? maxLotsBid : null;
+
   return {
     ocid: release.ocid ?? null,
     noticeId,
@@ -153,5 +241,14 @@ export function mapOcdsToContract(
       ? new Date(release.tender.tenderPeriod.endDate)
       : null,
     rawData: release,
+    procurementMethod: release.tender?.procurementMethod ?? null,
+    procurementMethodDetails: release.tender?.procurementMethodDetails ?? null,
+    submissionMethod: release.tender?.submissionMethod ?? [],
+    submissionPortalUrl: release.tender?.submissionMethodDetails ?? null,
+    buyerContact,
+    documents,
+    lots,
+    lotCount: lots.length,
+    maxLotsBidPerSupplier,
   };
 }

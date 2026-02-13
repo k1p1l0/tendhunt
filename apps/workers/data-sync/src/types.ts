@@ -25,6 +25,42 @@ export interface OcdsRelease {
       description?: string;
       classification?: { id?: string; description?: string; scheme?: string };
     }>;
+    procurementMethod?: string;
+    procurementMethodDetails?: string;
+    submissionMethod?: string[];
+    submissionMethodDetails?: string;
+    lotDetails?: {
+      maximumLotsBidPerSupplier?: number;
+    };
+    documents?: Array<{
+      id?: string;
+      documentType?: string;
+      description?: string;
+      url?: string;
+      datePublished?: string;
+      format?: string;
+    }>;
+    lots?: Array<{
+      id?: string;
+      title?: string;
+      description?: string;
+      status?: string;
+      value?: { amount?: number; currency?: string };
+      contractPeriod?: { durationInDays?: number };
+      renewal?: { description?: string };
+      options?: { description?: string };
+      variants?: { policy?: string };
+      submissionTerms?: { variantPolicy?: string };
+      awardCriteria?: {
+        criteria?: Array<{
+          type?: string;
+          description?: string;
+          numbers?: Array<{
+            number?: number;
+          }>;
+        }>;
+      };
+    }>;
   };
   parties?: Array<{
     id?: string;
@@ -58,6 +94,43 @@ export interface OcdsRelease {
 // Matches existing Contract Mongoose schema in src/models/contract.ts
 // ---------------------------------------------------------------------------
 
+export interface MappedContractDocument {
+  id?: string;
+  documentType?: string;
+  description?: string;
+  url?: string;
+  datePublished?: string;
+  format?: string;
+}
+
+export interface MappedContractLotCriterion {
+  name: string;
+  criteriaType: string;
+  weight: number | null;
+}
+
+export interface MappedContractLot {
+  lotId: string;
+  title: string | null;
+  description: string | null;
+  value: number | null;
+  currency: string;
+  contractPeriodDays: number | null;
+  hasRenewal: boolean;
+  renewalDescription: string | null;
+  hasOptions: boolean;
+  optionsDescription: string | null;
+  variantPolicy: string | null;
+  status: string | null;
+  awardCriteria: MappedContractLotCriterion[];
+}
+
+export interface MappedBuyerContact {
+  name: string | null;
+  email: string | null;
+  telephone: string | null;
+}
+
 export interface MappedContract {
   ocid: string | null;
   noticeId: string;
@@ -79,6 +152,15 @@ export interface MappedContract {
   deadlineDate: Date | null;
   rawData: unknown;
   buyerId?: ObjectId | null;
+  procurementMethod: string | null;
+  procurementMethodDetails: string | null;
+  submissionMethod: string[];
+  submissionPortalUrl: string | null;
+  buyerContact: MappedBuyerContact | null;
+  documents: MappedContractDocument[];
+  lots: MappedContractLot[];
+  lotCount: number;
+  maxLotsBidPerSupplier: number | null;
 }
 
 // ---------------------------------------------------------------------------
