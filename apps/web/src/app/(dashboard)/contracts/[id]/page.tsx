@@ -88,6 +88,8 @@ export default async function ContractDetailPage({
           currency: contract.currency,
           publishedDate: contract.publishedDate,
           deadlineDate: contract.deadlineDate,
+          contractStartDate: contract.contractStartDate,
+          contractEndDate: contract.contractEndDate,
           vibeScore: contract.vibeScore,
           vibeReasoning: contract.vibeReasoning,
           procurementMethod: contract.procurementMethod,

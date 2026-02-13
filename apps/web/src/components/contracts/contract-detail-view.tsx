@@ -93,6 +93,8 @@ interface ContractDetailData {
   currency?: string | null;
   publishedDate?: string | Date | null;
   deadlineDate?: string | Date | null;
+  contractStartDate?: string | Date | null;
+  contractEndDate?: string | Date | null;
   vibeScore?: number | null;
   vibeReasoning?: string | null;
   procurementMethod?: string | null;
@@ -255,12 +257,16 @@ function ContractTimeline({
   title,
   publishedDate,
   deadlineDate,
+  contractStartDate,
+  contractEndDate,
 }: {
   stage?: string | null;
   status: string;
   title: string;
   publishedDate?: string | Date | null;
   deadlineDate?: string | Date | null;
+  contractStartDate?: string | Date | null;
+  contractEndDate?: string | Date | null;
 }) {
   const currentPhase: TimelinePhase =
     stage === "PLANNING" ? "planning" : stage === "AWARD" ? "award" : "tender";
@@ -269,33 +275,40 @@ function ContractTimeline({
   const deadline = deadlineDate ? formatDate(deadlineDate) : null;
   const deadlineDateObj = deadlineDate ? new Date(deadlineDate) : null;
   const deadlineRelative = deadlineDateObj ? relativeTime(deadlineDateObj) : null;
+  const startDate = contractStartDate ? formatDate(contractStartDate) : null;
+  const endDate = contractEndDate ? formatDate(contractEndDate) : null;
+  const endDateObj = contractEndDate ? new Date(contractEndDate) : null;
+  const endDateRelative = endDateObj ? relativeTime(endDateObj) : null;
 
-  const phaseOrder: TimelinePhase[] = ["planning", "tender", "award"];
-  const currentIdx = phaseOrder.indexOf(currentPhase);
+  const hasTenderData = currentPhase === "tender" || (currentPhase === "award" && deadlineDate != null);
 
   const phases: {
     id: TimelinePhase;
     label: string;
     isActive: boolean;
     isCompleted: boolean;
+    hasData: boolean;
   }[] = [
     {
       id: "planning",
       label: "Pre-tender",
       isActive: currentPhase === "planning",
-      isCompleted: currentIdx > 0,
+      isCompleted: currentPhase === "tender" || currentPhase === "award",
+      hasData: false,
     },
     {
       id: "tender",
       label: "Tender",
       isActive: currentPhase === "tender",
-      isCompleted: currentIdx > 1,
+      isCompleted: currentPhase === "award" && hasTenderData,
+      hasData: hasTenderData,
     },
     {
       id: "award",
-      label: status === "AWARDED" ? "Awarded contract" : "Award",
+      label: status === "AWARDED" || status === "CLOSED" ? "Awarded contract" : "Award",
       isActive: currentPhase === "award",
       isCompleted: false,
+      hasData: currentPhase === "award",
     },
   ];
 
@@ -305,8 +318,8 @@ function ContractTimeline({
       <div className="space-y-0">
         {phases.map((phase, idx) => {
           const isLast = idx === phases.length - 1;
-          const isReached = phase.isActive || phase.isCompleted;
           const isCurrent = phase.isActive;
+          const showNotIdentified = !phase.hasData && !isCurrent;
 
           return (
             <div key={phase.id} className="flex gap-4">
@@ -342,7 +355,7 @@ function ContractTimeline({
                   >
                     {phase.label}
                   </span>
-                  {!isReached && (
+                  {showNotIdentified && (
                     <span className="text-sm text-muted-foreground/50">
                       Not identified
                     </span>
@@ -355,10 +368,10 @@ function ContractTimeline({
                   )}
                 </div>
 
-                {/* Tender phase dates: published + deadline */}
-                {phase.id === "tender" && isReached && (published || deadline) && (
+                {/* Tender phase dates */}
+                {phase.id === "tender" && phase.hasData && (
                   <div className="mt-2 space-y-1.5">
-                    {published && (
+                    {published && currentPhase === "tender" && (
                       <div className="flex items-baseline gap-6">
                         <span className="text-sm text-muted-foreground w-20">Published</span>
                         <span className="text-sm">{published}</span>
@@ -380,13 +393,34 @@ function ContractTimeline({
                   </div>
                 )}
 
-                {/* Award phase dates: published (award notice date) */}
-                {phase.id === "award" && isCurrent && published && (
+                {/* Award phase dates */}
+                {phase.id === "award" && isCurrent && (
                   <div className="mt-2 space-y-1.5">
-                    <div className="flex items-baseline gap-6">
-                      <span className="text-sm text-muted-foreground w-20">Published</span>
-                      <span className="text-sm">{published}</span>
-                    </div>
+                    {published && (
+                      <div className="flex items-baseline gap-6">
+                        <span className="text-sm text-muted-foreground w-20">Published</span>
+                        <span className="text-sm">{published}</span>
+                      </div>
+                    )}
+                    {startDate && (
+                      <div className="flex items-baseline gap-6">
+                        <span className="text-sm text-muted-foreground w-20">Start</span>
+                        <span className="text-sm">{startDate}</span>
+                      </div>
+                    )}
+                    {endDate && (
+                      <div className="flex items-baseline gap-6">
+                        <span className="text-sm text-muted-foreground w-20">Expiry</span>
+                        <span className="text-sm">
+                          {endDate}
+                          {endDateRelative && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {endDateRelative}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1044,6 +1078,8 @@ export function ContractDetailView({
             title={contract.title}
             publishedDate={contract.publishedDate}
             deadlineDate={contract.deadlineDate}
+            contractStartDate={contract.contractStartDate}
+            contractEndDate={contract.contractEndDate}
           />
 
           {/* Description */}

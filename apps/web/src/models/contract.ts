@@ -45,6 +45,8 @@ const contractSchema = new Schema(
     // Dates
     publishedDate: { type: Date, index: true },
     deadlineDate: { type: Date, index: true },
+    contractStartDate: { type: Date },
+    contractEndDate: { type: Date },
 
     // Procurement method
     procurementMethod: { type: String },
