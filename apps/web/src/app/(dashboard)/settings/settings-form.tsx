@@ -20,7 +20,8 @@ import { DocumentsSection } from "@/components/settings/documents-section";
 import { ApiKeysSection } from "@/components/settings/api-keys-section";
 import { AiKeysSection } from "@/components/settings/ai-keys-section";
 import { AiConfigSection } from "@/components/settings/ai-config-section";
-import { SlackIntegrationSection } from "@/components/settings/slack-integration-section";
+import { ChannelsSection } from "@/components/settings/channels-section";
+import { IntegrationsSection } from "@/components/settings/integrations-section";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
 
@@ -426,12 +427,20 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         <AiKeysSection />
       </section>
 
-      {/* Section 6: Slack Integration */}
+      {/* Section 6: Connected Channels */}
       <section>
         <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
-          Slack Integration
+          Connected Channels
         </h2>
-        <SlackIntegrationSection />
+        <ChannelsSection />
+      </section>
+
+      {/* Section 7: Tool Integrations */}
+      <section>
+        <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
+          Tool Integrations
+        </h2>
+        <IntegrationsSection />
       </section>
     </>
   );

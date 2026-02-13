@@ -5,19 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { DocumentDropzone } from "./document-dropzone";
-import { ProfileReview, type ProfileData } from "./profile-review";
-import {
-  CompanyInfoForm,
-  type CompanyInfo,
-} from "./company-info-form";
+import { ProfileReview } from "./profile-review";
+import { MeetSculptor } from "./meet-sculptor";
+import { CompanyInfoForm } from "./company-info-form";
 import { completeOnboarding } from "@/app/onboarding/_actions";
 import { AlertTriangle, Check } from "lucide-react";
 import { AiAnalysisProgress } from "./ai-analysis-progress";
+
+import type { ProfileData } from "./profile-review";
+import type { CompanyInfo } from "./company-info-form";
 
 const STEPS = [
   { label: "Upload", number: 1 },
   { label: "Generate", number: 2 },
   { label: "Review", number: 3 },
+  { label: "Sculptor", number: 4 },
 ] as const;
 
 const EMPTY_PROFILE: ProfileData = {
@@ -36,7 +38,8 @@ const EMPTY_PROFILE: ProfileData = {
 };
 
 export function OnboardingWizard() {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [slackWizardOpen, setSlackWizardOpen] = useState(false);
   const [documentKeys, setDocumentKeys] = useState<string[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     companyName: "",
@@ -198,10 +201,8 @@ export function OnboardingWizard() {
           return;
         }
 
-        // Full page reload to refresh Clerk session token with updated publicMetadata
-        // NOTE: Do NOT use router.push() -- Clerk session token needs a full page
-        // load to pick up the new onboardingComplete metadata (Pitfall 4)
-        window.location.href = "/dashboard";
+        // After saving profile, show the "Meet Sculptor" step
+        setStep(4);
       } catch (err) {
         setSaveError(
           err instanceof Error
@@ -214,6 +215,11 @@ export function OnboardingWizard() {
     },
     [documentKeys, isAIGenerated, logoUrl]
   );
+
+  const handleFinishOnboarding = useCallback(() => {
+    // Full page reload to refresh Clerk session token with updated publicMetadata
+    window.location.href = "/dashboard";
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-2xl">
@@ -380,6 +386,22 @@ export function OnboardingWizard() {
                 isSaving={isSaving}
                 isAIGenerated={isAIGenerated}
                 logoUrl={logoUrl}
+              />
+            </CardContent>
+          </>
+        )}
+
+        {/* Step 4: Meet Sculptor */}
+        {step === 4 && (
+          <>
+            <CardHeader>
+              <CardTitle>Meet Your AI Assistant</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MeetSculptor
+                onContinue={handleFinishOnboarding}
+                onConnectSlack={() => setSlackWizardOpen(true)}
+                onSkip={handleFinishOnboarding}
               />
             </CardContent>
           </>
