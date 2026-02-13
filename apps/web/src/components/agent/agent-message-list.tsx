@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AgentMessage } from "./agent-message";
 import { SuggestedActions } from "./suggested-actions";
 import { EnrichmentConfirm } from "./enrichment-confirm";
+import { EnrichmentProgress } from "./enrichment-progress";
 import { useAgentStore } from "@/stores/agent-store";
 
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
@@ -42,6 +43,7 @@ export function AgentMessageList({
 }: AgentMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const enrichmentConfirmation = useAgentStore((s) => s.enrichmentConfirmation);
+  const activeEnrichment = useAgentStore((s) => s.activeEnrichment);
 
   useEffect(() => {
     const el = scrollContainerRef.current;
@@ -75,6 +77,10 @@ export function AgentMessageList({
 
       {enrichmentConfirmation && !isStreaming && (
         <EnrichmentConfirm onConfirm={onSend} />
+      )}
+
+      {activeEnrichment && activeEnrichment.stages.length > 0 && (
+        <EnrichmentProgress />
       )}
 
       {showTypingIndicator && <TypingIndicator />}

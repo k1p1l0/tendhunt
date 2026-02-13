@@ -277,7 +277,7 @@ export function useAgent(): UseAgentReturn {
   }, [sendMessage]);
 
   const startEnrichmentStream = useCallback(
-    (buyerId: string, buyerName: string, messageId: string) => {
+    async (buyerId: string, buyerName: string, messageId: string) => {
       const store = useAgentStore.getState();
       store.setActiveEnrichment({
         buyerId,
@@ -287,49 +287,70 @@ export function useAgent(): UseAgentReturn {
         startedAt: new Date(),
       });
 
-      const eventSource = new EventSource(`/api/enrichment/${buyerId}/progress`);
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as Record<string, unknown>;
-          const s = useAgentStore.getState();
-
-          switch (data.type) {
-            case "init": {
-              const stages = data.stages as Array<{ name: string; label: string; status: string }>;
-              s.setActiveEnrichment({
-                buyerId,
-                buyerName,
-                messageId,
-                stages: stages.map((st) => ({
-                  name: st.name,
-                  label: st.label,
-                  status: st.status as "pending",
-                })),
-                startedAt: new Date(),
-              });
-              break;
-            }
-            case "stage_active":
-              s.updateEnrichmentStage(data.stage as string, "active");
-              break;
-            case "stage_complete":
-              s.updateEnrichmentStage(data.stage as string, "complete");
-              break;
-            case "done":
-              s.completeEnrichment(data.enrichmentScore as number);
-              eventSource.close();
-              break;
-          }
-        } catch {
-          // skip malformed events
+      try {
+        const response = await fetch(`/api/enrichment/${buyerId}/progress`);
+        if (!response.ok || !response.body) {
+          useAgentStore.getState().completeEnrichment();
+          return;
         }
-      };
 
-      eventSource.onerror = () => {
-        eventSource.close();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
+              const s = useAgentStore.getState();
+
+              switch (data.type) {
+                case "init": {
+                  const stages = data.stages as Array<{ name: string; label: string; status: string }>;
+                  s.setActiveEnrichment({
+                    buyerId,
+                    buyerName,
+                    messageId,
+                    stages: stages.map((st) => ({
+                      name: st.name,
+                      label: st.label,
+                      status: st.status as "pending",
+                    })),
+                    startedAt: new Date(),
+                  });
+                  break;
+                }
+                case "stage_active":
+                  s.updateEnrichmentStage(data.stage as string, "active");
+                  break;
+                case "stage_complete":
+                  s.updateEnrichmentStage(data.stage as string, "complete");
+                  break;
+                case "done":
+                  s.completeEnrichment(data.enrichmentScore as number);
+                  break;
+              }
+            } catch {
+              // skip malformed events
+            }
+          }
+        }
+
+        // Stream ended — ensure we mark as complete
+        const final = useAgentStore.getState();
+        if (final.activeEnrichment && !final.activeEnrichment.completedAt) {
+          final.completeEnrichment();
+        }
+      } catch {
         useAgentStore.getState().completeEnrichment();
-      };
+      }
     },
     []
   );
