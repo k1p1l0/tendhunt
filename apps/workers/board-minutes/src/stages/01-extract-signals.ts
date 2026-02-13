@@ -425,7 +425,6 @@ async function processOneBuyer(
               dates: Array.isArray(entities.dates) ? entities.dates : [],
               people: Array.isArray(entities.people) ? entities.people : [],
             },
-            createdAt: now,
             updatedAt: now,
           };
 
