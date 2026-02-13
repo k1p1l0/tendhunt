@@ -79,18 +79,6 @@ const SIGNAL_TYPES = [
   "REGULATORY",
 ] as const;
 
-const STAGES = [
-  { value: "TENDER", label: "Tender" },
-  { value: "AWARD", label: "Award" },
-  { value: "PLANNING", label: "Planning" },
-] as const;
-
-const STATUSES = [
-  { value: "OPEN", label: "Open" },
-  { value: "CLOSED", label: "Closed" },
-  { value: "CANCELLED", label: "Cancelled" },
-] as const;
-
 interface Filters {
   sector?: string;
   region?: string;
@@ -100,8 +88,6 @@ interface Filters {
   signalType?: string;
   dateFrom?: string;
   dateTo?: string;
-  stage?: string;
-  status?: string;
 }
 
 export function EditScannerDialog({
@@ -137,8 +123,6 @@ export function EditScannerDialog({
         signalType: (scanner.filters?.signalType as string) || undefined,
         dateFrom: (scanner.filters?.dateFrom as string) || undefined,
         dateTo: (scanner.filters?.dateTo as string) || undefined,
-        stage: (scanner.filters?.stage as string) || undefined,
-        status: (scanner.filters?.status as string) || undefined,
       });
       setError(null);
     }
@@ -170,8 +154,6 @@ export function EditScannerDialog({
     if (filters.signalType) cleanFilters.signalType = filters.signalType;
     if (filters.dateFrom) cleanFilters.dateFrom = filters.dateFrom;
     if (filters.dateTo) cleanFilters.dateTo = filters.dateTo;
-    if (filters.stage) cleanFilters.stage = filters.stage;
-    if (filters.status) cleanFilters.status = filters.status;
 
     try {
       const res = await fetch(`/api/scanners/${scanner._id}`, {
@@ -356,46 +338,6 @@ function RfpFilters({
 }) {
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Stage</Label>
-          <Select
-            value={filters.stage || "all"}
-            onValueChange={(v) => onChange("stage", v)}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="All Stages" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Stages</SelectItem>
-              {STAGES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Status</Label>
-          <Select
-            value={filters.status || "all"}
-            onValueChange={(v) => onChange("status", v)}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label className="text-xs">Sector</Label>
