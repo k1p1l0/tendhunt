@@ -7,8 +7,9 @@ export async function getDb(mongoUri: string): Promise<Db> {
     const opts = {
       maxPoolSize: 1,
       minPoolSize: 0,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 20000,
+      socketTimeoutMS: 30000,
     } as MongoClientOptions;
     client = new MongoClient(mongoUri, opts);
     try {
