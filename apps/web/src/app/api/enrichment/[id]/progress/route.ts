@@ -80,54 +80,65 @@ export async function GET(
         `${ENRICHMENT_WORKER_URL}/run-buyer?id=${encodeURIComponent(buyerId)}`
       ).then((r) => r.json()).catch(() => null);
 
-      // Progressive stage updates based on estimated timing
-      let currentStage = 0;
-      for (const stage of allStages) {
+      // Phase 1: Enrichment stages — simulate progress while worker runs
+      for (let i = 0; i < ENRICHMENT_STAGES.length; i++) {
         if (cancelled) break;
-        if (currentStage >= ENRICHMENT_STAGES.length && currentStage === ENRICHMENT_STAGES.length) {
-          // Wait for enrichment to finish before starting spend stages
-          await enrichmentPromise;
-          if (cancelled) break;
-
-          // Fire spend-ingest worker
-          fetch(
-            `${SPEND_INGEST_WORKER_URL}/run-buyer?id=${encodeURIComponent(buyerId)}`
-          ).catch(() => null);
-        }
-
+        const stage = ENRICHMENT_STAGES[i];
         send({ type: "stage_active", stage: stage.name, label: stage.label });
-
-        // Wait estimated time for this stage
-        const waitMs = (stageTimings[currentStage] ?? 3) * 1000;
+        const waitMs = (stageTimings[i] ?? 3) * 1000;
         await new Promise((resolve) => setTimeout(resolve, waitMs));
         if (cancelled) break;
-
         send({ type: "stage_complete", stage: stage.name, label: stage.label });
-        currentStage++;
       }
 
-      if (!cancelled) {
-        // Fetch updated buyer data
-        const updatedBuyer = await Buyer.findById(buyerId)
-          .select("name enrichmentScore lastEnrichedAt orgType website logoUrl linkedinUrl staffCount")
-          .lean();
+      // Wait for enrichment worker to actually finish before proceeding
+      await enrichmentPromise;
+      if (cancelled) { controller.close(); return; }
 
-        send({
-          type: "done",
-          buyerId,
-          buyerName: buyer.name,
-          enrichmentScore: updatedBuyer?.enrichmentScore ?? 0,
-          summary: {
-            orgType: updatedBuyer?.orgType,
-            website: updatedBuyer?.website,
-            hasLogo: !!updatedBuyer?.logoUrl,
-            hasLinkedIn: !!updatedBuyer?.linkedinUrl,
-            staffCount: updatedBuyer?.staffCount,
-          },
-        });
+      // Tell client to refresh — enrichment data is now in DB
+      send({ type: "refresh" });
 
-        controller.close();
+      // Phase 2: Spend stages — fire worker and simulate progress
+      const spendPromise = fetch(
+        `${SPEND_INGEST_WORKER_URL}/run-buyer?id=${encodeURIComponent(buyerId)}`
+      ).then((r) => r.json()).catch(() => null);
+
+      for (let i = 0; i < SPEND_STAGES.length; i++) {
+        if (cancelled) break;
+        const stage = SPEND_STAGES[i];
+        send({ type: "stage_active", stage: stage.name, label: stage.label });
+        const waitMs = (stageTimings[ENRICHMENT_STAGES.length + i] ?? 3) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        if (cancelled) break;
+        send({ type: "stage_complete", stage: stage.name, label: stage.label });
       }
+
+      // Wait for spend worker to actually finish
+      await spendPromise;
+      if (cancelled) { controller.close(); return; }
+
+      // Final refresh + done — all data is now in DB
+      send({ type: "refresh" });
+
+      const updatedBuyer = await Buyer.findById(buyerId)
+        .select("name enrichmentScore lastEnrichedAt orgType website logoUrl linkedinUrl staffCount")
+        .lean();
+
+      send({
+        type: "done",
+        buyerId,
+        buyerName: buyer.name,
+        enrichmentScore: updatedBuyer?.enrichmentScore ?? 0,
+        summary: {
+          orgType: updatedBuyer?.orgType,
+          website: updatedBuyer?.website,
+          hasLogo: !!updatedBuyer?.logoUrl,
+          hasLinkedIn: !!updatedBuyer?.linkedinUrl,
+          staffCount: updatedBuyer?.staffCount,
+        },
+      });
+
+      controller.close();
     },
     cancel() {
       cancelled = true;

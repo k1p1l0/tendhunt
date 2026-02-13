@@ -83,12 +83,11 @@ async function startEnrichmentDirect(buyerId: string, buyerName: string) {
               break;
             case "stage_complete":
               s.updateEnrichmentStage(data.stage as string, "complete");
-              // Trigger page refresh at key milestones
-              if (["logo_linkedin", "personnel", "score", "spend_aggregate"].includes(data.stage as string)) {
-                window.dispatchEvent(
-                  new CustomEvent("enrichment-complete", { detail: { buyerId } })
-                );
-              }
+              break;
+            case "refresh":
+              window.dispatchEvent(
+                new CustomEvent("enrichment-complete", { detail: { buyerId } })
+              );
               break;
             case "done":
               s.completeEnrichment(data.enrichmentScore as number);

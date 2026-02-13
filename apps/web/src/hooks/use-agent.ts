@@ -348,6 +348,11 @@ export function useAgent(): UseAgentReturn {
                 case "stage_complete":
                   s.updateEnrichmentStage(data.stage as string, "complete");
                   break;
+                case "refresh":
+                  window.dispatchEvent(
+                    new CustomEvent("enrichment-complete", { detail: { buyerId } })
+                  );
+                  break;
                 case "done":
                   s.completeEnrichment(data.enrichmentScore as number);
                   window.dispatchEvent(
