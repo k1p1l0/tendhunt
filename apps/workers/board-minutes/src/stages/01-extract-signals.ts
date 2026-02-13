@@ -216,7 +216,10 @@ export async function extractSignals(
     }
 
     const buyerFilter: Record<string, unknown> = {
-      dataSourceId: { $exists: true, $ne: null },
+      $or: [
+        { dataSourceId: { $exists: true, $ne: null } },
+        { enrichmentPriority: { $gte: 10 } },
+      ],
       _id: { $in: qualifyingBuyerIds },
     };
 
