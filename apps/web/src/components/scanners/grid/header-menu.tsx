@@ -16,6 +16,7 @@ import {
   Filter,
   Play,
   ChevronRight,
+  Inbox,
 } from "lucide-react";
 
 export interface RunColumnOptions {
@@ -46,6 +47,7 @@ interface HeaderMenuProps {
   uniqueValues?: string[];
   activeFilter?: string[];
   onFilter?: (columnId: string, values: string[]) => void;
+  onAutoRule?: () => void;
   onInsertColumn?: (side: "left" | "right") => void;
   onClose: () => void;
 }
@@ -70,6 +72,7 @@ export function HeaderMenu({
   onRunColumn,
   uniqueValues,
   activeFilter,
+  onAutoRule,
   onFilter,
   onInsertColumn,
   onClose,
@@ -303,6 +306,20 @@ export function HeaderMenu({
             </div>
           )}
         </div>
+      )}
+
+      {/* Auto-send to Inbox (AI columns only) */}
+      {isAiColumn && onAutoRule && (
+        <button
+          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+          onClick={() => {
+            onAutoRule();
+            onClose();
+          }}
+        >
+          <Inbox className="h-3.5 w-3.5 text-muted-foreground" />
+          Auto-send to Inbox
+        </button>
       )}
 
       {isAiColumn && <div className="h-px bg-border my-1" />}

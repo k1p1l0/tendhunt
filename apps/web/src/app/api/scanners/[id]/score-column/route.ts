@@ -5,14 +5,57 @@ import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import Buyer from "@/models/buyer";
 import CompanyProfile from "@/models/company-profile";
+import PipelineCard from "@/models/pipeline-card";
+import AutoSendRule from "@/models/auto-send-rule";
 import { generateScoringPrompt } from "@/lib/vibe-scanner";
 import {
   scoreOneEntity,
   buildScoringSystemPrompt,
 } from "@/lib/scoring-engine";
 import type { AIModel } from "@/lib/ai-column-config";
+import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
 import pLimit from "p-limit";
+
+const ENTITY_TYPE_MAP: Record<string, "contract" | "buyer" | "signal"> = {
+  rfps: "contract",
+  meetings: "signal",
+  buyers: "buyer",
+};
+
+function getEntityDisplayFields(
+  entity: Record<string, unknown>,
+  scannerType: ScannerType
+) {
+  switch (scannerType) {
+    case "rfps":
+      return {
+        title: String(entity.title || "Untitled Contract"),
+        subtitle: String(entity.description || "").slice(0, 200),
+        value: entity.valueMax as number | undefined,
+        buyerName: entity.buyerName as string | undefined,
+        sector: entity.sector as string | undefined,
+        deadlineDate: entity.deadlineDate as Date | undefined,
+      };
+    case "buyers":
+      return {
+        title: String(entity.name || "Unknown Buyer"),
+        subtitle: entity.description as string | undefined,
+        sector: entity.sector as string | undefined,
+      };
+    case "meetings":
+      return {
+        title: String(entity.title || "Untitled Signal"),
+        subtitle: entity.insight as string | undefined,
+        buyerName: entity.organizationName as string | undefined,
+        sector: entity.sector as string | undefined,
+      };
+    default:
+      return {
+        title: String(entity.title || entity.name || "Unknown"),
+      };
+  }
+}
 
 /**
  * POST /api/scanners/[id]/score-column
@@ -215,6 +258,16 @@ export async function POST(
       column.useCase
     );
 
+    // Load auto-send rules for this scanner + column (cached for entire run)
+    const autoSendRules = await AutoSendRule.find({
+      userId,
+      scannerId: id,
+      columnId: body.columnId,
+      isActive: true,
+    }).lean();
+
+    const entityType = ENTITY_TYPE_MAP[scanner.type as string] ?? "contract";
+
     // SSE stream with cancellation support
     const encoder = new TextEncoder();
     const concurrencyLimit = pLimit(2);
@@ -278,6 +331,49 @@ export async function POST(
                   value: result.response,
                   reasoning: result.reasoning,
                 });
+
+                // Auto-send check: create inbox cards for qualifying scores
+                if (
+                  result.score != null &&
+                  autoSendRules.length > 0
+                ) {
+                  for (const rule of autoSendRules) {
+                    if (result.score >= rule.threshold) {
+                      const displayFields = getEntityDisplayFields(
+                        entity,
+                        scanner.type as ScannerType
+                      );
+                      const position = await PipelineCard.countDocuments({
+                        userId,
+                        stage: rule.stage,
+                        isArchived: false,
+                      });
+                      void PipelineCard.findOneAndUpdate(
+                        { userId, entityType, entityId },
+                        {
+                          $setOnInsert: {
+                            userId,
+                            entityType,
+                            entityId,
+                            ...displayFields,
+                            stage: rule.stage,
+                            addedBy: "auto_rule",
+                            autoRuleId: String(rule._id),
+                            position,
+                            priority: "LOW",
+                            isArchived: false,
+                          },
+                        },
+                        { upsert: true }
+                      ).catch((err: unknown) => {
+                        console.error(
+                          "Auto-send rule card creation failed:",
+                          err instanceof Error ? err.message : err
+                        );
+                      });
+                    }
+                  }
+                }
 
                 send({
                   type: "progress",

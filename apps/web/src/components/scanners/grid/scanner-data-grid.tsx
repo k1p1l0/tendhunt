@@ -41,6 +41,7 @@ interface ScannerDataGridProps {
   onDeleteColumn?: (columnId: string) => void;
   onRowDoubleClick?: (row: Record<string, unknown>, columnMeta: { type: string; aiColumnId?: string }) => void;
   onInsertColumn?: (referenceColumnId: string, side: "left" | "right") => void;
+  onAutoRule?: (columnId: string, columnName: string) => void;
 }
 
 export function ScannerDataGrid({
@@ -57,6 +58,7 @@ export function ScannerDataGrid({
   onDeleteColumn,
   onRowDoubleClick,
   onInsertColumn,
+  onAutoRule,
 }: ScannerDataGridProps) {
   const [sortColumnIdx, setSortColumnIdx] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
@@ -908,6 +910,9 @@ export function ScannerDataGrid({
             uniqueValues={menuUniqueValues}
             activeFilter={menuActiveFilter}
             onFilter={setColumnFilter}
+            onAutoRule={onAutoRule && meta?.aiColumnId ? () => {
+              onAutoRule(meta.aiColumnId!, headerMenu.title);
+            } : undefined}
             onInsertColumn={onInsertColumn ? (side) => {
               onInsertColumn(meta?.id ?? "", side);
               setHeaderMenu(null);
