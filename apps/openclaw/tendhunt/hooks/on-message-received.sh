@@ -1,10 +1,17 @@
 #!/bin/bash
 # Pre-message hook: queries Graphiti for user context before Sculptor responds.
 # Env: SLACK_USER_ID, MESSAGE_TEXT, GRAPHITI_URL (default http://graphiti:8000)
+# Memory is user-scoped: each Slack user gets their own Graphiti group.
 # Outputs structured context block to stdout; empty on failure.
 
 GRAPHITI_URL="${GRAPHITI_URL:-http://graphiti:8000}"
-GROUP_ID="tendhunt"
+
+# User-scoped memory group: user_{SLACK_USER_ID} for isolation
+if [ -n "${SLACK_USER_ID:-}" ]; then
+  GROUP_ID="user_${SLACK_USER_ID}"
+else
+  GROUP_ID="tendhunt"
+fi
 
 # Sanitize MESSAGE_TEXT for JSON embedding (escape backslashes, quotes, newlines)
 sanitize_json() {

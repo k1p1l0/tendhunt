@@ -1,10 +1,17 @@
 #!/bin/bash
 # Post-response hook: saves conversation to Graphiti memory.
 # Env: SLACK_USER_ID, USER_MESSAGE, ASSISTANT_RESPONSE, GRAPHITI_URL (default http://graphiti:8000)
+# Memory is user-scoped: each Slack user gets their own Graphiti group.
 # Runs fire-and-forget; errors are silently ignored.
 
 GRAPHITI_URL="${GRAPHITI_URL:-http://graphiti:8000}"
-GROUP_ID="tendhunt"
+
+# User-scoped memory group: user_{SLACK_USER_ID} for isolation
+if [ -n "${SLACK_USER_ID:-}" ]; then
+  GROUP_ID="user_${SLACK_USER_ID}"
+else
+  GROUP_ID="tendhunt"
+fi
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Build a safe JSON body using python3 to handle all escaping

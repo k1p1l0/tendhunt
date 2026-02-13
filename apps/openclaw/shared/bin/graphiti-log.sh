@@ -2,10 +2,19 @@
 # Log a fact to Graphiti knowledge graph
 # Usage: graphiti-log.sh <role_type> <role> <content>
 # role_type: user | assistant | system
+# If GRAPHITI_GROUP is not set, defaults to user_{SLACK_USER_ID} or "tendhunt"
 set -euo pipefail
 
 GRAPHITI_URL="${GRAPHITI_URL:-http://graphiti:8000}"
-GROUP_ID="${GRAPHITI_GROUP:-tendhunt}"
+
+# Default group: user-scoped if SLACK_USER_ID is available, else "tendhunt"
+if [ -n "${GRAPHITI_GROUP:-}" ]; then
+  GROUP_ID="$GRAPHITI_GROUP"
+elif [ -n "${SLACK_USER_ID:-}" ]; then
+  GROUP_ID="user_${SLACK_USER_ID}"
+else
+  GROUP_ID="tendhunt"
+fi
 ROLE_TYPE="${1:?Usage: graphiti-log.sh <role_type> <role> <content>}"
 ROLE="${2:?Missing role (e.g. 'Sculptor', 'User')}"
 CONTENT="${3:?Missing content}"

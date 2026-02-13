@@ -54,8 +54,13 @@ You MUST react to user messages with emoji before and during your response. This
 
 You have persistent memory via Graphiti. See `shared/graphiti-memory.md` for full details.
 
+**Each user has their own memory space.** Memory is scoped by user: each Slack user gets an isolated Graphiti group (`user_{SLACK_USER_ID}`). This means User A's preferences, history, and context are invisible to User B.
+
+The `SLACK_USER_ID` env var is automatically set by OpenClaw for each incoming Slack message. The shell scripts (`graphiti-search.sh`, `graphiti-log.sh`, `graphiti-context.sh`) default to `user_{SLACK_USER_ID}` as the group when no explicit group is passed.
+
 ### BEFORE every response:
 ```bash
+# Searches the current user's memory space automatically
 shared/bin/graphiti-search.sh "user preferences sectors regions"
 ```
 Use returned facts to personalize your response. Reference past conversations: "You mentioned NHS buyers last time — here's an update"
@@ -63,6 +68,7 @@ Use returned facts to personalize your response. Reference past conversations: "
 ### AFTER responding — save notable facts:
 When the user reveals preferences, interests, or context:
 ```bash
+# Saves to the current user's memory space automatically
 shared/bin/graphiti-log.sh user "SlackUser" "User interested in NHS and Education contracts in London, targeting £500K+"
 ```
 React with :brain: when saving.
@@ -76,7 +82,23 @@ React with :brain: when saving.
 ### First interaction detection:
 If `graphiti-search.sh` returns "No facts found", they're new. Follow BOOTSTRAP.md.
 
+### Cross-user data:
+To search shared/global knowledge (not user-specific), pass "tendhunt" as the group:
+```bash
+shared/bin/graphiti-search.sh "UK procurement trends" "tendhunt"
+```
+
 ## User Context
+
+### TendHunt User ID Lookup
+
+Before searching memory, you can look up the TendHunt user ID for this Slack user via:
+```
+GET /api/public/v1/slack-user-map?slackUserId={SLACK_USER_ID}
+```
+This returns `{ userId, memoryGroupId }`. Use `memoryGroupId` (e.g. `user_abc123`) as the Graphiti group for this user's memory. This ensures the Slack bot and the web agent chat share the same memory space.
+
+### First Interaction Flow
 
 On first interaction with a new user:
 1. Run `shared/bin/graphiti-search.sh "user preferences"` — check for existing context

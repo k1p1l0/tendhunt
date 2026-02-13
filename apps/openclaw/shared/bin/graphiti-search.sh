@@ -1,11 +1,21 @@
 #!/usr/bin/env bash
 # Search Graphiti knowledge graph for facts
 # Usage: graphiti-search.sh "query" [group_id] [max_facts]
+# If group_id is omitted and SLACK_USER_ID is set, defaults to user_{SLACK_USER_ID}
 set -euo pipefail
 
 GRAPHITI_URL="${GRAPHITI_URL:-http://graphiti:8000}"
 QUERY="${1:?Usage: graphiti-search.sh \"query\" [group_id] [max_facts]}"
-GROUP_ID="${2:-tendhunt}"
+
+# Default group: user-scoped if SLACK_USER_ID is available, else "tendhunt"
+if [ -n "${2:-}" ]; then
+  GROUP_ID="$2"
+elif [ -n "${SLACK_USER_ID:-}" ]; then
+  GROUP_ID="user_${SLACK_USER_ID}"
+else
+  GROUP_ID="tendhunt"
+fi
+
 MAX_FACTS="${3:-10}"
 
 PAYLOAD=$(python3 -c "
