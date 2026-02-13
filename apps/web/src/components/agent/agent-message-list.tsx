@@ -76,7 +76,6 @@ export function AgentMessageList({
       </AnimatePresence>
 
       <EnrichmentConfirm
-        onConfirm={onSend}
         lastMessage={lastMessage}
         isStreaming={isStreaming}
       />
