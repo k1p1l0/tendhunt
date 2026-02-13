@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 7: Buying Signals** - Board minutes pre-tender signals display
 - [ ] **Phase 8: Landing & Pricing** - Marketing page and pricing tiers
 - [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
-- [ ] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
+- [x] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
 
 ## Phase Details
 
@@ -256,7 +256,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 20. Board Minutes Signals | 4/4 | ✓ Complete | 2026-02-12 |
 | 21. Slack Integration (OpenClaw) | 0/? | Not started | - |
-| 22. CRM Pipeline (Procurement Inbox) | 0/? | Not started | - |
+| 22. CRM Pipeline (Procurement Inbox) | 5/5 | ✓ Complete | 2026-02-13 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -472,8 +472,8 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 22-01-PLAN.md -- Models (PipelineCard, PipelineCardNote), stage constants, types, API routes (CRUD, reorder, notes)
-- [ ] 22-02-PLAN.md -- Kanban board UI: @dnd-kit DndContext, columns, cards, drag overlay, Zustand store, sidebar nav, breadcrumb
-- [ ] 22-03-PLAN.md -- "Send to Inbox" button component + integration into contract, buyer, and scanner entity pages
-- [ ] 22-04-PLAN.md -- Card detail sheet with notes/comments, priority controls, source entity link, archive/delete actions
-- [ ] 22-05-PLAN.md -- Scanner auto-send rules: AutoSendRule model, config dialog, scoring endpoint integration
+- [x] 22-01-PLAN.md -- Models (PipelineCard, PipelineCardNote), stage constants, types, API routes (CRUD, reorder, notes)
+- [x] 22-02-PLAN.md -- Kanban board UI: @dnd-kit DndContext, columns, cards, drag overlay, Zustand store, sidebar nav, breadcrumb
+- [x] 22-03-PLAN.md -- "Send to Inbox" button component + integration into contract, buyer, and scanner entity pages
+- [x] 22-04-PLAN.md -- Card detail sheet with notes/comments, priority controls, source entity link, archive/delete actions
+- [x] 22-05-PLAN.md -- Scanner auto-send rules: AutoSendRule model, config dialog, scoring endpoint integration

@@ -92,6 +92,17 @@ Requirements for hackathon investor demo. Each maps to roadmap phases.
 - [ ] **SLACK-07**: Slack bot responds to user queries with procurement data (search buyers, contracts, signals, spending) using the user's API key for scoped access
 - [ ] **SLACK-08**: API endpoints include rate limiting (100 requests/minute per key) and request logging
 
+### CRM Pipeline (Procurement Inbox)
+
+- [ ] **CRM-01**: New "Inbox" sidebar item opens a Kanban board view with 5 procurement-specific columns (New, Qualified, Preparing Bid, Submitted, Won/Lost)
+- [ ] **CRM-02**: CRM cards can reference any entity type (contracts, signals, buyers, scanner results) with source attribution badge
+- [ ] **CRM-03**: Users can drag-and-drop CRM cards between Kanban columns to update deal stage
+- [ ] **CRM-04**: "Send to CRM" button on contract detail, buyer detail, and signal pages creates a new CRM card in "New" column
+- [ ] **CRM-05**: Scanner auto-send rules configurable per AI column (threshold-based, e.g., "send to CRM when score > 7") creating CRM cards automatically
+- [ ] **CRM-06**: Each CRM card displays entity summary (title, org/buyer, value, source type), current stage, and timestamps (created, stage changed)
+- [ ] **CRM-07**: Users can add notes/comments to CRM cards for tracking bid preparation progress
+- [ ] **CRM-08**: CRM cards link back to source entity (contract, buyer, signal) for quick navigation
+
 ## v2 Requirements
 
 Deferred to post-hackathon. Tracked but not in current roadmap.
@@ -209,10 +220,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SLACK-06 | Phase 21: Slack Integration (OpenClaw) | Pending |
 | SLACK-07 | Phase 21: Slack Integration (OpenClaw) | Pending |
 | SLACK-08 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| CRM-01 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-02 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-03 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-04 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-05 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-06 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-07 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-08 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
 
 **Coverage:**
-- v1 requirements: 54 total
-- Mapped to phases: 54
+- v1 requirements: 62 total
+- Mapped to phases: 62
 - Unmapped: 0
 
 ---
