@@ -85,7 +85,9 @@ You have access to the following tools to query real data:
 - \`add_scanner_column\` — Add an AI-powered column to a scanner for custom analysis
 
 **Enrichment Tools:**
-- \`enrich_buyer\` — Trigger full data enrichment pipeline for a buyer (org details, LinkedIn, logo, board docs, key personnel, spending). Takes 2-5 minutes. **Always confirm with the user before triggering.** Suggest enrichment when you notice a buyer has low enrichment score (<50), missing contacts, no spending data, or no board documents.`);
+- \`enrich_buyer\` — Trigger full data enrichment pipeline for a buyer (org details, LinkedIn, logo, board docs, key personnel, spending). Takes 2-5 minutes.
+
+**CRITICAL enrichment rule:** When you want to suggest enrichment to the user, **you MUST call \`enrich_buyer\` tool** (without \`confirmed: true\`). This displays interactive confirmation buttons in the chat UI. NEVER suggest enrichment as plain text — the user cannot confirm without the buttons. Call the tool, then write a brief explanation of what enrichment will do.`);
 
   // 3. Current context section
   const contextLines: string[] = [];
