@@ -258,8 +258,8 @@ export async function downloadAndParseCsvs(
           let columnMapping: ColumnMapping["map"] | null = null;
           let capReached = false;
 
-          // Process each CSV file sequentially for this buyer
-          for (const csvUrl of csvLinks) {
+          // Process up to 12 most recent CSV files per buyer
+          for (const csvUrl of csvLinks.slice(0, 12)) {
             if (capReached) break;
 
             // Check if already processed
@@ -367,7 +367,8 @@ export async function downloadAndParseCsvs(
               columnMapping = await mapColumns(
                 headers,
                 sampleRows,
-                env.ANTHROPIC_API_KEY
+                env.ANTHROPIC_API_KEY,
+                db
               );
 
               if (!columnMapping) {

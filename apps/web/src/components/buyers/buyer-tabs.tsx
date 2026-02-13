@@ -9,10 +9,13 @@ import {
 import { ContractsTab } from "@/components/buyers/contracts-tab";
 import { ContactsTab } from "@/components/buyers/contacts-tab";
 import { SignalsTab } from "@/components/buyers/signals-tab";
-import { BoardDocumentsTab, type BoardDocumentData } from "@/components/buyers/board-documents-tab";
-import { KeyPersonnelTab, type KeyPersonnelData } from "@/components/buyers/key-personnel-tab";
+import { BoardDocumentsTab } from "@/components/buyers/board-documents-tab";
+import { KeyPersonnelTab } from "@/components/buyers/key-personnel-tab";
 import { AttributesTab } from "@/components/buyers/attributes-tab";
 import { SpendingTab } from "@/components/buyers/spending-tab";
+
+import type { BoardDocumentData } from "@/components/buyers/board-documents-tab";
+import type { KeyPersonnelData } from "@/components/buyers/key-personnel-tab";
 import type { LinkedinData } from "@/components/buyers/buyer-detail-client";
 
 interface ContractData {
@@ -82,55 +85,58 @@ export function BuyerTabs(props: BuyerTabsProps) {
 
   return (
     <Tabs defaultValue={activeTab} className="w-full">
-      <TabsList>
-        <TabsTrigger value="spending">
+      <TabsList
+        variant="line"
+        className="w-full justify-start gap-6 border-b border-border overflow-x-auto"
+      >
+        <TabsTrigger value="spending" className="text-sm">
           Spending{props.spendTransactionCount ? ` (${props.spendTransactionCount.toLocaleString()})` : ""}
         </TabsTrigger>
-        <TabsTrigger value="contracts">
+        <TabsTrigger value="contracts" className="text-sm">
           Contracts ({props.buyer.contractCount || props.contracts.length})
         </TabsTrigger>
-        <TabsTrigger value="contacts">
+        <TabsTrigger value="contacts" className="text-sm">
           Key Contacts ({contactCount})
         </TabsTrigger>
-        <TabsTrigger value="signals">
+        <TabsTrigger value="signals" className="text-sm">
           Buying Signals ({props.signals.length})
         </TabsTrigger>
-        <TabsTrigger value="board-documents">
+        <TabsTrigger value="board-documents" className="text-sm">
           Board Documents ({props.boardDocuments.length})
         </TabsTrigger>
-        <TabsTrigger value="key-personnel">
+        <TabsTrigger value="key-personnel" className="text-sm">
           Key Personnel ({props.keyPersonnel.length})
         </TabsTrigger>
-        <TabsTrigger value="attributes">
+        <TabsTrigger value="attributes" className="text-sm">
           Buyer Attributes
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="spending" className="mt-4">
+      <TabsContent value="spending" className="mt-6">
         <SpendingTab buyerId={props.buyer._id} buyerName={props.buyerName} />
       </TabsContent>
 
-      <TabsContent value="contracts" className="mt-4">
+      <TabsContent value="contracts" className="mt-6">
         <ContractsTab contracts={props.contracts} />
       </TabsContent>
 
-      <TabsContent value="contacts" className="mt-4">
+      <TabsContent value="contacts" className="mt-6">
         <ContactsTab contacts={props.contacts} />
       </TabsContent>
 
-      <TabsContent value="signals" className="mt-4">
-        <SignalsTab signals={props.signals} />
+      <TabsContent value="signals" className="mt-6">
+        <SignalsTab signals={props.signals} hasBoardDocuments={props.boardDocuments.length > 0} />
       </TabsContent>
 
-      <TabsContent value="board-documents" className="mt-4">
+      <TabsContent value="board-documents" className="mt-6">
         <BoardDocumentsTab documents={props.boardDocuments} />
       </TabsContent>
 
-      <TabsContent value="key-personnel" className="mt-4">
+      <TabsContent value="key-personnel" className="mt-6">
         <KeyPersonnelTab personnel={props.keyPersonnel} />
       </TabsContent>
 
-      <TabsContent value="attributes" className="mt-4">
+      <TabsContent value="attributes" className="mt-6">
         <AttributesTab buyer={props.buyer} />
       </TabsContent>
     </Tabs>

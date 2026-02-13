@@ -21,19 +21,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, Database, Sparkles } from "lucide-react";
-import {
-  ENTITY_FIELDS,
-  type DataType,
-  type EntityField,
-} from "@/components/scanners/table-columns";
+import { ENTITY_FIELDS } from "@/components/scanners/table-columns";
+import type { DataType, EntityField } from "@/components/scanners/table-columns";
 import type { ScannerType } from "@/models/scanner";
 import {
   AI_USE_CASES,
   AI_MODELS,
   PROMPT_TEMPLATES,
-  type AIUseCase,
-  type AIModel,
 } from "@/lib/ai-column-config";
+import type { AIUseCase, AIModel } from "@/lib/ai-column-config";
 
 type TabKind = "data" | "ai";
 

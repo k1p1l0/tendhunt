@@ -1,6 +1,6 @@
 # TendHunt — Cloudflare Workers
 
-TendHunt runs **3 Cloudflare Workers** that form a data pipeline. They are independent deployable units that communicate via HTTP fire-and-forget calls.
+TendHunt runs **4 Cloudflare Workers** that form a data pipeline. They are independent deployable units that communicate via HTTP fire-and-forget calls.
 
 ## Worker Overview
 
@@ -9,6 +9,7 @@ TendHunt runs **3 Cloudflare Workers** that form a data pipeline. They are indep
 | **data-sync** | `data-sync/` | Hourly (`0 * * * *`) | `https://tendhunt-data-sync.kozak-74d.workers.dev` | Fetches contracts from FaT + CF APIs, extracts buyers |
 | **enrichment** | `enrichment/` | Hourly (`0 * * * *`) | `https://tendhunt-enrichment.kozak-74d.workers.dev` | 8-stage buyer enrichment (classify, website, logo, governance, moderngov, scrape, personnel, score) |
 | **spend-ingest** | `spend-ingest/` | Weekly (Mon 3AM) | `https://tendhunt-spend-ingest.kozak-74d.workers.dev` | 4-stage spend data ingest (discover, extract links, download/parse, aggregate) |
+| **board-minutes** | `board-minutes/` | Hourly at :30 (`30 * * * *`) | `https://tendhunt-board-minutes.kozak-74d.workers.dev` | 2-stage signal extraction from board documents (extract signals via Claude Haiku, deduplicate) |
 
 ## Data Flow — How Workers Connect
 
@@ -16,14 +17,18 @@ TendHunt runs **3 Cloudflare Workers** that form a data pipeline. They are indep
   ┌─────────────┐      fire-and-forget       ┌──────────────┐     after all_complete    ┌───────────────┐
   │  data-sync  │ ──── /run-buyer?id=X ────→ │  enrichment  │ ──── /run ─────────────→ │ spend-ingest  │
   │  (hourly)   │      (new buyers only)      │  (hourly)    │     (triggers spend)     │ (weekly+chain) │
-  └─────────────┘                             └──────────────┘                          └───────────────┘
-       │                                           │                                         │
-       │ FaT + CF APIs → contracts + buyers        │ 8 stages per buyer                      │ 4 stages per buyer
-       │ bulkWrite upsert, cursor-based resume     │ (classify → score)                      │ (discover → aggregate)
-       ▼                                           ▼                                         ▼
-  MongoDB: contracts, buyers, syncJobs        MongoDB: buyers (enrichment fields),      MongoDB: spendtransactions,
-                                              boarddocuments, keypersonnels,             spendsummaries,
-                                              enrichmentjobs, datasources               spendingestjobs
+  └─────────────┘                             └──────────────┘──┐                       └───────────────┘
+       │                                           │            │
+       │ FaT + CF APIs → contracts + buyers        │            │  after all_complete    ┌───────────────┐
+       │ bulkWrite upsert, cursor-based resume     │            └── /run ─────────────→ │ board-minutes │
+       ▼                                           ▼                                    │ (hourly :30)  │
+  MongoDB: contracts, buyers, syncJobs        MongoDB: buyers (enrichment fields),      └───────────────┘
+                                              boarddocuments, keypersonnels,                  │
+                                              enrichmentjobs, datasources               │ 2 stages per buyer
+                                                                                        │ (extract → dedup)
+                                              MongoDB: spendtransactions,                ▼
+                                              spendsummaries,                       MongoDB: signals,
+                                              spendingestjobs                       signalingestjobs
 ```
 
 **Key flow:**
@@ -31,14 +36,15 @@ TendHunt runs **3 Cloudflare Workers** that form a data pipeline. They are indep
 2. For each contract batch, it extracts buyer records via `autoExtractBuyers()` (upsert by `nameLower`)
 3. **Newly created buyers** (not existing ones) trigger a fire-and-forget `fetch()` to the **enrichment worker's** `/run-buyer?id=X` endpoint
 4. The **enrichment worker** runs all 8 stages for that buyer (classify, website discovery, logo/LinkedIn, governance URLs, ModernGov SOAP, HTML scrape, Claude personnel extraction, enrichment scoring)
-5. After enrichment completes, the enrichment worker chains to **spend-ingest** worker's `/run-buyer?id=X` for spend data
-6. Additionally, the **enrichment worker's** batch cron processes remaining un-enriched buyers hourly, and when all enrichment stages complete (`all_complete`), it triggers the **spend-ingest** worker's `/run` endpoint
+5. After enrichment completes, the enrichment worker chains to **spend-ingest** worker's `/run-buyer?id=X` for spend data, then to **board-minutes** worker's `/run-buyer?id=X` for signal extraction
+6. Additionally, the **enrichment worker's** batch cron processes remaining un-enriched buyers hourly, and when all enrichment stages complete (`all_complete`), it triggers both the **spend-ingest** worker's `/run` and the **board-minutes** worker's `/run` endpoints
 
 ## Single-Buyer Endpoints
 
 Workers expose `/run-buyer?id=<ObjectId>` for on-demand single-buyer processing:
-- **enrichment**: `GET /run-buyer?id=X` — runs all 8 enrichment stages + chains to spend-ingest
+- **enrichment**: `GET /run-buyer?id=X` — runs all 8 enrichment stages + chains to spend-ingest + board-minutes
 - **spend-ingest**: `GET /run-buyer?id=X` — runs all 4 spend stages for one buyer
+- **board-minutes**: `GET /run-buyer?id=X` — runs all 2 signal extraction stages for one buyer
 - **data-sync**: No single-buyer endpoint (batch-only via cron)
 
 ## Worker Secrets & Env Vars
@@ -46,8 +52,9 @@ Workers expose `/run-buyer?id=<ObjectId>` for on-demand single-buyer processing:
 | Worker | Secrets | Env Vars (`[vars]` in wrangler.toml) |
 |--------|---------|--------------------------------------|
 | data-sync | `MONGODB_URI` | `ENRICHMENT_WORKER_URL` |
-| enrichment | `MONGODB_URI`, `ANTHROPIC_API_KEY`, `APIFY_API_TOKEN`, `LOGO_DEV_TOKEN` | `SPEND_INGEST_WORKER_URL` |
+| enrichment | `MONGODB_URI`, `ANTHROPIC_API_KEY`, `APIFY_API_TOKEN`, `LOGO_DEV_TOKEN` | `SPEND_INGEST_WORKER_URL`, `BOARD_MINUTES_WORKER_URL` |
 | spend-ingest | `MONGODB_URI`, `ANTHROPIC_API_KEY` | — |
+| board-minutes | `MONGODB_URI`, `ANTHROPIC_API_KEY` | — |
 
 ## Deploying Workers
 
@@ -55,6 +62,7 @@ Workers expose `/run-buyer?id=<ObjectId>` for on-demand single-buyer processing:
 cd apps/workers/data-sync && npx wrangler deploy
 cd apps/workers/enrichment && npx wrangler deploy
 cd apps/workers/spend-ingest && npx wrangler deploy
+cd apps/workers/board-minutes && npx wrangler deploy
 ```
 
 ## Debugging Workers
@@ -64,14 +72,17 @@ cd apps/workers/spend-ingest && npx wrangler deploy
 wrangler tail --name tendhunt-data-sync
 wrangler tail --name tendhunt-enrichment
 wrangler tail --name tendhunt-spend-ingest
+wrangler tail --name tendhunt-board-minutes
 
-# Debug endpoints (enrichment + spend-ingest expose GET /debug with collection stats + job states)
+# Debug endpoints (all workers except data-sync expose GET /debug with collection stats + job states)
 curl https://tendhunt-enrichment.kozak-74d.workers.dev/debug
 curl https://tendhunt-spend-ingest.kozak-74d.workers.dev/debug
+curl https://tendhunt-board-minutes.kozak-74d.workers.dev/debug
 
 # Manual trigger
 curl https://tendhunt-enrichment.kozak-74d.workers.dev/run?max=100
 curl https://tendhunt-spend-ingest.kozak-74d.workers.dev/run?max=50
+curl https://tendhunt-board-minutes.kozak-74d.workers.dev/run?max=50
 ```
 
 ---

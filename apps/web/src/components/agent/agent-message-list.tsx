@@ -56,8 +56,8 @@ export function AgentMessageList({
   const showTypingIndicator =
     isStreaming &&
     lastMessage?.role === "assistant" &&
-    !lastMessage.content &&
-    !lastMessage.toolCalls?.length;
+    (lastMessage.isThinking ||
+      (!lastMessage.content && !lastMessage.toolCalls?.length));
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">

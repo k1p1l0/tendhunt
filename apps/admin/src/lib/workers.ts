@@ -35,12 +35,28 @@ interface SpendJobDoc {
   errorLog: string[];
 }
 
+interface SignalJobDoc {
+  stage: string;
+  status: string;
+  totalProcessed: number;
+  totalErrors: number;
+  lastRunAt: Date | null;
+  errorLog: string[];
+}
+
 export interface WorkerStage {
   name: string;
   status: string;
   processed: number;
   errors: number;
   lastRunAt: string | null;
+}
+
+export interface WorkerHealthCheck {
+  reachable: boolean;
+  latencyMs: number;
+  url: string;
+  error?: string;
 }
 
 export interface WorkerStatus {
@@ -52,6 +68,7 @@ export interface WorkerStatus {
   totalErrors: number;
   stages: WorkerStage[];
   errorLog: string[];
+  health?: WorkerHealthCheck;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +103,47 @@ function collectErrors(docs: { errorLog?: string[] }[], limit = 5): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Worker HTTP health checks
+// ---------------------------------------------------------------------------
+
+const WORKER_URLS: Record<string, string> = {
+  "data-sync": process.env.DATA_SYNC_WORKER_URL ?? "https://tendhunt-data-sync.kozak-74d.workers.dev",
+  "enrichment": process.env.ENRICHMENT_WORKER_URL ?? "https://tendhunt-enrichment.kozak-74d.workers.dev",
+  "spend-ingest": process.env.SPEND_INGEST_WORKER_URL ?? "https://tendhunt-spend-ingest.kozak-74d.workers.dev",
+  "board-minutes": process.env.BOARD_MINUTES_WORKER_URL ?? "https://tendhunt-board-minutes.kozak-74d.workers.dev",
+};
+
+const WORKER_SECRET = process.env.WORKER_SECRET ?? "";
+
+function buildWorkerUrl(workerName: string, path: string, needsAuth = false): string {
+  const base = WORKER_URLS[workerName] ?? "";
+  const url = `${base}${path}`;
+  if (needsAuth && WORKER_SECRET) return `${url}${url.includes("?") ? "&" : "?"}secret=${WORKER_SECRET}`;
+  return url;
+}
+
+async function checkWorkerHealth(workerName: string): Promise<WorkerHealthCheck> {
+  const url = WORKER_URLS[workerName];
+  if (!url) return { reachable: false, latencyMs: 0, url: "", error: "No URL configured" };
+
+  const healthUrl = `${url}/health`;
+  const start = Date.now();
+  try {
+    const res = await fetch(healthUrl, { signal: AbortSignal.timeout(8000) });
+    const latencyMs = Date.now() - start;
+    if (!res.ok) return { reachable: false, latencyMs, url: healthUrl, error: `HTTP ${res.status}` };
+    return { reachable: true, latencyMs, url: healthUrl };
+  } catch (err) {
+    return {
+      reachable: false,
+      latencyMs: Date.now() - start,
+      url: healthUrl,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main fetch function
 // ---------------------------------------------------------------------------
 
@@ -94,9 +152,9 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
   const db = mongoose.connection.db;
   if (!db) throw new Error("Database connection not available");
 
-  const [syncJobs, enrichmentJobs, spendJobs] = await Promise.all([
+  const [syncJobs, enrichmentJobs, spendJobs, signalJobs, dataSyncHealth, enrichmentHealth, spendHealth, boardMinutesHealth] = await Promise.all([
     db
-      .collection("syncjobs")
+      .collection("syncJobs")
       .find({})
       .project<SyncJobDoc>({
         source: 1,
@@ -132,6 +190,22 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
         errorLog: { $slice: -5 },
       })
       .toArray(),
+    db
+      .collection("signalingestjobs")
+      .find({})
+      .project<SignalJobDoc>({
+        stage: 1,
+        status: 1,
+        totalProcessed: 1,
+        totalErrors: 1,
+        lastRunAt: 1,
+        errorLog: { $slice: -5 },
+      })
+      .toArray(),
+    checkWorkerHealth("data-sync"),
+    checkWorkerHealth("enrichment"),
+    checkWorkerHealth("spend-ingest"),
+    checkWorkerHealth("board-minutes"),
   ]);
 
   const dataSyncWorker: WorkerStatus = {
@@ -149,6 +223,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
     })),
     errorLog: collectErrors(syncJobs),
+    health: dataSyncHealth,
   };
 
   const enrichmentWorker: WorkerStatus = {
@@ -172,6 +247,7 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
     })),
     errorLog: collectErrors(enrichmentJobs),
+    health: enrichmentHealth,
   };
 
   const spendIngestWorker: WorkerStatus = {
@@ -192,7 +268,55 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
     })),
     errorLog: collectErrors(spendJobs),
+    health: spendHealth,
   };
 
-  return [dataSyncWorker, enrichmentWorker, spendIngestWorker];
+  const boardMinutesWorker: WorkerStatus = {
+    workerName: "board-minutes",
+    displayName: "Board Minutes",
+    overallStatus: deriveOverallStatus(signalJobs.map((j) => j.status)),
+    lastRunAt: latestDate(signalJobs.map((j) => j.lastRunAt)),
+    totalProcessed: signalJobs.reduce(
+      (sum, j) => sum + (j.totalProcessed || 0),
+      0
+    ),
+    totalErrors: signalJobs.reduce((sum, j) => sum + (j.totalErrors || 0), 0),
+    stages: signalJobs.map((j) => ({
+      name: j.stage,
+      status: j.status,
+      processed: j.totalProcessed || 0,
+      errors: j.totalErrors || 0,
+      lastRunAt: j.lastRunAt ? new Date(j.lastRunAt).toISOString() : null,
+    })),
+    errorLog: collectErrors(signalJobs),
+    health: boardMinutesHealth,
+  };
+
+  return [dataSyncWorker, enrichmentWorker, spendIngestWorker, boardMinutesWorker];
+}
+
+// ---------------------------------------------------------------------------
+// Worker actions (trigger run, fetch debug)
+// ---------------------------------------------------------------------------
+
+export async function triggerWorkerRun(workerName: string): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  const url = buildWorkerUrl(workerName, "/run", true);
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function fetchWorkerDebug(workerName: string): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  const url = buildWorkerUrl(workerName, "/debug", true);
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }

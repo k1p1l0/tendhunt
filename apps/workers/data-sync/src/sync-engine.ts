@@ -136,8 +136,12 @@ export async function processSyncJob(
       }
     }
 
-    // Step 4: If backfill complete, transition to syncing mode
+    // Step 4: Handle completion
     if (done && isBackfill) {
+      // Backfill complete — transition to syncing mode
+      await markSyncComplete(db, job._id!);
+    } else if (done && !isBackfill) {
+      // Sync pass complete — advance lastSyncedDate so next run fetches new data only
       await markSyncComplete(db, job._id!);
     }
   } catch (err) {

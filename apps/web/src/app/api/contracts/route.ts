@@ -21,6 +21,8 @@ export async function GET(request: Request) {
       maxValue: searchParams.get("maxValue")
         ? Number(searchParams.get("maxValue"))
         : undefined,
+      stage: searchParams.get("stage") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
       sort: (searchParams.get("sort") as ContractFilters["sort"]) ?? undefined,
       page: searchParams.get("page")
         ? parseInt(searchParams.get("page")!, 10)

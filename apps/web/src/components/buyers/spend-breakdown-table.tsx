@@ -18,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SpendFilters, type SpendFilterState } from "@/components/buyers/spend-filters";
+import { SpendFilters } from "@/components/buyers/spend-filters";
+import type { SpendFilterState } from "@/components/buyers/spend-filters";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { TransactionDetailSheet } from "@/components/buyers/transaction-detail-sheet";
 

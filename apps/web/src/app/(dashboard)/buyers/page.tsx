@@ -4,20 +4,11 @@ import { Suspense } from "react";
 import { fetchBuyers } from "@/lib/buyers";
 import { dbConnect } from "@/lib/mongodb";
 import Buyer from "@/models/buyer";
-import { BuyerTable } from "@/components/buyers/buyer-table";
-import { BuyerFilters } from "@/components/buyers/buyer-filters";
+import { BuyersListBreadcrumb } from "./breadcrumb";
+import { BuyersToolbar } from "@/components/buyers/buyers-toolbar";
+import { BuyersTable } from "@/components/buyers/buyers-table";
+import { BuyerTableSkeleton } from "@/components/buyers/buyer-table-skeleton";
 import { Pagination } from "@/components/contracts/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
-
-function TableSkeleton() {
-  return (
-    <div className="rounded-xl border bg-card p-4 space-y-3">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <Skeleton key={i} className="h-10 w-full" />
-      ))}
-    </div>
-  );
-}
 
 function cleanSort(values: string[]): string[] {
   return values.filter((v) => v != null && v !== "").sort();
@@ -45,10 +36,9 @@ async function BuyerFeed({
     sort as "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore"
   )
     ? (sort as "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore")
-    : "name";
-  const validOrder = order === "desc" ? "desc" : "asc";
+    : "enrichmentScore";
+  const validOrder = order === "desc" ? "desc" : (sort ? "asc" : "desc");
 
-  // Fetch filter options and buyers in parallel
   await dbConnect();
   const [filterOptions, buyerResult] = await Promise.all([
     Promise.all([
@@ -73,7 +63,6 @@ async function BuyerFeed({
 
   const totalPages = Math.ceil(filteredCount / pageSize);
 
-  // Serialize ObjectIds for client component
   const serializedBuyers = buyers.map((b) => ({
     _id: String(b._id),
     name: b.name ?? "",
@@ -83,16 +72,19 @@ async function BuyerFeed({
     orgType: b.orgType ?? undefined,
     enrichmentScore: b.enrichmentScore ?? undefined,
     website: b.website ?? undefined,
+    logoUrl: b.logoUrl ?? undefined,
   }));
 
   return (
     <>
-      <BuyerFilters
+      <BuyersToolbar
+        total={total}
+        filtered={filteredCount}
         sectors={cleanSort(sectors)}
         orgTypes={cleanSort(orgTypes)}
         regions={cleanSort(regions)}
       />
-      <BuyerTable buyers={serializedBuyers} total={total} filteredCount={filteredCount} />
+      <BuyersTable buyers={serializedBuyers} sort={validSort} order={validOrder} />
       <Pagination currentPage={page} totalPages={totalPages} />
     </>
   );
@@ -120,15 +112,9 @@ export default async function BuyersPage({
   const suspenseKey = JSON.stringify({ sort, order, page, q, sector, orgType, region });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Buyers</h1>
-        <p className="text-muted-foreground">
-          Explore buyer organizations and enrichment data
-        </p>
-      </div>
-
-      <Suspense key={suspenseKey} fallback={<TableSkeleton />}>
+    <div className="space-y-4">
+      <BuyersListBreadcrumb />
+      <Suspense key={suspenseKey} fallback={<BuyerTableSkeleton />}>
         <BuyerFeed
           sort={sort}
           order={order}

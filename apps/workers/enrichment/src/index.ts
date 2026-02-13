@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { Db } from "mongodb";
-import type { Env, EnrichmentStage, EnrichmentJobDoc, StageFn } from "./types";
-import { STAGE_ORDER } from "./types";
+import type { Env, EnrichmentStage, EnrichmentJobDoc, StageFn, DocEnrichmentStage } from "./types";
+import { STAGE_ORDER, DOC_STAGE_ORDER } from "./types";
 import { getDb, closeDb } from "./db/client";
 import { processEnrichmentPipeline } from "./enrichment-engine";
 import { classifyBuyers } from "./stages/01-classify";
@@ -12,12 +12,15 @@ import { fetchModernGovData } from "./stages/03-moderngov";
 import { scrapeGovernancePages } from "./stages/04-scrape";
 import { extractKeyPersonnel } from "./stages/05-personnel";
 import { computeEnrichmentScores } from "./stages/06-score";
+import { enrichPcsDocuments } from "./stages/07-pcs-documents";
+import { enrichProactisDocuments } from "./stages/08-proactis-documents";
+import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-jobs";
 
 // ---------------------------------------------------------------------------
 // Enrichment Worker entry point
 //
 // Runs hourly via cron trigger.
-// Processes the enrichment pipeline in 8 sequential stages:
+// Processes the buyer enrichment pipeline in 8 sequential stages:
 //   1. classify            — Fuzzy-match buyers to DataSource entries
 //   2. website_discovery   — Google Search via Apify to find missing websites
 //   3. logo_linkedin       — logo.dev CDN + LinkedIn company search + og:image
@@ -26,6 +29,10 @@ import { computeEnrichmentScores } from "./stages/06-score";
 //   6. scrape              — HTML scraping for NHS trusts, ICBs, etc.
 //   7. personnel           — Claude Haiku key personnel extraction
 //   8. score               — Compute enrichment scores (0-100)
+//
+// Then runs document enrichment (contract-level):
+//   A. pcs_documents       — PCS OCDS API document URL enrichment
+//   B. proactis_documents  — ProActis advert page attachment scraping
 // ---------------------------------------------------------------------------
 
 async function runPipeline(env: Env, maxItems = 500) {
@@ -46,12 +53,82 @@ async function runPipeline(env: Env, maxItems = 500) {
       } catch (err) {
         console.error("Spend ingest trigger failed:", err);
       }
+
+      try {
+        const bmRes = await fetch(`${env.BOARD_MINUTES_WORKER_URL}/run`);
+        const bmResult = await bmRes.json();
+        console.log("Board-minutes signal extraction result:", JSON.stringify(bmResult));
+      } catch (err) {
+        console.error("Board-minutes trigger failed:", err);
+      }
     }
     console.log("--- Enrichment pipeline run complete ---");
     return result;
   } finally {
     await closeDb();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Document enrichment pipeline — enriches contracts (not buyers)
+// ---------------------------------------------------------------------------
+
+const DOC_STAGE_FUNCTIONS: Record<DocEnrichmentStage, StageFn> = {
+  pcs_documents: enrichPcsDocuments,
+  proactis_documents: enrichProactisDocuments,
+};
+
+async function runDocEnrichmentPipeline(
+  env: Env,
+  maxItems = 500
+): Promise<{ stage: string; processed: number; errors: number; done: boolean }> {
+  const db = await getDb(env.MONGODB_URI);
+
+  try {
+    console.log("--- Starting document enrichment pipeline ---");
+
+    for (const stage of DOC_STAGE_ORDER) {
+      const job = await getOrCreateJob(db, stage);
+
+      if (job.status === "complete") {
+        console.log(`Doc stage ${stage} already complete, skipping`);
+        continue;
+      }
+
+      console.log(`Running doc stage: ${stage}`);
+      const stageFn = DOC_STAGE_FUNCTIONS[stage];
+
+      try {
+        const result = await stageFn(db, env, job, maxItems);
+
+        if (result.done) {
+          await markJobComplete(db, job._id!);
+          console.log(`Doc stage ${stage} complete: processed=${result.processed}, errors=${result.errors}`);
+        } else {
+          console.log(`Doc stage ${stage} paused: processed=${result.processed}, errors=${result.errors}`);
+          return { stage, ...result };
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        await markJobError(db, job._id!, errorMsg);
+        console.error(`Doc stage ${stage} failed:`, errorMsg);
+        return { stage, processed: 0, errors: 1, done: false };
+      }
+    }
+
+    console.log("--- Document enrichment pipeline complete ---");
+    return { stage: "doc_all_complete", processed: 0, errors: 0, done: true };
+  } finally {
+    await closeDb();
+  }
+}
+
+function requireSecret(url: URL, env: Env): Response | null {
+  if (!env.WORKER_SECRET) return null;
+  if (url.searchParams.get("secret") !== env.WORKER_SECRET) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
 }
 
 export default {
@@ -103,7 +180,21 @@ export default {
           spendResults = { error: err instanceof Error ? err.message : String(err) };
         }
 
-        return Response.json({ buyerId, buyerName: buyer.name, enrichment: results, spend: spendResults });
+        let boardMinutesResults = {};
+        try {
+          const bmRes = await fetch(`${env.BOARD_MINUTES_WORKER_URL}/run-buyer?id=${buyerId}`);
+          boardMinutesResults = await bmRes.json();
+        } catch (err) {
+          boardMinutesResults = { error: err instanceof Error ? err.message : String(err) };
+        }
+
+        return Response.json({
+          buyerId,
+          buyerName: buyer.name,
+          enrichment: results,
+          spend: spendResults,
+          boardMinutes: boardMinutesResults,
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return Response.json({ error: msg }, { status: 500 });
@@ -114,6 +205,8 @@ export default {
 
     // Manual trigger: GET /run or /run?max=100
     if (url.pathname === "/run") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const max = parseInt(url.searchParams.get("max") ?? "500", 10);
       try {
         const result = await runPipeline(env, max);
@@ -124,8 +217,24 @@ export default {
       }
     }
 
+    // Document enrichment trigger: GET /run-doc-enrichment?max=500
+    if (url.pathname === "/run-doc-enrichment") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
+      const max = parseInt(url.searchParams.get("max") ?? "500", 10);
+      try {
+        const result = await runDocEnrichmentPipeline(env, max);
+        return Response.json(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return Response.json({ error: msg }, { status: 500 });
+      }
+    }
+
     // Debug: test filtered buyer query
     if (url.pathname === "/debug") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const db = await getDb(env.MONGODB_URI);
       try {
         const total = await db.collection("buyers").countDocuments();
@@ -177,6 +286,13 @@ export default {
     } catch (err) {
       console.error("Enrichment pipeline failed:", err);
       throw err;
+    }
+
+    // Run document enrichment after buyer enrichment
+    try {
+      await runDocEnrichmentPipeline(env, 500);
+    } catch (err) {
+      console.error("Document enrichment pipeline failed:", err);
     }
   },
 } satisfies ExportedHandler<Env>;

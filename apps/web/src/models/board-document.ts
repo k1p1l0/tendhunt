@@ -26,11 +26,17 @@ const boardDocumentSchema = new Schema(
       enum: ["pending", "extracted", "failed"],
       default: "pending",
     },
+    signalExtractionStatus: {
+      type: String,
+      enum: ["pending", "extracted", "failed"],
+      default: "pending",
+    },
   },
   { timestamps: true }
 );
 
 boardDocumentSchema.index({ buyerId: 1, sourceUrl: 1 }, { unique: true });
+boardDocumentSchema.index({ buyerId: 1, signalExtractionStatus: 1 });
 
 export type IBoardDocument = InferSchemaType<typeof boardDocumentSchema>;
 

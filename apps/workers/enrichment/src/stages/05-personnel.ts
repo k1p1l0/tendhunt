@@ -39,8 +39,8 @@ export async function extractKeyPersonnel(
   // Initialize Anthropic client
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-  // Limit concurrent Claude API calls to 2
-  const limit = pLimit(2);
+  // Sequential Claude API calls to limit spend
+  const limit = pLimit(1);
 
   let processed = 0;
   let errors = 0;
@@ -187,7 +187,7 @@ async function processOneBuyer(
 
   // Call Claude Haiku for personnel extraction
   const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20250401",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     system: `You are extracting key personnel from UK public sector organization governance pages.
 Extract ONLY people with procurement-relevant roles: chief executives, directors, board members, procurement leads, finance directors, treasurers, chairs.

@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 19 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 22 COMPLETE (5/5 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
-Plan: 19 ALL COMPLETE (4/4), 18 ALL COMPLETE (4/4), 11-01 COMPLETE (1/5), 15-01 COMPLETE (1/2)
-Status: Phase 19 Plan 04 complete -- Agent panel polish (Cmd+K shortcut, DOMPurify markdown, error retry, animations, accessibility)
-Last activity: 2026-02-12 - Completed quick task 3: Fix data-sync worker index conflict + trigger enrichment for new buyers
+Phase: 22-crm-pipeline-procurement-inbox COMPLETE (5/5 plans)
+Plan: 22-05 COMPLETE -- Auto-send rules with threshold-based scoring integration
+Status: Phase 22 complete -- Full CRM pipeline with Kanban board, card detail, and auto-send automation
+Last activity: 2026-02-13 - Completed 22-05: Scanner auto-send rules
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 46
-- Average duration: 3.4 min
-- Total execution time: 2.73 hours
+- Total plans completed: 54
+- Average duration: 3.3 min
+- Total execution time: 2.88 hours
 
 **By Phase:**
 
@@ -42,10 +42,12 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 | 11-invoice-spend-data-intelligence | 1/5 | 4 min | 4 min |
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
 | 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
+| 20-board-minutes-signals | 4/4 | 8 min | 2 min |
+| 22-crm-pipeline-procurement-inbox | 5/5 | 6 min | 1.2 min |
 
 **Recent Trend:**
-- Last 5 plans: 19-04 (3 min), 19-03 (3 min), 19-02 (2 min), 19-01 (2 min), 18-03 (4 min)
-- Trend: Consistent ~2-4 min per plan
+- Last 5 plans: 22-05 (2 min), 22-04 (1 min), 22-03 (2 min), 22-01 (1 min), 20-04 (2 min)
+- Trend: Consistent ~1-2 min per plan
 
 *Updated after each plan completion*
 
@@ -247,6 +249,38 @@ Recent decisions affecting current work:
 - [19-04]: useReducedMotion from motion/react (not custom hook) for accessibility
 - [19-04]: isError flag on AgentMessage + removeMessage store method for retry flow
 - [19-04]: min-h-[44px] on all interactive buttons for mobile tap target compliance
+- [20-02]: entities subdoc uses _id:false to avoid unnecessary ObjectId generation
+- [20-02]: $or query for signals combines buyerId (new) + organizationName (legacy) for backward compat
+- [20-02]: signalExtractionStatus is independent from extractionStatus (text vs signal extraction)
+- [20-01]: Cron at :30 offset from enrichment worker's :00 to avoid concurrent DB load
+- [20-01]: Default batchSize 50 (vs enrichment's 100) since each buyer triggers Claude API calls
+- [20-01]: Default maxItems 100 per pipeline run (vs enrichment's 500) due to heavier Claude processing
+- [20-01]: No R2 bucket binding -- board-minutes worker reads text from MongoDB, not files
+- [20-01]: No [vars] section -- board-minutes is end-of-chain, no downstream worker
+- [20-03]: Signal type normalization maps both UPPER_CASE and lower_case to schema enum via explicit lookup
+- [20-03]: 500ms sleep between chunks to avoid Claude Haiku API rate limits
+- [20-03]: Top-5 keyword extraction for stable dedup keys (lowercase, sorted alphabetically)
+- [20-03]: Two-step buyer query: find qualifying doc buyerIds first, then match Tier 0 buyers
+- [20-04]: Filter pills only render when 2+ signal types present (avoids single-filter pointlessness)
+- [20-04]: Entity badges capped at 5 total across companies/people/amounts to avoid card clutter
+- [20-04]: hasBoardDocuments derived from boardDocuments.length in parent BuyerTabs
+- [22-01]: deleteModel pattern for HMR safety on PipelineCard and PipelineCardNote models
+- [22-01]: Stage constants use Tailwind bg/text classes for direct UI consumption
+- [22-01]: ReorderPayload supports cross-column moves via sourceColumn field
+- [22-01]: Card creation uses findOneAndUpdate with upsert for idempotent "send to inbox"
+- [22-02]: PointerSensor with 8px activation distance for click vs drag separation
+- [22-02]: closestCorners collision detection for cross-column card accuracy
+- [22-02]: Optimistic reorder with fetchCards rollback on server error
+- [22-02]: AnimatePresence for card enter/exit animations in columns
+- [22-03]: SendToInboxButton replaces Track Opportunity (contracts) and Export Report (buyers) -- one CTA per entity
+- [22-03]: Scanner type to entity type mapping: rfps->contract, meetings->signal, buyers->buyer
+- [22-04]: Dialog for delete confirmation (no alert-dialog component available)
+- [22-04]: onCardClick threaded board->column->card, works with PointerSensor 8px distance
+- [22-04]: Optimistic updates via onCardUpdate/onCardDelete callbacks with server rollback
+- [22-05]: Auto-send rules cached once at start of scoring run, not per-entity query
+- [22-05]: Non-blocking void PipelineCard upsert to avoid blocking SSE stream
+- [22-05]: onAutoRule callback pattern through ScannerDataGrid to scanner page for dialog rendering
+- [22-05]: getEntityDisplayFields helper maps scanner type to appropriate entity fields for card creation
 
 ### Pending Todos
 
@@ -263,6 +297,8 @@ Recent decisions affecting current work:
 - Phase 15 added: Contract-Buyer Entity Linking, Region Humanization & Contract Page Enhancement
 - Phase 18 added: Admin Panel (admin app scaffold, overview dashboard, workers management, data/users pages)
 - Phase 19 added: Research Agent Chat Panel (backend tools, SSE streaming, chat UI, conversation persistence)
+- Phase 20 added: Board Minutes Signals (worker scaffold, schema extensions, extraction pipeline, frontend display)
+- Phase 22 added: CRM Pipeline Procurement Inbox (data layer, Kanban UI, send-to-inbox, card detail)
 
 ### Blockers/Concerns
 
@@ -274,9 +310,11 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 1 | Add PDF spend file parsing to spend-ingest worker pipeline with R2 storage | 2026-02-12 | dcf5616 | [1-add-pdf-spend-file-parsing-to-spend-inge](./quick/1-add-pdf-spend-file-parsing-to-spend-inge/) |
 | 3 | Fix data-sync worker: remove index conflict + trigger enrichment for new buyers | 2026-02-12 | 6d11175 | [3-fix-data-sync-worker-remove-index-confli](./quick/3-fix-data-sync-worker-remove-index-confli/) |
+| 4 | Add stage and status filter options to scanner grid for RFP scanners | 2026-02-12 | e281a7c | [4-add-stage-and-status-filter-options-to-s](./quick/4-add-stage-and-status-filter-options-to-s/) |
+| 5 | Redesign contracts + buyers pages with data-dense table layout, filter chips, breadcrumbs | 2026-02-13 | 0dccb98 | [5-buyer-page-redesign-table-toolbar-detail](./quick/5-buyer-page-redesign-table-toolbar-detail/) |
 
 ## Session Continuity
 
-Last session: 2026-02-12
-Stopped at: Completed quick-3 -- Fixed data-sync worker index conflict + added enrichment trigger for new buyers
-Next: Phase 19 COMPLETE. Pending: 11-02, 15-02. Deploy data-sync worker.
+Last session: 2026-02-13
+Stopped at: Completed 22-05 -- Scanner auto-send rules (AutoSendRule model, CRUD API, dialog, scoring integration)
+Next: Phase 22 complete. Continue with 11-02 (spend intelligence), 15-02 (entity linking).

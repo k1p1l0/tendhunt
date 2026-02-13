@@ -240,6 +240,74 @@ Wrap `setState` calls inside `useEffect` with `requestAnimationFrame` to avoid c
 
 `apps/web/tsconfig.json` excludes `scripts/` directory. Scripts use `mongodb`, `xlsx`, `pdf-parse` etc. which aren't in `apps/web` dependencies (they run via `tsx` independently). All apps must have their direct type dependencies installed — e.g. `apps/admin` needs `mongodb` even though `mongoose` bundles it.
 
+## Breadcrumb System
+
+The app uses a **context-based breadcrumb** that renders in the global `<Header>` component (top nav bar, next to the sidebar trigger). When no breadcrumb is set, it shows "TendHunt".
+
+### How it works
+
+- `BreadcrumbProvider` wraps the app layout (`apps/web/src/components/layout/breadcrumb-context.tsx`)
+- `<Header>` reads `useBreadcrumb()` and renders the breadcrumb or falls back to "TendHunt"
+- Pages push their breadcrumb into context via a **client component** that calls `setBreadcrumb()` in `useEffect` and clears it on unmount
+
+### Pattern for list pages
+
+Create a breadcrumb component that sets just the page name (e.g. "Contracts"):
+
+```typescript
+// apps/web/src/app/(dashboard)/contracts/breadcrumb.tsx
+"use client";
+import { useEffect } from "react";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+
+export function ContractsListBreadcrumb() {
+  const { setBreadcrumb } = useBreadcrumb();
+  useEffect(() => {
+    setBreadcrumb(<span className="text-sm font-medium">Contracts</span>);
+    return () => setBreadcrumb(null);
+  }, [setBreadcrumb]);
+  return null;
+}
+```
+
+### Pattern for detail pages
+
+Create a breadcrumb component with navigation back to the list + entity name:
+
+```typescript
+// apps/web/src/app/(dashboard)/contracts/[id]/breadcrumb.tsx
+"use client";
+import { useEffect } from "react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+
+export function ContractBreadcrumb({ name }: { name: string }) {
+  const { setBreadcrumb } = useBreadcrumb();
+  useEffect(() => {
+    setBreadcrumb(
+      <nav className="flex items-center gap-1.5 text-sm">
+        <Link href="/contracts" className="text-muted-foreground hover:text-foreground transition-colors">
+          Contracts
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="font-medium truncate max-w-[300px]">{name}</span>
+      </nav>
+    );
+    return () => setBreadcrumb(null);
+  }, [name, setBreadcrumb]);
+  return null;
+}
+```
+
+### Rules
+
+- **List pages**: Set breadcrumb to just the section name (no "All" prefix). Do NOT put a title `<h1>` in the page body — the breadcrumb IS the title.
+- **Detail pages**: Set breadcrumb to `Section > Entity Name`. The detail page can still have a sticky header with back arrow + title + action buttons.
+- **Server components** can't call `useBreadcrumb()` directly — create a separate client component file (`breadcrumb.tsx`) and render it as `<ContractBreadcrumb name={...} />`.
+- **Always clean up** on unmount: `return () => setBreadcrumb(null)` in the `useEffect`.
+- Existing examples: `buyers/[id]/breadcrumb.tsx`, `contracts/breadcrumb.tsx`, `contracts/[id]/breadcrumb.tsx`, scanners page (inline in client component).
+
 ## Common Issues
 
 ### Cherry-picking between divergent branches

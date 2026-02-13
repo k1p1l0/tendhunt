@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import { nanoid } from "nanoid";
 import { dbConnect } from "@/lib/mongodb";
-import { fetchBuyers } from "@/lib/buyers";
 import { fetchBuyerById } from "@/lib/buyers";
 import { fetchContracts, fetchContractById } from "@/lib/contracts";
+import Buyer from "@/models/buyer";
 import Signal from "@/models/signal";
 import KeyPersonnel from "@/models/key-personnel";
 import SpendSummary from "@/models/spend-summary";
@@ -65,34 +65,41 @@ async function handleQueryBuyers(
 ): Promise<ToolResult> {
   const limit = Math.min(Number(input.limit) || 10, 20);
 
-  const result = await fetchBuyers({
-    q: input.query as string | undefined,
-    sector: input.sector as string | undefined,
-    region: input.region as string | undefined,
-    orgType: input.orgType as string | undefined,
-    page: 1,
-    pageSize: limit,
-  });
+  // Build MongoDB query directly to support enrichmentScore at DB level
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: Record<string, any>[] = [];
 
-  const buyers = result.buyers.map((b) => ({
-    _id: b._id,
-    name: b.name,
-    sector: b.sector,
-    region: b.region,
-    orgType: b.orgType,
-    enrichmentScore: b.enrichmentScore,
-    contractCount: b.contractCount,
-  }));
-
-  // Apply enrichment score filter client-side (not supported by fetchBuyers)
+  if (input.query) {
+    conditions.push({ name: { $regex: String(input.query), $options: "i" } });
+  }
+  if (input.sector) {
+    conditions.push({ sector: String(input.sector) });
+  }
+  if (input.region) {
+    conditions.push({ region: { $regex: String(input.region), $options: "i" } });
+  }
+  if (input.orgType) {
+    conditions.push({ orgType: String(input.orgType) });
+  }
   const minScore = Number(input.minEnrichmentScore) || 0;
-  const filtered = minScore > 0
-    ? buyers.filter((b) => (b.enrichmentScore ?? 0) >= minScore)
-    : buyers;
+  if (minScore > 0) {
+    conditions.push({ enrichmentScore: { $gte: minScore } });
+  }
+
+  const query = conditions.length > 0 ? { $and: conditions } : {};
+
+  const [buyers, filteredCount] = await Promise.all([
+    Buyer.find(query)
+      .sort({ enrichmentScore: -1 })
+      .limit(limit)
+      .select("name sector region orgType enrichmentScore contractCount")
+      .lean(),
+    Buyer.countDocuments(query),
+  ]);
 
   return {
-    summary: `Found ${result.filteredCount} buyers matching criteria (showing ${filtered.length})`,
-    data: filtered,
+    summary: `Found ${filteredCount} buyers matching criteria (showing ${buyers.length})`,
+    data: buyers,
   };
 }
 

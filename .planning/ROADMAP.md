@@ -20,6 +20,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Buyer Intelligence & Credits** - Buyer profiles, contact reveal, credit system
 - [ ] **Phase 7: Buying Signals** - Board minutes pre-tender signals display
 - [ ] **Phase 8: Landing & Pricing** - Marketing page and pricing tiers
+- [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
+- [x] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
 
 ## Phase Details
 
@@ -210,7 +212,25 @@ Plans:
 | DATA-05 | Phase 2 | Seed buyer contacts from public sources |
 | DATA-06 | Phase 2 | Source attribution on contracts |
 
-**Coverage: 46/46 v1 requirements mapped. No orphans.**
+| SLACK-01 | Phase 21 | Public API endpoints with API key auth |
+| SLACK-02 | Phase 21 | API key management UI in settings |
+| SLACK-03 | Phase 21 | User-scoped API key access |
+| SLACK-04 | Phase 21 | OpenClaw TendHunt SKILL.md |
+| SLACK-05 | Phase 21 | OpenClaw deploy on Hetzner + Slack config |
+| SLACK-06 | Phase 21 | Add to Slack OAuth button |
+| SLACK-07 | Phase 21 | Slack bot responds to procurement queries |
+| SLACK-08 | Phase 21 | API rate limiting and request logging |
+
+| CRM-01 | Phase 22 | Kanban board with 5 procurement columns |
+| CRM-02 | Phase 22 | CRM cards reference any entity type |
+| CRM-03 | Phase 22 | Drag-and-drop stage management |
+| CRM-04 | Phase 22 | "Send to CRM" from entity pages |
+| CRM-05 | Phase 22 | Scanner auto-send rules |
+| CRM-06 | Phase 22 | Card entity summary display |
+| CRM-07 | Phase 22 | Notes/comments on cards |
+| CRM-08 | Phase 22 | Link back to source entity |
+
+**Coverage: 62/62 v1 requirements mapped. No orphans.**
 
 ## Progress
 
@@ -234,6 +254,9 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 17. Dashboard Home | 0/? | Not started | - |
 | 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
+| 20. Board Minutes Signals | 4/4 | ✓ Complete | 2026-02-12 |
+| 21. Slack Integration (OpenClaw) | 0/? | Not started | - |
+| 22. CRM Pipeline (Procurement Inbox) | 5/5 | ✓ Complete | 2026-02-13 |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -392,3 +415,65 @@ Plans:
 - [x] 19-02-PLAN.md -- AgentProvider context, Zustand store, Sheet panel UI, message components, input, suggested actions, header trigger
 - [x] 19-03-PLAN.md -- useAgent SSE hook, page context setters (scanner/buyer/contract/dashboard), conversation persistence
 - [x] 19-04-PLAN.md -- Keyboard shortcut (Cmd+K), animations, typing indicator, safe markdown (DOMPurify), error handling + retry
+
+### Phase 20: Board Minutes Signal Extraction
+
+**Goal:** Build a new Cloudflare Worker (`apps/workers/board-minutes/`) that processes existing BoardDocument records for Tier 0 buyers, extracts structured buying signals (PROCUREMENT, STAFFING, STRATEGY, FINANCIAL, PROJECTS, REGULATORY) using Claude Haiku, stores them as Signal records linked to buyers, and displays them in a new "Signals" tab on the buyer profile page. Leverages patterns from the board-minutes-intelligence reference project at `/Users/kirillkozak/Projects/board-minutes-intelligence`.
+**Depends on:** Phase 13 (Buyer Data Enrichment), Phase 6 (Buyer Intelligence)
+**Requirements**: SGNL-01, SGNL-02, SGNL-03, SGNL-04, SGNL-05
+**Success Criteria** (what must be TRUE):
+  1. New Cloudflare Worker (`board-minutes`) processes BoardDocument records with extracted text content for Tier 0 buyers
+  2. Text chunking splits large documents into 4,000-char chunks with overlap for LLM processing
+  3. Claude Haiku extracts structured signals with 6 types (PROCUREMENT, STAFFING, STRATEGY, FINANCIAL, PROJECTS, REGULATORY), confidence scores, summaries, quotes, and entities
+  4. Signal records stored in MongoDB `signals` collection linked to buyerId + documentId + meetingDate
+  5. Deduplication prevents duplicate signals from re-processing same documents
+  6. Worker runs on cron schedule + supports single-buyer on-demand processing via `/run-buyer?id=X`
+  7. Buyer profile page displays extracted signals in the existing Signals tab with type badges, confidence indicators, and entity tags
+  8. Enrichment worker chains to board-minutes worker after Stage 6 (scrape) completes
+  9. Scanner grid can display signal data for "Board Meetings" scanner type
+**Plans:** 4 plans
+
+Plans:
+- [x] 20-01-PLAN.md -- Worker scaffold: project config, types, DB helpers, pipeline engine, HTTP routes, cron handler
+- [x] 20-02-PLAN.md -- Schema extensions (Signal + BoardDocument), enrichment worker chaining, signal buyerId query fix
+- [x] 20-03-PLAN.md -- Signal extraction stage (chunking, Claude Haiku, JSON parsing, upsert) + deduplication stage
+- [x] 20-04-PLAN.md -- SignalsTab frontend: type filter pills, confidence indicators, quote display, entity badges, animations
+
+### Phase 21: Slack Integration (OpenClaw)
+
+**Goal:** Bring TendHunt's procurement intelligence to Slack via OpenClaw — users click "Add to Slack" in TendHunt settings, and a managed bot responds to procurement queries (search buyers, contracts, signals, spending) using user-scoped API keys that call public REST endpoints wrapping existing tool handlers
+**Depends on:** Phase 19 (Research Agent Chat Panel — provides the tool handlers to wrap)
+**Requirements**: SLACK-01, SLACK-02, SLACK-03, SLACK-04, SLACK-05, SLACK-06, SLACK-07, SLACK-08
+**Success Criteria** (what must be TRUE):
+  1. Public REST API endpoints exist at `/api/public/*` wrapping all existing tool handlers (buyers, contracts, signals, personnel, spend, board docs) with API key auth middleware
+  2. User can generate, view, and revoke API keys from a new "API Keys" section in TendHunt settings page
+  3. Each API key is scoped to the user — all queries return data filtered by their account and permissions
+  4. OpenClaw TendHunt skill (SKILL.md) defines all curl commands for the public API with correct parameters
+  5. OpenClaw daemon is deployed on Hetzner VPS with Slack channel configured (socket mode)
+  6. "Add to Slack" OAuth button in TendHunt settings connects user's workspace to the managed OpenClaw bot
+  7. Slack bot responds to procurement queries (search buyers, contracts, signals, spending) using the user's API key
+  8. API endpoints enforce rate limiting (100 req/min per key) and log requests
+**Plans:** TBD
+
+### Phase 22: CRM Pipeline (Procurement Inbox)
+
+**Goal:** Build a procurement CRM/Inbox as a top-level sidebar section where users manage deal flow through a Kanban board. All entity types (contracts, signals, buyers, scanner results) can become CRM cards via manual add ("Send to CRM" buttons on entity pages) or configurable auto-send rules (scanner AI column thresholds). Cards flow through procurement-specific stages: New → Qualified → Preparing Bid → Submitted → Won / Lost. Inspired by Getmany's Master Inbox Kanban pattern using @dnd-kit drag-and-drop.
+**Depends on:** Phase 5 (Scanners), Phase 6 (Buyers), Phase 20 (Signals)
+**Requirements**: CRM-01, CRM-02, CRM-03, CRM-04, CRM-05, CRM-06, CRM-07, CRM-08
+**Success Criteria** (what must be TRUE):
+  1. New "Inbox" top-level sidebar item opens the CRM Kanban board view
+  2. Kanban board displays 6 columns (New, Qualified, Preparing Bid, Submitted, Won, Lost) with drag-and-drop card movement using @dnd-kit
+  3. CRM cards can reference any entity type: contracts, signals, buyers — with source attribution
+  4. "Send to CRM" button on contract detail, buyer detail, and scanner entity sheet creates a new CRM card in "New" column
+  5. Scanner auto-send rules can be configured per AI column (e.g., "send to CRM when score > 7") and auto-create CRM cards
+  6. Each CRM card shows entity summary (title, buyer/org, value, source type badge), stage, and timestamps
+  7. Users can add notes/comments to CRM cards for tracking bid preparation progress
+  8. CRM cards maintain a link back to the source entity for quick navigation
+**Plans:** 5 plans
+
+Plans:
+- [x] 22-01-PLAN.md -- Models (PipelineCard, PipelineCardNote), stage constants, types, API routes (CRUD, reorder, notes)
+- [x] 22-02-PLAN.md -- Kanban board UI: @dnd-kit DndContext, columns, cards, drag overlay, Zustand store, sidebar nav, breadcrumb
+- [x] 22-03-PLAN.md -- "Send to Inbox" button component + integration into contract, buyer, and scanner entity pages
+- [x] 22-04-PLAN.md -- Card detail sheet with notes/comments, priority controls, source entity link, archive/delete actions
+- [x] 22-05-PLAN.md -- Scanner auto-send rules: AutoSendRule model, config dialog, scoring endpoint integration

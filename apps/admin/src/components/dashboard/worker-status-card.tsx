@@ -9,6 +9,9 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Play,
+  Bug,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -21,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-import type { WorkerStatus, WorkerStage } from "@/lib/workers";
+import type { WorkerStatus, WorkerStage, WorkerHealthCheck } from "@/lib/workers";
 
 // ---------------------------------------------------------------------------
 // Status badge config
@@ -95,6 +98,27 @@ function StatusDot({ status }: { status: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// HTTP health indicator
+// ---------------------------------------------------------------------------
+
+function HealthIndicator({ health }: { health?: WorkerHealthCheck }) {
+  if (!health) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span
+        className={`inline-block h-2 w-2 rounded-full ${
+          health.reachable ? "bg-green-500" : "bg-red-500"
+        }`}
+      />
+      <span className={health.reachable ? "text-green-600" : "text-red-500"}>
+        {health.reachable ? `${health.latencyMs}ms` : health.error ?? "Unreachable"}
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Stage row
 // ---------------------------------------------------------------------------
 
@@ -133,6 +157,41 @@ export function WorkerStatusCard({
   detailed = false,
 }: WorkerStatusCardProps) {
   const [errorsExpanded, setErrorsExpanded] = useState(false);
+  const [runLoading, setRunLoading] = useState(false);
+  const [debugData, setDebugData] = useState<unknown>(null);
+  const [debugExpanded, setDebugExpanded] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  async function handleRun() {
+    setRunLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch("/api/workers/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workerName: worker.workerName }),
+      });
+      const data = await res.json();
+      setActionMessage(data.ok ? "Run triggered successfully" : `Error: ${data.error ?? "Unknown"}`);
+    } catch (err) {
+      setActionMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setRunLoading(false);
+    }
+  }
+
+  async function handleDebug() {
+    if (debugExpanded) { setDebugExpanded(false); return; }
+    try {
+      const res = await fetch(`/api/workers/debug?worker=${worker.workerName}`);
+      const result = await res.json();
+      setDebugData(result.data ?? result);
+      setDebugExpanded(true);
+    } catch {
+      setDebugData({ error: "Failed to fetch debug info" });
+      setDebugExpanded(true);
+    }
+  }
 
   const overallIcon =
     worker.overallStatus === "complete" ? (
@@ -153,7 +212,10 @@ export function WorkerStatusCard({
             {overallIcon}
             <CardTitle className="text-base">{worker.displayName}</CardTitle>
           </div>
-          <StatusBadge status={worker.overallStatus} />
+          <div className="flex items-center gap-2">
+            <HealthIndicator health={worker.health} />
+            <StatusBadge status={worker.overallStatus} />
+          </div>
         </div>
         <CardDescription className="flex items-center gap-4 text-xs">
           <span>
@@ -255,6 +317,46 @@ export function WorkerStatusCard({
                 </div>
               )}
             </div>
+          </>
+        )}
+        {/* Action buttons + debug panel (detailed view only) */}
+        {detailed && (
+          <>
+            <Separator />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRun}
+                disabled={runLoading}
+              >
+                {runLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Play className="h-3 w-3" />
+                )}
+                Run Now
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDebug}
+              >
+                <Bug className="h-3 w-3" />
+                {debugExpanded ? "Hide Debug" : "Debug"}
+              </Button>
+              {actionMessage && (
+                <span className={`text-xs ${actionMessage.startsWith("Error") ? "text-red-500" : "text-green-600"}`}>
+                  {actionMessage}
+                </span>
+              )}
+            </div>
+
+            {debugExpanded && debugData && (
+              <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs font-mono animate-in slide-in-from-top-2 duration-200">
+                {JSON.stringify(debugData, null, 2)}
+              </pre>
+            )}
           </>
         )}
       </CardContent>

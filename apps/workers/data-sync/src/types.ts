@@ -19,11 +19,50 @@ export interface OcdsRelease {
     value?: { amount?: number; currency?: string };
     minValue?: { amount?: number; currency?: string };
     tenderPeriod?: { startDate?: string; endDate?: string };
+    contractPeriod?: { startDate?: string; endDate?: string };
     classification?: { id?: string; description?: string; scheme?: string };
     items?: Array<{
       id?: string;
       description?: string;
       classification?: { id?: string; description?: string; scheme?: string };
+    }>;
+    procurementMethod?: string;
+    procurementMethodDetails?: string;
+    submissionMethod?: string[];
+    submissionMethodDetails?: string;
+    lotDetails?: {
+      maximumLotsBidPerSupplier?: number;
+    };
+    documents?: Array<{
+      id?: string;
+      documentType?: string;
+      title?: string;
+      description?: string;
+      url?: string;
+      datePublished?: string;
+      format?: string;
+    }>;
+    lots?: Array<{
+      id?: string;
+      title?: string;
+      description?: string;
+      status?: string;
+      value?: { amount?: number; currency?: string };
+      contractPeriod?: { durationInDays?: number };
+      renewal?: { description?: string };
+      options?: { description?: string };
+      variants?: { policy?: string };
+      submissionTerms?: { variantPolicy?: string };
+      awardCriteria?: {
+        criteria?: Array<{
+          name?: string;
+          type?: string;
+          description?: string;
+          numbers?: Array<{
+            number?: number;
+          }>;
+        }>;
+      };
     }>;
   };
   parties?: Array<{
@@ -51,12 +90,51 @@ export interface OcdsRelease {
     date?: string;
     value?: { amount?: number; currency?: string };
     suppliers?: Array<{ id?: string; name?: string }>;
+    contractPeriod?: { startDate?: string; endDate?: string };
   }>;
 }
 
 // ---------------------------------------------------------------------------
 // Matches existing Contract Mongoose schema in src/models/contract.ts
 // ---------------------------------------------------------------------------
+
+export interface MappedContractDocument {
+  id?: string;
+  documentType?: string;
+  title?: string;
+  description?: string;
+  url?: string;
+  datePublished?: string;
+  format?: string;
+}
+
+export interface MappedContractLotCriterion {
+  name: string;
+  criteriaType: string;
+  weight: number | null;
+}
+
+export interface MappedContractLot {
+  lotId: string;
+  title: string | null;
+  description: string | null;
+  value: number | null;
+  currency: string;
+  contractPeriodDays: number | null;
+  hasRenewal: boolean;
+  renewalDescription: string | null;
+  hasOptions: boolean;
+  optionsDescription: string | null;
+  variantPolicy: string | null;
+  status: string | null;
+  awardCriteria: MappedContractLotCriterion[];
+}
+
+export interface MappedBuyerContact {
+  name: string | null;
+  email: string | null;
+  telephone: string | null;
+}
 
 export interface MappedContract {
   ocid: string | null;
@@ -77,8 +155,19 @@ export interface MappedContract {
   currency: string;
   publishedDate: Date | null;
   deadlineDate: Date | null;
+  contractStartDate: Date | null;
+  contractEndDate: Date | null;
   rawData: unknown;
   buyerId?: ObjectId | null;
+  procurementMethod: string | null;
+  procurementMethodDetails: string | null;
+  submissionMethod: string[];
+  submissionPortalUrl: string | null;
+  buyerContact: MappedBuyerContact | null;
+  documents: MappedContractDocument[];
+  lots: MappedContractLot[];
+  lotCount: number;
+  maxLotsBidPerSupplier: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,4 +213,5 @@ export interface Env {
   MONGODB_URI: string;
   BACKFILL_START_DATE?: string;
   ENRICHMENT_WORKER_URL?: string;
+  WORKER_SECRET?: string;
 }

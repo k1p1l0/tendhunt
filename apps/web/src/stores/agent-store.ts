@@ -12,6 +12,7 @@ export interface AgentMessage {
     isLoading?: boolean;
   }>;
   isError?: boolean;
+  isThinking?: boolean;
   timestamp: Date;
 }
 

@@ -22,6 +22,15 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { isTextUseCase } from "@/lib/ai-column-config";
+import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
+
+import type { PipelineEntityType } from "@/lib/constants/pipeline-stages";
+
+const SCANNER_TO_ENTITY: Record<ScannerType, PipelineEntityType> = {
+  rfps: "contract",
+  meetings: "signal",
+  buyers: "buyer",
+};
 
 interface EntityDetailSheetProps {
   open: boolean;
@@ -238,9 +247,22 @@ export function EntityDetailSheet({
         className="overflow-y-auto sm:max-w-lg w-full"
       >
         <SheetHeader className="pb-2">
-          <SheetTitle className="text-lg leading-tight pr-6">
-            {title}
-          </SheetTitle>
+          <div className="flex items-start justify-between gap-3">
+            <SheetTitle className="text-lg leading-tight pr-2">
+              {title}
+            </SheetTitle>
+            <SendToInboxButton
+              entityType={SCANNER_TO_ENTITY[scannerType]}
+              entityId={entityId}
+              title={title}
+              subtitle={entityName !== title ? entityName : undefined}
+              buyerName={String(row.buyerName || row.organizationName || "")}
+              value={row.valueMax as number | undefined ?? row.valueMin as number | undefined}
+              deadlineDate={row.deadlineDate ? String(row.deadlineDate) : undefined}
+              sector={row.sector ? String(row.sector) : undefined}
+              logoUrl={row.logoUrl ? String(row.logoUrl) : undefined}
+            />
+          </div>
         </SheetHeader>
 
         <div className="space-y-5 px-4 pb-8">

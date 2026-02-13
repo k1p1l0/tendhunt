@@ -4,7 +4,7 @@ compatibility_date = "2025-03-20"
 compatibility_flags = ["nodejs_compat_v2"]
 
 [triggers]
-crons = ["0 3 * * 1"]  # Weekly, Mondays at 3 AM UTC
+crons = ["0 3 * * 1"]
 
 [[r2_buckets]]
 binding = "DOCS"

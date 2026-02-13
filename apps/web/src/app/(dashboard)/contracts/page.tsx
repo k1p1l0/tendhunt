@@ -1,35 +1,10 @@
 import { Suspense } from "react";
 import { fetchContracts } from "@/lib/contracts";
-import { ContractCard } from "@/components/contracts/contract-card";
-import { ContractSearch } from "@/components/contracts/contract-search";
-import { ContractFilters } from "@/components/contracts/contract-filters";
-import { ContractCount } from "@/components/contracts/contract-count";
+import { ContractsListBreadcrumb } from "./breadcrumb";
+import { ContractsToolbar } from "@/components/contracts/contracts-toolbar";
+import { ContractsTable } from "@/components/contracts/contracts-table";
+import { TableSkeleton } from "@/components/contracts/table-skeleton";
 import { Pagination } from "@/components/contracts/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
-
-function CardSkeleton() {
-  return (
-    <div className="rounded-xl border bg-card p-6 space-y-4">
-      <Skeleton className="h-5 w-3/4" />
-      <Skeleton className="h-4 w-1/2" />
-      <Skeleton className="h-4 w-1/4" />
-      <div className="flex gap-2">
-        <Skeleton className="h-5 w-16 rounded-full" />
-        <Skeleton className="h-5 w-10 rounded-full" />
-      </div>
-    </div>
-  );
-}
-
-function FeedSkeleton() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <CardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
 
 async function ContractFeed({
   query,
@@ -64,37 +39,24 @@ async function ContractFeed({
 
   return (
     <>
-      <ContractCount total={totalCount} filtered={filteredCount} />
+      <ContractsToolbar total={totalCount} filtered={filteredCount} />
 
-      {contracts.length === 0 ? (
-        <div className="flex items-center justify-center rounded-xl border bg-card py-16">
-          <p className="text-sm text-muted-foreground">
-            No contracts found. Try adjusting your search or filters.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {contracts.map((contract) => (
-            <ContractCard
-              key={String(contract._id)}
-              contract={{
-                _id: String(contract._id),
-                title: contract.title,
-                buyerName: contract.buyerName,
-                buyerId: contract.buyerId ? String(contract.buyerId) : undefined,
-                buyerRegion: contract.buyerRegion,
-                valueMin: contract.valueMin,
-                valueMax: contract.valueMax,
-                publishedDate: contract.publishedDate,
-                deadlineDate: contract.deadlineDate,
-                source: contract.source,
-                sector: contract.sector,
-                vibeScore: contract.vibeScore,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      <ContractsTable
+        contracts={contracts.map((contract) => ({
+          _id: String(contract._id),
+          title: contract.title,
+          buyerName: contract.buyerName,
+          buyerId: contract.buyerId ? String(contract.buyerId) : undefined,
+          buyerRegion: contract.buyerRegion,
+          buyerLogoUrl: contract.buyerLogoUrl,
+          valueMin: contract.valueMin,
+          valueMax: contract.valueMax,
+          deadlineDate: contract.deadlineDate,
+          source: contract.source,
+          sector: contract.sector,
+          status: contract.status,
+        }))}
+      />
 
       <Pagination currentPage={page} totalPages={totalPages} />
     </>
@@ -130,7 +92,6 @@ export default async function ContractsPage({
   const minValue = minValueStr ? Number(minValueStr) || undefined : undefined;
   const maxValue = maxValueStr ? Number(maxValueStr) || undefined : undefined;
 
-  // Build a suspense key from all search params so React re-renders on param changes
   const suspenseKey = JSON.stringify({
     query,
     sector,
@@ -142,18 +103,9 @@ export default async function ContractsPage({
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Contracts</h1>
-        <p className="text-muted-foreground">
-          Browse UK procurement opportunities
-        </p>
-      </div>
-
-      <ContractSearch />
-      <ContractFilters />
-
-      <Suspense key={suspenseKey} fallback={<FeedSkeleton />}>
+    <div className="space-y-4">
+      <ContractsListBreadcrumb />
+      <Suspense key={suspenseKey} fallback={<TableSkeleton />}>
         <ContractFeed
           query={query}
           sector={sector}

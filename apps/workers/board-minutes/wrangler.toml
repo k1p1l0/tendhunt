@@ -1,0 +1,11 @@
+name = "tendhunt-board-minutes"
+main = "src/index.ts"
+compatibility_date = "2025-03-20"
+compatibility_flags = ["nodejs_compat_v2"]
+
+[triggers]
+crons = ["30 * * * *"]
+
+# Secrets: MONGODB_URI, ANTHROPIC_API_KEY
+# Set via: wrangler secret put MONGODB_URI
+#          wrangler secret put ANTHROPIC_API_KEY

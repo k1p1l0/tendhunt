@@ -11,6 +11,8 @@ export interface Env {
   LOGO_DEV_TOKEN: string;
   DOCS: R2Bucket;
   SPEND_INGEST_WORKER_URL: string;
+  BOARD_MINUTES_WORKER_URL: string;
+  WORKER_SECRET?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,13 +40,21 @@ export const STAGE_ORDER: EnrichmentStage[] = [
   "score",
 ];
 
+// Document enrichment stages (process contracts, not buyers)
+export type DocEnrichmentStage = "pcs_documents" | "proactis_documents";
+
+export const DOC_STAGE_ORDER: DocEnrichmentStage[] = [
+  "pcs_documents",
+  "proactis_documents",
+];
+
 // ---------------------------------------------------------------------------
 // EnrichmentJob — tracks pipeline progress per stage
 // ---------------------------------------------------------------------------
 
 export interface EnrichmentJobDoc {
   _id?: ObjectId;
-  stage: EnrichmentStage;
+  stage: EnrichmentStage | DocEnrichmentStage;
   status: "running" | "paused" | "complete" | "error";
   cursor: string | null;
   batchSize: number;

@@ -10,7 +10,8 @@ export interface AgentPageContext {
     | "buyer_detail"
     | "contract_detail"
     | "contracts"
-    | "buyers";
+    | "buyers"
+    | "inbox";
   scannerId?: string;
   scannerType?: string;
   scannerName?: string;

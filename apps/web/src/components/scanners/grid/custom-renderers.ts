@@ -1,8 +1,5 @@
-import {
-  type CustomCell,
-  type CustomRenderer,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 // ── Score Badge ──────────────────────────────────────────────
 

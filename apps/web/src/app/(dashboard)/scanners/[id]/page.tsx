@@ -10,8 +10,10 @@ import type { RunColumnOptions } from "@/components/scanners/grid/header-menu";
 import { AddColumnModal } from "@/components/scanners/add-column-modal";
 import { ScannerFilterToolbar } from "@/components/scanners/scanner-filter-toolbar";
 import { AiCellDrawer } from "@/components/scanners/ai-cell-drawer";
-import { EditColumnSheet, type EditColumnData } from "@/components/scanners/edit-column-sheet";
+import { EditColumnSheet } from "@/components/scanners/edit-column-sheet";
+import type { EditColumnData } from "@/components/scanners/edit-column-sheet";
 import { EditScannerDialog } from "@/components/scanners/edit-scanner-dialog";
+import { AutoRulesDialog } from "@/components/inbox/auto-rules-dialog";
 import { EntityDetailSheet } from "@/components/scanners/entity-detail-sheet";
 import { getColumnsForType } from "@/components/scanners/table-columns";
 import type { ColumnDef } from "@/components/scanners/table-columns";
@@ -138,6 +140,12 @@ export default function ScannerDetailPage({
   // Edit scanner dialog state
   const [editScannerOpen, setEditScannerOpen] = useState(false);
 
+  // Auto-rules dialog state
+  const [autoRuleColumn, setAutoRuleColumn] = useState<{
+    columnId: string;
+    columnName: string;
+  } | null>(null);
+
   // Auto-run state
   const [autoRun, setAutoRun] = useState(false);
 
@@ -243,6 +251,8 @@ export default function ScannerDetailPage({
         if (f.minValue) params.set("minValue", String(f.minValue));
         if (f.maxValue) params.set("maxValue", String(f.maxValue));
         if (f.signalType) params.set("signalType", String(f.signalType));
+        if (f.stage) params.set("stage", String(f.stage));
+        if (f.status) params.set("status", String(f.status));
       }
 
       // Apply row pagination
@@ -1236,8 +1246,25 @@ export default function ScannerDetailPage({
           onDeleteColumn={handleDeleteColumn}
           onRowDoubleClick={handleRowDoubleClick}
           onInsertColumn={handleInsertColumn}
+          onAutoRule={(columnId, columnName) =>
+            setAutoRuleColumn({ columnId, columnName })
+          }
         />
       </div>
+
+      {/* Auto-rules dialog */}
+      {scanner && autoRuleColumn && (
+        <AutoRulesDialog
+          open={!!autoRuleColumn}
+          onOpenChange={(open) => {
+            if (!open) setAutoRuleColumn(null);
+          }}
+          scannerId={scanner._id}
+          scannerName={scanner.name}
+          columnId={autoRuleColumn.columnId}
+          columnName={autoRuleColumn.columnName}
+        />
+      )}
 
       {/* AI Cell Drawer (side panel) */}
       <AiCellDrawer

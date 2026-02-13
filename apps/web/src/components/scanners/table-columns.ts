@@ -145,6 +145,22 @@ const RFP_COLUMNS: ColumnDef[] = [
     width: "w-[130px]",
     widthPx: 130,
   },
+  {
+    id: "stage",
+    header: "Stage",
+    accessor: "stage",
+    type: "badge",
+    width: "w-[110px]",
+    widthPx: 110,
+  },
+  {
+    id: "status",
+    header: "Status",
+    accessor: "status",
+    type: "badge",
+    width: "w-[110px]",
+    widthPx: 110,
+  },
 ];
 
 const MEETINGS_COLUMNS: ColumnDef[] = [

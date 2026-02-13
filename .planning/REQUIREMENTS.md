@@ -81,6 +81,28 @@ Requirements for hackathon investor demo. Each maps to roadmap phases.
 - [ ] **DATA-05**: Database is seeded with buyer contact data from public sources (GOV.UK appointments, council committee pages, NHS board member lists)
 - [ ] **DATA-06**: Contracts display source attribution (Find a Tender or Contracts Finder)
 
+### Slack Integration (OpenClaw)
+
+- [ ] **SLACK-01**: System exposes public REST API endpoints wrapping existing tool handlers (buyers, contracts, signals, personnel, spend, board docs) with API key authentication
+- [ ] **SLACK-02**: User can generate and manage API keys from TendHunt settings page (create, revoke, view last used)
+- [ ] **SLACK-03**: API key is scoped to the authenticated user — all queries return data filtered by their account, scanners, and permissions
+- [ ] **SLACK-04**: OpenClaw TendHunt skill (SKILL.md) teaches the agent to curl all public API endpoints with correct parameters and auth
+- [ ] **SLACK-05**: OpenClaw is deployed on Hetzner VPS with Slack channel configured (socket mode, bot token, app token)
+- [ ] **SLACK-06**: User can click "Add to Slack" OAuth button in TendHunt settings to connect their Slack workspace to the OpenClaw bot
+- [ ] **SLACK-07**: Slack bot responds to user queries with procurement data (search buyers, contracts, signals, spending) using the user's API key for scoped access
+- [ ] **SLACK-08**: API endpoints include rate limiting (100 requests/minute per key) and request logging
+
+### CRM Pipeline (Procurement Inbox)
+
+- [ ] **CRM-01**: New "Inbox" sidebar item opens a Kanban board view with 5 procurement-specific columns (New, Qualified, Preparing Bid, Submitted, Won/Lost)
+- [ ] **CRM-02**: CRM cards can reference any entity type (contracts, signals, buyers, scanner results) with source attribution badge
+- [ ] **CRM-03**: Users can drag-and-drop CRM cards between Kanban columns to update deal stage
+- [ ] **CRM-04**: "Send to CRM" button on contract detail, buyer detail, and signal pages creates a new CRM card in "New" column
+- [ ] **CRM-05**: Scanner auto-send rules configurable per AI column (threshold-based, e.g., "send to CRM when score > 7") creating CRM cards automatically
+- [ ] **CRM-06**: Each CRM card displays entity summary (title, org/buyer, value, source type), current stage, and timestamps (created, stage changed)
+- [ ] **CRM-07**: Users can add notes/comments to CRM cards for tracking bid preparation progress
+- [ ] **CRM-08**: CRM cards link back to source entity (contract, buyer, signal) for quick navigation
+
 ## v2 Requirements
 
 Deferred to post-hackathon. Tracked but not in current roadmap.
@@ -190,11 +212,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-05 | Phase 2: Data Pipeline | Pending |
 | DATA-06 | Phase 2: Data Pipeline | Pending |
 
+| SLACK-01 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-02 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-03 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-04 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-05 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-06 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-07 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-08 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| CRM-01 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-02 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-03 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-04 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-05 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-06 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-07 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| CRM-08 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+
 **Coverage:**
-- v1 requirements: 46 total
-- Mapped to phases: 46
+- v1 requirements: 62 total
+- Mapped to phases: 62
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 -- Traceability updated after roadmap creation*
+*Last updated: 2026-02-13 -- Added SLACK-01 through SLACK-08 for OpenClaw Slack integration (Phase 9)*

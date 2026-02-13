@@ -6,6 +6,12 @@ const signalSchema = new Schema(
     buyerId: {
       type: Schema.Types.ObjectId,
       ref: "Buyer",
+      index: true,
+    },
+    boardDocumentId: {
+      type: Schema.Types.ObjectId,
+      ref: "BoardDocument",
+      index: true,
     },
     signalType: {
       type: String,
@@ -22,6 +28,18 @@ const signalSchema = new Schema(
     },
     title: { type: String, required: true },
     insight: { type: String, required: true },
+    quote: { type: String },
+    entities: {
+      type: new Schema(
+        {
+          companies: [String],
+          amounts: [String],
+          dates: [String],
+          people: [String],
+        },
+        { _id: false }
+      ),
+    },
     source: { type: String },
     sourceDate: { type: Date, index: true },
     sector: { type: String, index: true },

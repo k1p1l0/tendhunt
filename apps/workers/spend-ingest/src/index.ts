@@ -20,10 +20,21 @@ import { aggregateSpendData } from "./stages/04-aggregate";
 //   4. aggregate       — Compute per-buyer spend summaries
 // ---------------------------------------------------------------------------
 
+async function ensureIndexes(db: Db): Promise<void> {
+  try {
+    await db
+      .collection("columnMappings")
+      .createIndex({ headersHash: 1 }, { unique: true });
+  } catch {
+    // Index already exists — ignore
+  }
+}
+
 async function runPipeline(env: Env, maxItems = 200) {
   const db = await getDb(env.MONGODB_URI);
 
   try {
+    await ensureIndexes(db);
     console.log("--- Starting spend ingest pipeline ---");
     const result = await processSpendPipeline(db, env, maxItems);
     console.log(
@@ -37,6 +48,14 @@ async function runPipeline(env: Env, maxItems = 200) {
   } finally {
     await closeDb();
   }
+}
+
+function requireSecret(url: URL, env: Env): Response | null {
+  if (!env.WORKER_SECRET) return null;
+  if (url.searchParams.get("secret") !== env.WORKER_SECRET) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
 }
 
 export default {
@@ -90,6 +109,8 @@ export default {
 
     // Manual trigger: GET /run or /run?max=100
     if (url.pathname === "/run") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const max = parseInt(url.searchParams.get("max") ?? "200", 10);
       try {
         const result = await runPipeline(env, max);
@@ -102,6 +123,8 @@ export default {
 
     // Debug: collection stats
     if (url.pathname === "/debug") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
       const db = await getDb(env.MONGODB_URI);
       try {
         const totalBuyers = await db.collection("buyers").countDocuments();
