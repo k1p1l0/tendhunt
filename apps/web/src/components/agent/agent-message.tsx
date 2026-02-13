@@ -13,7 +13,7 @@ marked.setOptions({
   gfm: true,
 });
 
-const ENTITY_LINK_RE = /^(buyer|contract):(.+)$/;
+const ENTITY_LINK_RE = /^(buyer|contract|scanner):(.+)$/;
 
 const renderer = new marked.Renderer();
 renderer.link = ({ href, text }) => {
@@ -21,9 +21,18 @@ renderer.link = ({ href, text }) => {
   if (match) {
     const [, entityType, rawId] = match;
     const [id, query] = rawId.split("?");
-    const path = entityType === "buyer" ? `/buyers/${id}` : `/contracts/${id}`;
+    const pathMap: Record<string, string> = {
+      buyer: `/buyers/${id}`,
+      contract: `/contracts/${id}`,
+      scanner: `/scanners/${id}`,
+    };
+    const path = pathMap[entityType] ?? `/${entityType}s/${id}`;
     const fullPath = query ? `${path}?${query}` : path;
-    return `<a href="${fullPath}" data-entity-type="${entityType}" class="entity-link">${text}</a>`;
+    return `<a href="${fullPath}" data-internal class="entity-link">${text}</a>`;
+  }
+  // Internal links (e.g. /scanners/abc123) should also use client-side navigation
+  if (href.startsWith("/")) {
+    return `<a href="${href}" data-internal class="entity-link">${text}</a>`;
   }
   return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
 };
@@ -37,7 +46,7 @@ function renderMarkdown(content: string): string {
       "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
       "blockquote", "del", "hr", "span", "sup", "sub",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "data-entity-type", "class"],
+    ALLOWED_ATTR: ["href", "target", "rel", "data-internal", "class"],
   });
 }
 
@@ -56,7 +65,7 @@ export function AgentMessage({ message }: AgentMessageProps) {
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      const target = (e.target as HTMLElement).closest<HTMLAnchorElement>("a[data-entity-type]");
+      const target = (e.target as HTMLElement).closest<HTMLAnchorElement>("a[data-internal]");
       if (!target) return;
       e.preventDefault();
       const href = target.getAttribute("href");
