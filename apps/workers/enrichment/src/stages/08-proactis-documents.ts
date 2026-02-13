@@ -1,4 +1,5 @@
-import type { Db, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
+import type { Db } from "mongodb";
 import type { Env, EnrichmentJobDoc } from "../types";
 import { updateJobProgress } from "../db/enrichment-jobs";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
@@ -34,6 +35,10 @@ interface ContractForEnrichment {
   }>;
 }
 
+function stripHtmlTags(text: string): string {
+  return text.replace(/<[^>]*>/g, "").trim();
+}
+
 function extractAttachmentUrls(
   html: string,
   baseUrl: string
@@ -47,7 +52,12 @@ function extractAttachmentUrls(
   for (const match of matches) {
     let rawUrl = match[0];
     // Decode HTML entities
-    rawUrl = rawUrl.replace(/&amp;/g, "&");
+    rawUrl = rawUrl
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
     const fullUrl = new URL(rawUrl, base.origin).toString();
 
     if (seen.has(fullUrl)) continue;
@@ -66,14 +76,14 @@ function extractAttachmentUrls(
     const titleAttr = titleAttrMatch?.[1]?.trim();
     const altText = altMatch?.[1]?.trim();
 
-    const title =
+    const rawTitle =
       (linkText && linkText !== "Open attachment" ? linkText : null) ??
       (titleAttr && titleAttr !== "Open attachment" ? titleAttr : null) ??
       altText ??
       linkText ??
       "Attachment";
 
-    results.push({ url: fullUrl, title });
+    results.push({ url: fullUrl, title: stripHtmlTags(rawTitle) });
   }
 
   return results;
@@ -101,19 +111,27 @@ export async function enrichProactisDocuments(
   const contracts = db.collection<ContractForEnrichment>("contracts");
 
   // Find contracts with ProActis advert URLs that haven't been enriched
-  // Look for advert URLs in documents or submissionPortalUrl
+  // Use $and to avoid key collision (both conditions reference "documents.url")
   const query: Record<string, unknown> = {
-    $or: [
-      { "documents.url": { $regex: PROACTIS_ADVERT_PATTERN } },
-      { submissionPortalUrl: { $regex: PROACTIS_ADVERT_PATTERN } },
+    $and: [
+      {
+        $or: [
+          { "documents.url": { $regex: PROACTIS_ADVERT_PATTERN } },
+          { submissionPortalUrl: { $regex: PROACTIS_ADVERT_PATTERN } },
+        ],
+      },
+      // Exclude already-enriched: contracts that already have ViewAttachment URLs
+      { "documents.url": { $not: { $regex: /ViewAttachment/i } } },
     ],
-    // Exclude already-enriched: contracts that already have ViewAttachment URLs
-    "documents.url": { $not: { $regex: /ViewAttachment/i } },
   };
 
   // Resume from cursor (last processed contract _id)
   if (job.cursor) {
-    query._id = { $gt: job.cursor };
+    try {
+      query._id = { $gt: new ObjectId(job.cursor) };
+    } catch {
+      console.warn(`Invalid cursor ObjectId: ${job.cursor}, starting from beginning`);
+    }
   }
 
   const candidateDocs = await contracts
@@ -178,6 +196,7 @@ export async function enrichProactisDocuments(
         console.warn(`ProActis fetch error for ${advertUrl}: ${msg}`);
         errorMessages.push(`Fetch ${contract._id}: ${msg}`);
         errors++;
+        processed++;
         continue;
       }
 

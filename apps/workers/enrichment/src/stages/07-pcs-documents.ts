@@ -152,10 +152,11 @@ export async function enrichPcsDocuments(
     ],
   };
 
-  // Resume from cursor (lastProcessedMonth)
+  // Resume from cursor (lastProcessedMonth) — skip completed months
   if (job.cursor) {
     const [year, month] = job.cursor.split("-").map(Number);
-    query.publishedDate = { $gt: new Date(year, month - 1, 28) };
+    // Start from the first day of the month AFTER the cursor month
+    query.publishedDate = { $gte: new Date(year, month, 1) };
   }
 
   const candidateDocs = await contracts
