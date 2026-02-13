@@ -292,7 +292,7 @@ export function getToolDefinitions(): Anthropic.Tool[] {
     {
       name: "enrich_buyer",
       description:
-        "Trigger full data enrichment for a buyer — fetches org details, LinkedIn, logo, governance docs, board minutes, key personnel, and spending data. Takes 2-5 minutes. Use when buyer has low enrichment score or missing data (no contacts, no spending, no board docs). Always confirm with the user before triggering.",
+        "Trigger full data enrichment for a buyer — fetches org details, LinkedIn, logo, governance docs, board minutes, key personnel, and spending data. Takes 2-5 minutes. Call first WITHOUT confirmed=true to show confirmation UI. Call again WITH confirmed=true after user confirms.",
       input_schema: {
         type: "object" as const,
         properties: {
@@ -303,6 +303,10 @@ export function getToolDefinitions(): Anthropic.Tool[] {
           buyerName: {
             type: "string",
             description: "Buyer name — used as fallback if buyerId is invalid",
+          },
+          confirmed: {
+            type: "boolean",
+            description: "Set to true to actually start enrichment (after user confirms)",
           },
         },
         required: ["buyerId"],

@@ -30,6 +30,12 @@ export interface EnrichmentStage {
   detail?: string;
 }
 
+export interface EnrichmentConfirmation {
+  buyerId: string;
+  buyerName: string;
+  messageId: string;
+}
+
 export interface ActiveEnrichment {
   buyerId: string;
   buyerName: string;
@@ -45,6 +51,7 @@ interface AgentStore {
   conversations: Conversation[];
   activeConversationId: string | null;
   isStreaming: boolean;
+  enrichmentConfirmation: EnrichmentConfirmation | null;
   activeEnrichment: ActiveEnrichment | null;
 
   setPanelOpen: (open: boolean) => void;
@@ -59,6 +66,7 @@ interface AgentStore {
   setIsStreaming: (streaming: boolean) => void;
   removeMessage: (conversationId: string, messageId: string) => void;
   clearConversation: (conversationId: string) => void;
+  setEnrichmentConfirmation: (confirmation: EnrichmentConfirmation | null) => void;
   setActiveEnrichment: (enrichment: ActiveEnrichment | null) => void;
   updateEnrichmentStage: (name: string, status: EnrichmentStage["status"], detail?: string) => void;
   completeEnrichment: (score?: number) => void;
@@ -69,6 +77,7 @@ export const useAgentStore = create<AgentStore>((set) => ({
   conversations: [],
   activeConversationId: null,
   isStreaming: false,
+  enrichmentConfirmation: null,
   activeEnrichment: null,
 
   setPanelOpen: (open) => set({ panelOpen: open }),
@@ -141,7 +150,9 @@ export const useAgentStore = create<AgentStore>((set) => ({
       };
     }),
 
-  setActiveEnrichment: (enrichment) => set({ activeEnrichment: enrichment }),
+  setEnrichmentConfirmation: (confirmation) => set({ enrichmentConfirmation: confirmation }),
+
+  setActiveEnrichment: (enrichment) => set({ activeEnrichment: enrichment, enrichmentConfirmation: null }),
 
   updateEnrichmentStage: (name, status, detail) =>
     set((state) => {

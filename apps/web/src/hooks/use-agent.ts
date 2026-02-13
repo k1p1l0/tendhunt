@@ -102,7 +102,16 @@ export function useAgent(): UseAgentReturn {
             }
           }
 
+          if (event.action?.type === "enrich_confirm") {
+            useAgentStore.getState().setEnrichmentConfirmation({
+              buyerId: event.action.buyerId as string,
+              buyerName: event.action.buyerName as string,
+              messageId,
+            });
+          }
+
           if (event.action?.type === "enrich_started") {
+            useAgentStore.getState().setEnrichmentConfirmation(null);
             startEnrichmentStream(
               event.action.buyerId as string,
               event.action.buyerName as string,

@@ -6,6 +6,8 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentMessage } from "./agent-message";
 import { SuggestedActions } from "./suggested-actions";
+import { EnrichmentConfirm } from "./enrichment-confirm";
+import { useAgentStore } from "@/stores/agent-store";
 
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
 
@@ -39,6 +41,7 @@ export function AgentMessageList({
   onRetry,
 }: AgentMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const enrichmentConfirmation = useAgentStore((s) => s.enrichmentConfirmation);
 
   useEffect(() => {
     const el = scrollContainerRef.current;
@@ -69,6 +72,10 @@ export function AgentMessageList({
           <AgentMessage key={msg.id} message={msg} />
         ))}
       </AnimatePresence>
+
+      {enrichmentConfirmation && !isStreaming && (
+        <EnrichmentConfirm onConfirm={onSend} />
+      )}
 
       {showTypingIndicator && <TypingIndicator />}
 

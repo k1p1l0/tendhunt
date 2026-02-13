@@ -449,6 +449,7 @@ async function handleEnrichBuyer(
 ): Promise<ToolResult> {
   const buyerIdInput = String(input.buyerId);
   const buyerNameInput = input.buyerName ? String(input.buyerName) : null;
+  const confirmed = input.confirmed === true;
 
   // Resolve buyer — try ID first, then name fallback
   let buyer = null;
@@ -483,8 +484,18 @@ async function handleEnrichBuyer(
     }
   }
 
+  // First call: return confirmation prompt with action buttons
+  if (!confirmed) {
+    return {
+      summary: `Ready to enrich ${buyerName} (current score: ${buyer.enrichmentScore ?? 0}/100). Awaiting confirmation.`,
+      data: { buyerId, buyerName, enrichmentScore: buyer.enrichmentScore ?? 0, needsConfirmation: true },
+      action: { type: "enrich_confirm", buyerId, buyerName },
+    };
+  }
+
+  // Confirmed: trigger enrichment
   return {
-    summary: `Starting enrichment for ${buyerName}. This will take 2-5 minutes — fetching org details, LinkedIn, board docs, contacts, and spending data.`,
+    summary: `Starting enrichment for ${buyerName}. This will take 2-5 minutes.`,
     data: { buyerId, buyerName, enrichmentScore: buyer.enrichmentScore ?? 0 },
     action: { type: "enrich_started", buyerId, buyerName },
   };
