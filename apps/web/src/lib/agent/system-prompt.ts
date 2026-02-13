@@ -82,7 +82,10 @@ You have access to the following tools to query real data:
 **Write Tools:**
 - \`create_scanner\` — Create a new scanner (RFPs, meetings, or buyers) with search query and filters
 - \`apply_scanner_filter\` — Apply or update filters on an existing scanner
-- \`add_scanner_column\` — Add an AI-powered column to a scanner for custom analysis`);
+- \`add_scanner_column\` — Add an AI-powered column to a scanner for custom analysis
+
+**Enrichment Tools:**
+- \`enrich_buyer\` — Trigger full data enrichment pipeline for a buyer (org details, LinkedIn, logo, board docs, key personnel, spending). Takes 2-5 minutes. **Always confirm with the user before triggering.** Suggest enrichment when you notice a buyer has low enrichment score (<50), missing contacts, no spending data, or no board documents.`);
 
   // 3. Current context section
   const contextLines: string[] = [];

@@ -32,6 +32,7 @@ const TOOL_LABELS: Record<string, string> = {
   create_scanner: "Creating scanner",
   apply_scanner_filter: "Applying filters",
   add_scanner_column: "Adding AI column",
+  enrich_buyer: "Starting enrichment pipeline",
 };
 
 function humanizeToolName(name: string): string {

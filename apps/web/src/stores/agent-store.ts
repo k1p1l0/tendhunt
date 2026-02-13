@@ -23,11 +23,29 @@ interface Conversation {
   lastMessageAt: Date;
 }
 
+export interface EnrichmentStage {
+  name: string;
+  label: string;
+  status: "pending" | "active" | "complete" | "failed";
+  detail?: string;
+}
+
+export interface ActiveEnrichment {
+  buyerId: string;
+  buyerName: string;
+  messageId: string;
+  stages: EnrichmentStage[];
+  startedAt: Date;
+  completedAt?: Date;
+  enrichmentScore?: number;
+}
+
 interface AgentStore {
   panelOpen: boolean;
   conversations: Conversation[];
   activeConversationId: string | null;
   isStreaming: boolean;
+  activeEnrichment: ActiveEnrichment | null;
 
   setPanelOpen: (open: boolean) => void;
   addMessage: (conversationId: string, message: AgentMessage) => void;
@@ -41,6 +59,9 @@ interface AgentStore {
   setIsStreaming: (streaming: boolean) => void;
   removeMessage: (conversationId: string, messageId: string) => void;
   clearConversation: (conversationId: string) => void;
+  setActiveEnrichment: (enrichment: ActiveEnrichment | null) => void;
+  updateEnrichmentStage: (name: string, status: EnrichmentStage["status"], detail?: string) => void;
+  completeEnrichment: (score?: number) => void;
 }
 
 export const useAgentStore = create<AgentStore>((set) => ({
@@ -48,6 +69,7 @@ export const useAgentStore = create<AgentStore>((set) => ({
   conversations: [],
   activeConversationId: null,
   isStreaming: false,
+  activeEnrichment: null,
 
   setPanelOpen: (open) => set({ panelOpen: open }),
 
@@ -116,6 +138,33 @@ export const useAgentStore = create<AgentStore>((set) => ({
           state.activeConversationId === conversationId
             ? null
             : state.activeConversationId,
+      };
+    }),
+
+  setActiveEnrichment: (enrichment) => set({ activeEnrichment: enrichment }),
+
+  updateEnrichmentStage: (name, status, detail) =>
+    set((state) => {
+      if (!state.activeEnrichment) return state;
+      return {
+        activeEnrichment: {
+          ...state.activeEnrichment,
+          stages: state.activeEnrichment.stages.map((s) =>
+            s.name === name ? { ...s, status, detail } : s
+          ),
+        },
+      };
+    }),
+
+  completeEnrichment: (score) =>
+    set((state) => {
+      if (!state.activeEnrichment) return state;
+      return {
+        activeEnrichment: {
+          ...state.activeEnrichment,
+          completedAt: new Date(),
+          enrichmentScore: score,
+        },
       };
     }),
 }));

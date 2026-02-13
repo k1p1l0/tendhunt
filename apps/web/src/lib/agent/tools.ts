@@ -290,6 +290,25 @@ export function getToolDefinitions(): Anthropic.Tool[] {
       },
     },
     {
+      name: "enrich_buyer",
+      description:
+        "Trigger full data enrichment for a buyer — fetches org details, LinkedIn, logo, governance docs, board minutes, key personnel, and spending data. Takes 2-5 minutes. Use when buyer has low enrichment score or missing data (no contacts, no spending, no board docs). Always confirm with the user before triggering.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          buyerId: {
+            type: "string",
+            description: "MongoDB ObjectId of the buyer to enrich",
+          },
+          buyerName: {
+            type: "string",
+            description: "Buyer name — used as fallback if buyerId is invalid",
+          },
+        },
+        required: ["buyerId"],
+      },
+    },
+    {
       name: "add_scanner_column",
       description:
         "Add an AI-powered analysis column to a scanner. The column runs an AI prompt against each row to generate scores or insights.",

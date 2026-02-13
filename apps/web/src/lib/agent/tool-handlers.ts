@@ -50,6 +50,8 @@ export async function executeToolHandler(
         return await handleApplyScannerFilter(input, userId);
       case "add_scanner_column":
         return await handleAddScannerColumn(input, userId);
+      case "enrich_buyer":
+        return await handleEnrichBuyer(input);
       default:
         return { summary: `Unknown tool: ${toolName}`, data: null };
     }
@@ -439,5 +441,51 @@ async function handleAddScannerColumn(
   return {
     summary: `Added AI column "${name}" to scanner "${scanner.name}"`,
     data: { columnId, name, prompt },
+  };
+}
+
+async function handleEnrichBuyer(
+  input: Record<string, unknown>
+): Promise<ToolResult> {
+  const buyerIdInput = String(input.buyerId);
+  const buyerNameInput = input.buyerName ? String(input.buyerName) : null;
+
+  // Resolve buyer — try ID first, then name fallback
+  let buyer = null;
+  if (mongoose.isValidObjectId(buyerIdInput)) {
+    buyer = await Buyer.findById(buyerIdInput)
+      .select("name enrichmentScore lastEnrichedAt")
+      .lean();
+  }
+  if (!buyer && buyerNameInput) {
+    buyer = await Buyer.findOne({
+      name: { $regex: `^${buyerNameInput.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+    })
+      .select("name enrichmentScore lastEnrichedAt")
+      .lean();
+  }
+
+  if (!buyer) {
+    return { summary: "Buyer not found", data: null };
+  }
+
+  const buyerId = String(buyer._id);
+  const buyerName = buyer.name;
+
+  // Check if recently enriched (within 24 hours)
+  if (buyer.lastEnrichedAt) {
+    const hoursSince = (Date.now() - new Date(buyer.lastEnrichedAt).getTime()) / (1000 * 60 * 60);
+    if (hoursSince < 24) {
+      return {
+        summary: `${buyerName} was already enriched ${Math.round(hoursSince)} hours ago (score: ${buyer.enrichmentScore ?? 0}/100). Re-enrichment available after 24 hours.`,
+        data: { buyerId, buyerName, enrichmentScore: buyer.enrichmentScore, lastEnrichedAt: buyer.lastEnrichedAt },
+      };
+    }
+  }
+
+  return {
+    summary: `Starting enrichment for ${buyerName}. This will take 2-5 minutes — fetching org details, LinkedIn, board docs, contacts, and spending data.`,
+    data: { buyerId, buyerName, enrichmentScore: buyer.enrichmentScore ?? 0 },
+    action: { type: "enrich_started", buyerId, buyerName },
   };
 }

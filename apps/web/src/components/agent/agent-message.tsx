@@ -6,6 +6,9 @@ import { motion, useReducedMotion } from "motion/react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { ToolCallChain } from "./tool-call-indicator";
+import { EnrichmentProgress } from "./enrichment-progress";
+import { useAgentStore } from "@/stores/agent-store";
+
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
 
 marked.setOptions({
@@ -117,6 +120,8 @@ export function AgentMessage({ message }: AgentMessageProps) {
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
   const contentRef = useRef<HTMLDivElement>(null);
+  const enrichmentMessageId = useAgentStore((s) => s.activeEnrichment?.messageId);
+  const showEnrichment = message.id === enrichmentMessageId;
 
   const htmlContent = useMemo(() => {
     if (message.role !== "assistant" || !message.content) return "";
@@ -166,6 +171,7 @@ export function AgentMessage({ message }: AgentMessageProps) {
       {message.toolCalls && message.toolCalls.length > 0 && (
         <ToolCallChain toolCalls={message.toolCalls} />
       )}
+      {showEnrichment && <EnrichmentProgress />}
       {message.content && (
         <div ref={contentRef}>
           <div

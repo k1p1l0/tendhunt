@@ -101,6 +101,14 @@ export function useAgent(): UseAgentReturn {
               router.push(url);
             }
           }
+
+          if (event.action?.type === "enrich_started") {
+            startEnrichmentStream(
+              event.action.buyerId as string,
+              event.action.buyerName as string,
+              messageId
+            );
+          }
           break;
         }
         case "conversation_id": {
@@ -258,6 +266,64 @@ export function useAgent(): UseAgentReturn {
     // Re-send
     sendMessage(lastUserMessage.content);
   }, [sendMessage]);
+
+  const startEnrichmentStream = useCallback(
+    (buyerId: string, buyerName: string, messageId: string) => {
+      const store = useAgentStore.getState();
+      store.setActiveEnrichment({
+        buyerId,
+        buyerName,
+        messageId,
+        stages: [],
+        startedAt: new Date(),
+      });
+
+      const eventSource = new EventSource(`/api/enrichment/${buyerId}/progress`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as Record<string, unknown>;
+          const s = useAgentStore.getState();
+
+          switch (data.type) {
+            case "init": {
+              const stages = data.stages as Array<{ name: string; label: string; status: string }>;
+              s.setActiveEnrichment({
+                buyerId,
+                buyerName,
+                messageId,
+                stages: stages.map((st) => ({
+                  name: st.name,
+                  label: st.label,
+                  status: st.status as "pending",
+                })),
+                startedAt: new Date(),
+              });
+              break;
+            }
+            case "stage_active":
+              s.updateEnrichmentStage(data.stage as string, "active");
+              break;
+            case "stage_complete":
+              s.updateEnrichmentStage(data.stage as string, "complete");
+              break;
+            case "done":
+              s.completeEnrichment(data.enrichmentScore as number);
+              eventSource.close();
+              break;
+          }
+        } catch {
+          // skip malformed events
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        useAgentStore.getState().completeEnrichment();
+      };
+    },
+    []
+  );
 
   return {
     sendMessage,
