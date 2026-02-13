@@ -4,8 +4,6 @@ let client: MongoClient | null = null;
 
 export async function getDb(mongoUri: string): Promise<Db> {
   if (!client) {
-    // Cast needed: @cloudflare/workers-types declares a global TLSSocket
-    // that conflicts with Node.js tls types used by MongoClientOptions
     const opts = {
       maxPoolSize: 1,
       minPoolSize: 0,
@@ -13,8 +11,13 @@ export async function getDb(mongoUri: string): Promise<Db> {
       connectTimeoutMS: 10000,
     } as MongoClientOptions;
     client = new MongoClient(mongoUri, opts);
+    try {
+      await client.connect();
+    } catch (err) {
+      client = null;
+      throw err;
+    }
   }
-  await client.connect();
   return client.db("tendhunt");
 }
 

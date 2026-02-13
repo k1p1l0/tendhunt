@@ -1,6 +1,7 @@
 export interface Env {
   MONGODB_URI: string;
   APP_URL: string;
+  WORKER_SECRET?: string;
 }
 
 export interface SlackIntegration {

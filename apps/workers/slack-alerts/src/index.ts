@@ -3,6 +3,15 @@ import { getDb, closeDb } from "./db/client";
 import { runDailyDigest } from "./stages/daily-digest";
 import { runNewContractAlerts } from "./stages/new-contract-alerts";
 
+function checkAuth(request: Request, env: Env): Response | null {
+  if (!env.WORKER_SECRET) return null;
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader !== `Bearer ${env.WORKER_SECRET}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -10,6 +19,9 @@ export default {
     if (url.pathname === "/health") {
       return Response.json({ status: "ok", worker: "tendhunt-slack-alerts" });
     }
+
+    const authErr = checkAuth(request, env);
+    if (authErr) return authErr;
 
     if (url.pathname === "/run") {
       try {

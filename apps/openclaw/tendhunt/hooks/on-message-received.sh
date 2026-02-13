@@ -12,11 +12,19 @@ sanitize_json() {
 }
 
 SAFE_MESSAGE=$(sanitize_json "${MESSAGE_TEXT}")
+SAFE_USER_ID=$(sanitize_json "${SLACK_USER_ID}")
 
 # Search for user-specific facts
+user_query=$(python3 -c "
+import json, os
+uid = os.environ.get('SLACK_USER_ID', 'unknown')
+gid = '${GROUP_ID}'
+print(json.dumps({'query': f'user {uid} preferences interests sectors regions', 'group_ids': [gid], 'max_facts': 10}))
+" 2>/dev/null)
+
 user_facts=$(curl -sf --max-time 5 -X POST "${GRAPHITI_URL}/search" \
   -H "Content-Type: application/json" \
-  -d "{\"query\": \"user ${SLACK_USER_ID} preferences interests sectors regions\", \"group_ids\": [\"${GROUP_ID}\"], \"max_facts\": 10}" \
+  -d "${user_query:-"{}"}" \
   2>/dev/null)
 
 # Search for topic-related facts from the message
