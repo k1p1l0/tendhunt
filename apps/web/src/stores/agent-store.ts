@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface AgentMessage {
   id: string;
@@ -72,7 +73,9 @@ interface AgentStore {
   completeEnrichment: (score?: number) => void;
 }
 
-export const useAgentStore = create<AgentStore>((set) => ({
+export const useAgentStore = create<AgentStore>()(
+  persist(
+    (set) => ({
   panelOpen: false,
   conversations: [],
   activeConversationId: null,
@@ -178,7 +181,36 @@ export const useAgentStore = create<AgentStore>((set) => ({
         },
       };
     }),
-}));
+    }),
+    {
+      name: "sculptor-conversations",
+      partialize: (state) => ({
+        panelOpen: state.panelOpen,
+        conversations: state.conversations,
+        activeConversationId: state.activeConversationId,
+      }),
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          const parsed = JSON.parse(str) as { state: Record<string, unknown>; version?: number };
+          const convs = parsed.state.conversations as Conversation[] | undefined;
+          if (convs) {
+            for (const c of convs) {
+              c.lastMessageAt = new Date(c.lastMessageAt);
+              for (const m of c.messages) {
+                m.timestamp = new Date(m.timestamp);
+              }
+            }
+          }
+          return parsed;
+        },
+        setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+        removeItem: (name) => localStorage.removeItem(name),
+      },
+    },
+  ),
+);
 
 /** Get messages for the active conversation */
 export function getActiveMessages(state: {
