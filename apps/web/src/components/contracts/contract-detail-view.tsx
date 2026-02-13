@@ -107,6 +107,7 @@ interface ContractDetailData {
   documents?: Array<{
     id?: string;
     documentType?: string;
+    title?: string;
     description?: string;
     url?: string;
     datePublished?: string;
@@ -264,6 +265,14 @@ function ContractTimeline({
   const currentPhase: TimelinePhase =
     stage === "PLANNING" ? "planning" : stage === "AWARD" ? "award" : "tender";
 
+  const published = publishedDate ? formatDate(publishedDate) : null;
+  const deadline = deadlineDate ? formatDate(deadlineDate) : null;
+  const deadlineDateObj = deadlineDate ? new Date(deadlineDate) : null;
+  const deadlineRelative = deadlineDateObj ? relativeTime(deadlineDateObj) : null;
+
+  const phaseOrder: TimelinePhase[] = ["planning", "tender", "award"];
+  const currentIdx = phaseOrder.indexOf(currentPhase);
+
   const phases: {
     id: TimelinePhase;
     label: string;
@@ -274,13 +283,13 @@ function ContractTimeline({
       id: "planning",
       label: "Pre-tender",
       isActive: currentPhase === "planning",
-      isCompleted: currentPhase === "tender" || currentPhase === "award",
+      isCompleted: currentIdx > 0,
     },
     {
       id: "tender",
       label: "Tender",
       isActive: currentPhase === "tender",
-      isCompleted: currentPhase === "award",
+      isCompleted: currentIdx > 1,
     },
     {
       id: "award",
@@ -290,24 +299,20 @@ function ContractTimeline({
     },
   ];
 
-  const published = publishedDate ? formatDate(publishedDate) : null;
-  const deadline = deadlineDate ? formatDate(deadlineDate) : null;
-  const deadlineDateObj = deadlineDate ? new Date(deadlineDate) : null;
-  const deadlineRelative = deadlineDateObj ? relativeTime(deadlineDateObj) : null;
-
   return (
     <div className="mt-8 mb-8">
       <h3 className="text-lg font-medium mb-5">Timeline</h3>
       <div className="space-y-0">
         {phases.map((phase, idx) => {
           const isLast = idx === phases.length - 1;
-          const showDetails = phase.isActive || phase.isCompleted;
+          const isReached = phase.isActive || phase.isCompleted;
+          const isCurrent = phase.isActive;
 
           return (
             <div key={phase.id} className="flex gap-4">
               {/* Vertical line + icon */}
               <div className="flex flex-col items-center">
-                {phase.isActive ? (
+                {isCurrent ? (
                   <CircleDot className="h-5 w-5 text-blue-500 shrink-0" />
                 ) : phase.isCompleted ? (
                   <Circle className="h-5 w-5 text-muted-foreground/60 fill-muted-foreground/20 shrink-0" />
@@ -328,7 +333,7 @@ function ContractTimeline({
                 <div className="flex items-baseline gap-4">
                   <span
                     className={`text-sm font-semibold ${
-                      phase.isActive
+                      isCurrent
                         ? "text-blue-500"
                         : phase.isCompleted
                           ? "text-foreground"
@@ -337,18 +342,12 @@ function ContractTimeline({
                   >
                     {phase.label}
                   </span>
-                  {!showDetails && (
+                  {!isReached && (
                     <span className="text-sm text-muted-foreground/50">
                       Not identified
                     </span>
                   )}
-                  {phase.isActive && phase.id === "award" && (
-                    <span className="text-sm text-muted-foreground truncate max-w-xs">
-                      {title}
-                      <span className="text-xs text-muted-foreground/60 ml-2">(Current page)</span>
-                    </span>
-                  )}
-                  {phase.isActive && phase.id === "tender" && (
+                  {isCurrent && (
                     <span className="text-sm text-muted-foreground truncate max-w-xs">
                       {title}
                       <span className="text-xs text-muted-foreground/60 ml-2">(Current page)</span>
@@ -356,8 +355,8 @@ function ContractTimeline({
                   )}
                 </div>
 
-                {/* Date details for the active/completed phase */}
-                {showDetails && (phase.id === "tender" || phase.id === "award") && (
+                {/* Tender phase dates: published + deadline */}
+                {phase.id === "tender" && isReached && (published || deadline) && (
                   <div className="mt-2 space-y-1.5">
                     {published && (
                       <div className="flex items-baseline gap-6">
@@ -367,9 +366,7 @@ function ContractTimeline({
                     )}
                     {deadline && (
                       <div className="flex items-baseline gap-6">
-                        <span className="text-sm text-muted-foreground w-20">
-                          {phase.id === "award" ? "Expiry" : "Deadline"}
-                        </span>
+                        <span className="text-sm text-muted-foreground w-20">Deadline</span>
                         <span className="text-sm">
                           {deadline}
                           {deadlineRelative && (
@@ -380,6 +377,16 @@ function ContractTimeline({
                         </span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Award phase dates: published (award notice date) */}
+                {phase.id === "award" && isCurrent && published && (
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-baseline gap-6">
+                      <span className="text-sm text-muted-foreground w-20">Published</span>
+                      <span className="text-sm">{published}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -700,8 +707,15 @@ function DocumentsSection({
             className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
           >
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">
-                {doc.documentType ? documentTypeLabel(doc.documentType) : "Document"}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {doc.title || (doc.documentType ? documentTypeLabel(doc.documentType) : "Document")}
+                </span>
+                {doc.format && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 uppercase shrink-0">
+                    {doc.format.replace(/^application\//, "").replace(/^(vnd\.\w+\.)/, "").split(/[.+]/).pop()}
+                  </Badge>
+                )}
               </div>
               {doc.description && (
                 <div className="text-xs text-muted-foreground line-clamp-1">
