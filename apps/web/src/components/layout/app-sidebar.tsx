@@ -7,6 +7,7 @@ import {
   FileText,
   Building2,
   Radar,
+  Inbox,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +45,11 @@ const navItems: NavItem[] = [
     title: "Scanners",
     href: "/scanners",
     icon: Radar,
+  },
+  {
+    title: "Inbox",
+    href: "/inbox",
+    icon: Inbox,
   },
 ];
 
