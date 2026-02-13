@@ -268,6 +268,10 @@ Recent decisions affecting current work:
 - [22-01]: Stage constants use Tailwind bg/text classes for direct UI consumption
 - [22-01]: ReorderPayload supports cross-column moves via sourceColumn field
 - [22-01]: Card creation uses findOneAndUpdate with upsert for idempotent "send to inbox"
+- [22-02]: PointerSensor with 8px activation distance for click vs drag separation
+- [22-02]: closestCorners collision detection for cross-column card accuracy
+- [22-02]: Optimistic reorder with fetchCards rollback on server error
+- [22-02]: AnimatePresence for card enter/exit animations in columns
 - [22-03]: SendToInboxButton replaces Track Opportunity (contracts) and Export Report (buyers) -- one CTA per entity
 - [22-03]: Scanner type to entity type mapping: rfps->contract, meetings->signal, buyers->buyer
 
