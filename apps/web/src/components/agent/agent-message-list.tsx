@@ -75,9 +75,11 @@ export function AgentMessageList({
         ))}
       </AnimatePresence>
 
-      {enrichmentConfirmation && !isStreaming && (
-        <EnrichmentConfirm onConfirm={onSend} />
-      )}
+      <EnrichmentConfirm
+        onConfirm={onSend}
+        lastMessage={lastMessage}
+        isStreaming={isStreaming}
+      />
 
       {activeEnrichment && activeEnrichment.stages.length > 0 && (
         <EnrichmentProgress />
