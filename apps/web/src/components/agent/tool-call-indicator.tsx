@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Collapsible,
@@ -41,18 +41,49 @@ function humanizeToolName(name: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function StepIcon({ isLoading }: { isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="h-5 w-5 rounded-full border-2 border-primary/30 flex items-center justify-center">
-        <Loader2 className="h-3 w-3 animate-spin text-primary" />
-      </div>
-    );
-  }
+function SpinnerIcon() {
   return (
-    <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-      <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
-    </div>
+    <svg
+      className="h-5 w-5 animate-spin"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="10"
+        cy="10"
+        r="8"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="text-muted-foreground/20"
+      />
+      <path
+        d="M10 2a8 8 0 0 1 8 8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className="text-primary"
+      />
+    </svg>
+  );
+}
+
+function StepIcon({ isLoading }: { isLoading: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (isLoading) {
+    return <SpinnerIcon />;
+  }
+
+  return (
+    <motion.div
+      initial={prefersReducedMotion ? {} : { scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+      className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center"
+    >
+      <Check className="h-3 w-3 text-white" strokeWidth={3} />
+    </motion.div>
   );
 }
 
