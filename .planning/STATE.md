@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 20 COMPLETE (4/4 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 22 IN PROGRESS (1/? plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 20 COMPLETE (4/4), 19 COMPLETE, 18 COMPLETE, 11 + 15 in progress
-Plan: 20-04 COMPLETE -- Enhanced SignalsTab with type filtering, confidence, quotes, entity badges, animations
-Status: Phase 20 complete -- All 4 plans done (worker scaffold, schema extensions, extraction pipeline, frontend display)
-Last activity: 2026-02-12 - Completed 20-04: Frontend signal display enhancement
+Phase: 22-crm-pipeline-procurement-inbox IN PROGRESS (1/? plans)
+Plan: 22-01 COMPLETE -- Data layer: models, constants, types, 8 API endpoints
+Status: Phase 22 plan 01 complete -- backend infrastructure for CRM pipeline
+Last activity: 2026-02-13 - Completed 22-01: CRM pipeline data layer
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15, 22 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 50
+- Total plans completed: 51
 - Average duration: 3.3 min
-- Total execution time: 2.86 hours
+- Total execution time: 2.88 hours
 
 **By Phase:**
 
@@ -43,10 +43,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~92% (Phases 11, 15 in progress)
 | 18-admin-panel | 4/4 | 15 min | 3.8 min |
 | 19-research-agent-chat-panel | 4/4 | 10 min | 2.5 min |
 | 20-board-minutes-signals | 4/4 | 8 min | 2 min |
+| 22-crm-pipeline-procurement-inbox | 1/? | 1 min | 1 min |
 
 **Recent Trend:**
-- Last 5 plans: 20-04 (2 min), 20-01 (2 min), 20-02 (2 min), 19-04 (3 min), 19-03 (3 min)
-- Trend: Consistent ~2-3 min per plan
+- Last 5 plans: 22-01 (1 min), 20-04 (2 min), 20-01 (2 min), 20-02 (2 min), 19-04 (3 min)
+- Trend: Consistent ~1-3 min per plan
 
 *Updated after each plan completion*
 
@@ -263,6 +264,10 @@ Recent decisions affecting current work:
 - [20-04]: Filter pills only render when 2+ signal types present (avoids single-filter pointlessness)
 - [20-04]: Entity badges capped at 5 total across companies/people/amounts to avoid card clutter
 - [20-04]: hasBoardDocuments derived from boardDocuments.length in parent BuyerTabs
+- [22-01]: deleteModel pattern for HMR safety on PipelineCard and PipelineCardNote models
+- [22-01]: Stage constants use Tailwind bg/text classes for direct UI consumption
+- [22-01]: ReorderPayload supports cross-column moves via sourceColumn field
+- [22-01]: Card creation uses findOneAndUpdate with upsert for idempotent "send to inbox"
 
 ### Pending Todos
 
@@ -280,6 +285,7 @@ Recent decisions affecting current work:
 - Phase 18 added: Admin Panel (admin app scaffold, overview dashboard, workers management, data/users pages)
 - Phase 19 added: Research Agent Chat Panel (backend tools, SSE streaming, chat UI, conversation persistence)
 - Phase 20 added: Board Minutes Signals (worker scaffold, schema extensions, extraction pipeline, frontend display)
+- Phase 22 added: CRM Pipeline Procurement Inbox (data layer, Kanban UI, send-to-inbox, card detail)
 
 ### Blockers/Concerns
 
@@ -292,9 +298,10 @@ None yet.
 | 1 | Add PDF spend file parsing to spend-ingest worker pipeline with R2 storage | 2026-02-12 | dcf5616 | [1-add-pdf-spend-file-parsing-to-spend-inge](./quick/1-add-pdf-spend-file-parsing-to-spend-inge/) |
 | 3 | Fix data-sync worker: remove index conflict + trigger enrichment for new buyers | 2026-02-12 | 6d11175 | [3-fix-data-sync-worker-remove-index-confli](./quick/3-fix-data-sync-worker-remove-index-confli/) |
 | 4 | Add stage and status filter options to scanner grid for RFP scanners | 2026-02-12 | e281a7c | [4-add-stage-and-status-filter-options-to-s](./quick/4-add-stage-and-status-filter-options-to-s/) |
+| 5 | Redesign contracts + buyers pages with data-dense table layout, filter chips, breadcrumbs | 2026-02-13 | 0dccb98 | [5-buyer-page-redesign-table-toolbar-detail](./quick/5-buyer-page-redesign-table-toolbar-detail/) |
 
 ## Session Continuity
 
-Last session: 2026-02-12
-Stopped at: Completed quick task 4 -- Stage/status filter dropdowns in RFP scanner edit dialog
-Next: Pending: 11-02 (spend intelligence), 15-02 (entity linking).
+Last session: 2026-02-13
+Stopped at: Completed 22-01 -- CRM pipeline data layer (models, constants, types, 8 API endpoints)
+Next: 22-02 (Kanban board UI), then 11-02 (spend intelligence), 15-02 (entity linking).
