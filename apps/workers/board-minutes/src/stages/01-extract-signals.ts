@@ -193,7 +193,11 @@ export async function extractSignals(
   const signalsCollection = db.collection<SignalDoc>("signals");
 
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-  const limit = pLimit(2);
+  const limit = pLimit(1);
+
+  // Cap total Claude API calls per invocation to control costs
+  const MAX_API_CALLS_PER_RUN = 50;
+  let apiCallCount = 0;
 
   let processed = 0;
   let errors = 0;
@@ -246,15 +250,21 @@ export async function extractSignals(
 
     const errorMessages: string[] = [];
 
+    const budget = { remaining: MAX_API_CALLS_PER_RUN - apiCallCount };
+
     const results = await Promise.allSettled(
       batch.map((buyer) =>
         limit(async () => {
+          if (budget.remaining <= 0) {
+            return { signalCount: 0 };
+          }
           try {
             const result = await processOneBuyer(
               anthropic,
               boardDocsCollection,
               signalsCollection,
-              buyer
+              buyer,
+              budget
             );
             return result;
           } catch (err) {
@@ -279,6 +289,14 @@ export async function extractSignals(
         errors++;
         errorMessages.push(result.reason?.message ?? String(result.reason));
       }
+    }
+
+    apiCallCount = MAX_API_CALLS_PER_RUN - budget.remaining;
+    if (apiCallCount >= MAX_API_CALLS_PER_RUN) {
+      console.log(
+        `API call budget exhausted (${MAX_API_CALLS_PER_RUN} calls). Pausing until next invocation.`
+      );
+      break;
     }
 
     processed += batch.length;
@@ -311,7 +329,8 @@ async function processOneBuyer(
   anthropic: Anthropic,
   boardDocsCollection: Collection<BoardDocumentDoc>,
   signalsCollection: Collection<SignalDoc>,
-  buyer: Record<string, unknown>
+  buyer: Record<string, unknown>,
+  budget: { remaining: number }
 ): Promise<{ error?: string; signalCount: number }> {
   const buyerId = buyer._id as ObjectId;
   const buyerName = (buyer.name as string) ?? "Unknown";
@@ -326,7 +345,7 @@ async function processOneBuyer(
       textContent: { $exists: true, $ne: "" },
     })
     .sort({ meetingDate: -1 })
-    .limit(5)
+    .limit(3)
     .toArray();
 
   if (docs.length === 0) {
@@ -353,6 +372,8 @@ async function processOneBuyer(
       const docSignals: RawSignal[] = [];
 
       for (let i = 0; i < chunks.length; i++) {
+        if (budget.remaining <= 0) break;
+
         const prompt = EXTRACTION_PROMPT
           .replace("{org_name}", buyerName)
           .replace("{sector}", sector)
@@ -360,6 +381,7 @@ async function processOneBuyer(
           .replace("{chunk_text}", chunks[i]);
 
         try {
+          budget.remaining--;
           const response = await anthropic.messages.create({
             model: "claude-haiku-4-5-20251001",
             max_tokens: 2000,
@@ -402,7 +424,7 @@ async function processOneBuyer(
           const entities = raw.entities ?? {};
           const now = new Date();
 
-          const signalDoc: Omit<SignalDoc, "_id"> = {
+          const signalDoc: Omit<SignalDoc, "_id" | "createdAt"> = {
             buyerId,
             boardDocumentId: doc._id!,
             organizationName: buyerName,

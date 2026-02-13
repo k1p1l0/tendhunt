@@ -36,6 +36,7 @@ const boardDocumentSchema = new Schema(
 );
 
 boardDocumentSchema.index({ buyerId: 1, sourceUrl: 1 }, { unique: true });
+boardDocumentSchema.index({ buyerId: 1, signalExtractionStatus: 1 });
 
 export type IBoardDocument = InferSchemaType<typeof boardDocumentSchema>;
 

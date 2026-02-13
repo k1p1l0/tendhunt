@@ -20,10 +20,21 @@ import { aggregateSpendData } from "./stages/04-aggregate";
 //   4. aggregate       — Compute per-buyer spend summaries
 // ---------------------------------------------------------------------------
 
+async function ensureIndexes(db: Db): Promise<void> {
+  try {
+    await db
+      .collection("columnMappings")
+      .createIndex({ headersHash: 1 }, { unique: true });
+  } catch {
+    // Index already exists — ignore
+  }
+}
+
 async function runPipeline(env: Env, maxItems = 200) {
   const db = await getDb(env.MONGODB_URI);
 
   try {
+    await ensureIndexes(db);
     console.log("--- Starting spend ingest pipeline ---");
     const result = await processSpendPipeline(db, env, maxItems);
     console.log(

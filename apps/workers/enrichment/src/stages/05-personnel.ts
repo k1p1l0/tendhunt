@@ -39,8 +39,8 @@ export async function extractKeyPersonnel(
   // Initialize Anthropic client
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-  // Limit concurrent Claude API calls to 2
-  const limit = pLimit(2);
+  // Sequential Claude API calls to limit spend
+  const limit = pLimit(1);
 
   let processed = 0;
   let errors = 0;

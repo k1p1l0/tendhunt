@@ -71,6 +71,10 @@ const buyerSchema = new Schema(
   { timestamps: true }
 );
 
+// Compound indexes for enrichment worker queries
+buyerSchema.index({ enrichmentSources: 1, orgType: 1 });
+buyerSchema.index({ dataSourceId: 1, lastEnrichedAt: 1 });
+
 export type IBuyer = InferSchemaType<typeof buyerSchema>;
 
 const Buyer = mongoose.models.Buyer || mongoose.model("Buyer", buyerSchema);

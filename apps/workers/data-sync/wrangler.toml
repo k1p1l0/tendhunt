@@ -4,7 +4,7 @@ compatibility_date = "2025-03-20"
 compatibility_flags = ["nodejs_compat_v2"]
 
 [triggers]
-crons = ["*/10 * * * *"]
+crons = ["0 * * * *"]
 
 [vars]
 ENRICHMENT_WORKER_URL = "https://tendhunt-enrichment.kozak-74d.workers.dev"
