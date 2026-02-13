@@ -119,13 +119,17 @@ export function getToolDefinitions(): Anthropic.Tool[] {
     {
       name: "get_buyer_detail",
       description:
-        "Get full details for a specific buyer including contacts, key personnel, board documents, signals, enrichment data, and spending info.",
+        "Get full details for a specific buyer including contacts, key personnel, board documents, signals, enrichment data, and spending info. Pass buyerId if known, or buyerName as fallback when buyerId is unavailable.",
       input_schema: {
         type: "object" as const,
         properties: {
           buyerId: {
             type: "string",
             description: "MongoDB ObjectId of the buyer",
+          },
+          buyerName: {
+            type: "string",
+            description: "Exact buyer name — used as fallback if buyerId is missing or invalid",
           },
         },
         required: ["buyerId"],

@@ -181,19 +181,35 @@ async function handleGetBuyerDetail(
 ): Promise<ToolResult> {
   const buyerId = String(input.buyerId);
 
-  if (!mongoose.isValidObjectId(buyerId)) {
-    return { summary: "Invalid buyer ID", data: null };
+  // Try by ID first
+  if (mongoose.isValidObjectId(buyerId)) {
+    const buyer = await fetchBuyerById(buyerId);
+    if (buyer) {
+      return {
+        summary: `Retrieved details for ${buyer.name}`,
+        data: buyer,
+      };
+    }
   }
 
-  const buyer = await fetchBuyerById(buyerId);
-  if (!buyer) {
-    return { summary: "Buyer not found", data: null };
+  // Fallback: the ID might be stale/invalid — try name lookup if provided
+  const buyerName = input.buyerName ? String(input.buyerName) : null;
+  if (buyerName) {
+    const byName = await Buyer.findOne({
+      name: { $regex: `^${buyerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+    }).lean();
+    if (byName) {
+      const buyer = await fetchBuyerById(String(byName._id));
+      if (buyer) {
+        return {
+          summary: `Retrieved details for ${buyer.name}`,
+          data: buyer,
+        };
+      }
+    }
   }
 
-  return {
-    summary: `Retrieved details for ${buyer.name}`,
-    data: buyer,
-  };
+  return { summary: "Buyer not found", data: null };
 }
 
 async function handleGetContractDetail(
