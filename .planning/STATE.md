@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 Phase: 22-crm-pipeline-procurement-inbox COMPLETE (5/5 plans)
 Plan: 22-05 COMPLETE -- Auto-send rules with threshold-based scoring integration
 Status: Phase 22 complete -- Full CRM pipeline with Kanban board, card detail, and auto-send automation
-Last activity: 2026-02-13 - Completed 22-05: Scanner auto-send rules
+Last activity: 2026-02-13 - Completed quick task 6: Redirect root to dashboard
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15 in progress)
 
@@ -312,9 +312,10 @@ None yet.
 | 3 | Fix data-sync worker: remove index conflict + trigger enrichment for new buyers | 2026-02-12 | 6d11175 | [3-fix-data-sync-worker-remove-index-confli](./quick/3-fix-data-sync-worker-remove-index-confli/) |
 | 4 | Add stage and status filter options to scanner grid for RFP scanners | 2026-02-12 | e281a7c | [4-add-stage-and-status-filter-options-to-s](./quick/4-add-stage-and-status-filter-options-to-s/) |
 | 5 | Redesign contracts + buyers pages with data-dense table layout, filter chips, breadcrumbs | 2026-02-13 | 0dccb98 | [5-buyer-page-redesign-table-toolbar-detail](./quick/5-buyer-page-redesign-table-toolbar-detail/) |
+| 6 | Redirect root page to dashboard instead of showing default Next.js welcome screen | 2026-02-13 | 5cc3c5a | [6-redirect-root-page-to-dashboard-instead-](./quick/6-redirect-root-page-to-dashboard-instead-/) |
 
 ## Session Continuity
 
 Last session: 2026-02-13
-Stopped at: Completed 22-05 -- Scanner auto-send rules (AutoSendRule model, CRUD API, dialog, scoring integration)
-Next: Phase 22 complete. Continue with 11-02 (spend intelligence), 15-02 (entity linking).
+Stopped at: Completed quick task 6 -- Redirect root to dashboard
+Next: Continue with 11-02 (spend intelligence), 15-02 (entity linking).
