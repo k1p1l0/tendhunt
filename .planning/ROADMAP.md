@@ -22,6 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 8: Landing & Pricing** - Marketing page and pricing tiers
 - [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
 - [x] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
+- [ ] **Phase 30: Sculptor AI Homepage & Floating Assistant** - AI-first dashboard with Sculptor chat hero, animated starburst icon, floating bubble assistant on all pages
 
 ## Phase Details
 
@@ -477,3 +478,25 @@ Plans:
 - [x] 22-03-PLAN.md -- "Send to Inbox" button component + integration into contract, buyer, and scanner entity pages
 - [x] 22-04-PLAN.md -- Card detail sheet with notes/comments, priority controls, source entity link, archive/delete actions
 - [x] 22-05-PLAN.md -- Scanner auto-send rules: AutoSendRule model, config dialog, scoring endpoint integration
+
+### Phase 30: Sculptor AI Homepage & Floating Assistant
+
+**Goal:** Transform the dashboard home into an AI-first experience centered around "Sculptor" — TendHunt's procurement AI assistant. The homepage features a hero prompt area (inspired by Google AI Studio / Gemini) with an animated Sculptor starburst icon, welcome greeting, prominent chat input, and recent conversation history. On all other pages, Sculptor appears as an animated floating bubble (bottom-right) that, when clicked, smoothly transitions into the existing right-side Sheet panel. Replaces the current header trigger button with the floating bubble pattern.
+**Depends on:** Phase 19 (Research Agent Chat Panel), Phase 17 (Dashboard Home)
+**Success Criteria** (what must be TRUE):
+  1. Dashboard home page shows "Welcome back, {name}" with animated Sculptor starburst icon above a hero chat input area
+  2. Sculptor starburst icon has a subtle idle animation (slow rotation/pulse) and an active animation when AI is processing
+  3. Hero chat input on homepage opens the right-side Sheet panel and starts a conversation when user types + submits
+  4. "Jump back in" section shows recent conversations from MongoDB with timestamps
+  5. On all non-home pages, Sculptor appears as a floating bubble (bottom-right corner) with the starburst icon
+  6. Clicking the floating bubble smoothly animates it transitioning to the right-side Sheet panel (expand + slide)
+  7. When Sheet panel is closed, the bubble reappears with reverse animation
+  8. The floating bubble has a subtle breathing/pulse animation when idle
+  9. All animations respect prefers-reduced-motion
+**Plans:** 4 plans
+
+Plans:
+- [ ] 30-01-PLAN.md -- SculptorIcon component, CSS animations, FloatingBubble, layout integration, branding rename to Sculptor
+- [ ] 30-02-PLAN.md -- Server-side getRecentConversations query, SculptorHeroInput component
+- [ ] 30-03-PLAN.md -- SculptorHomepage client component, RecentConversations cards, dashboard page restructure
+- [ ] 30-04-PLAN.md -- Visual verification checkpoint (24-point checklist)
