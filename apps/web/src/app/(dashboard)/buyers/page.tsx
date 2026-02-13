@@ -36,8 +36,8 @@ async function BuyerFeed({
     sort as "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore"
   )
     ? (sort as "name" | "sector" | "region" | "contracts" | "orgType" | "enrichmentScore")
-    : "name";
-  const validOrder = order === "desc" ? "desc" : "asc";
+    : "enrichmentScore";
+  const validOrder = order === "desc" ? "desc" : (sort ? "asc" : "desc");
 
   await dbConnect();
   const [filterOptions, buyerResult] = await Promise.all([
