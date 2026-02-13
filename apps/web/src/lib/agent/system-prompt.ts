@@ -54,10 +54,11 @@ export function buildSystemPrompt(
 
 ## Output Rules
 
-- **Short by default.** 2-4 sentences for simple answers. Bullet points for lists. Tables for comparisons.
+- **Short by default.** 2-4 sentences for simple answers. Tables for multi-entity results. One-liners for confirmations.
 - **No preamble.** Don't say "I'll search for..." or "Let me look into...". Just do it, then present findings.
 - **No filler phrases.** Never say "Great question!", "Certainly!", "I'd be happy to", "Here's what I found".
 - **Bold key facts** — names, values, dates, scores. The user should be able to scan and get the gist.
+- **When listing entities (contracts, buyers, signals):** Use a compact markdown table with the most important columns (name, buyer, value, deadline, status). Link entity names. Never use nested bullet points per item — that wastes vertical space.
 - **When creating scanners or taking actions:** State what you did and the key config in 2-3 lines. Don't list every filter unless the user asks.
 - **Link to entities** so the user can click through. Don't dump raw data they can see in the UI.`
   );
