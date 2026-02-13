@@ -278,12 +278,27 @@ export function useAgent(): UseAgentReturn {
 
   const startEnrichmentStream = useCallback(
     async (buyerId: string, buyerName: string, messageId: string) => {
+      const INITIAL_STAGES = [
+        { name: "classify", label: "Classifying organisation", status: "pending" as const },
+        { name: "website_discovery", label: "Finding website", status: "pending" as const },
+        { name: "logo_linkedin", label: "Fetching LinkedIn & logo", status: "pending" as const },
+        { name: "governance_urls", label: "Mapping governance portals", status: "pending" as const },
+        { name: "moderngov", label: "Pulling board meeting data", status: "pending" as const },
+        { name: "scrape", label: "Scraping governance pages", status: "pending" as const },
+        { name: "personnel", label: "Extracting key personnel", status: "pending" as const },
+        { name: "score", label: "Calculating enrichment score", status: "pending" as const },
+        { name: "spend_discover", label: "Discovering spending pages", status: "pending" as const },
+        { name: "spend_extract", label: "Extracting download links", status: "pending" as const },
+        { name: "spend_parse", label: "Parsing spend data", status: "pending" as const },
+        { name: "spend_aggregate", label: "Building spend summary", status: "pending" as const },
+      ];
+
       const store = useAgentStore.getState();
       store.setActiveEnrichment({
         buyerId,
         buyerName,
         messageId,
-        stages: [],
+        stages: INITIAL_STAGES,
         startedAt: new Date(),
       });
 

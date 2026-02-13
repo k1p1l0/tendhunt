@@ -456,3 +456,63 @@ Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on
 4. If custom rendering needed, add renderer to `apps/web/src/components/scanners/grid/custom-renderers.ts` and include in `customRenderers` array
 5. Add icon drawing case in `drawTypeIcon` switch (`apps/web/src/components/scanners/grid/scanner-data-grid.tsx`)
 6. Add to column arrays for relevant scanner types (`apps/web/src/components/scanners/table-columns.ts`)
+
+## Sculptor AI Agent
+
+Sculptor is TendHunt's inline AI assistant panel. It lives as a 420px panel on the right side of the layout, communicating via SSE streaming with Claude Haiku.
+
+### Architecture
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Panel | `components/agent/agent-panel.tsx` | Inline panel (desktop) / Sheet overlay (mobile) |
+| Store | `stores/agent-store.ts` | Zustand + persist middleware — conversations survive refresh |
+| SSE Hook | `hooks/use-agent.ts` | Chat streaming, tool action handling, enrichment stream |
+| System Prompt | `lib/agent/system-prompt.ts` | Personality, tools, context, guidelines |
+| Tools Schema | `lib/agent/tools.ts` | Claude tool definitions |
+| Tool Handlers | `lib/agent/tool-handlers.ts` | Server-side tool execution |
+| Chat API | `app/api/agent/chat/route.ts` | SSE streaming endpoint |
+| Messages | `components/agent/agent-message.tsx` | Markdown rendering, entity links, buyer logo hydration |
+| Tool Chain | `components/agent/tool-call-indicator.tsx` | Collapsible "Working" / "Completed N steps" UI |
+| Input | `components/agent/agent-input.tsx` | Textarea with context chips bar |
+| Enrichment | `components/agent/enrichment-progress.tsx` | Animated stage-by-stage enrichment progress |
+
+### Sculptor Personality
+
+Sculptor has a "senior BD director" personality — direct, data-first, dry wit, zero filler. Key rules:
+- No emojis, no preamble, no filler phrases
+- Bold key facts, use tables for multi-entity results
+- Always link entities (buyer:ID, contract:ID, scanner:ID)
+- Reuse data from earlier in conversation — don't re-query
+
+### Entity Links
+
+Internal links use protocol prefixes: `buyer:ID`, `contract:ID`, `scanner:ID`. The custom marked renderer converts these to `<a data-internal>` links with arrow icons. Buyer links include `data-buyer-id` for logo hydration via `/api/buyers/logos`.
+
+External links get blue underline styling with `class="external-link"`.
+
+### On-Demand Buyer Enrichment
+
+Sculptor can trigger the full enrichment pipeline (8 stages + 4 spend stages) for a buyer.
+
+**Flow:**
+1. AI detects missing data → suggests enrichment (text or tool call)
+2. Client detects enrichment keywords → shows "Yes, enrich" / "Skip" buttons
+3. User confirms → sends message → AI calls `enrich_buyer(confirmed: true)`
+4. `enrich_started` action triggers SSE progress stream (`/api/enrichment/[id]/progress`)
+5. `EnrichmentProgress` component shows animated stage-by-stage progress
+6. Worker runs all stages → progress bar fills → completion summary
+
+**Key files:**
+- `lib/agent/tool-handlers.ts` → `handleEnrichBuyer` (24h→1h cooldown, name fallback)
+- `app/api/enrichment/[id]/progress/route.ts` → SSE endpoint with estimated stage timings
+- `components/agent/enrichment-progress.tsx` → Animated progress card
+- `components/agent/enrichment-confirm.tsx` → Text-detection fallback for confirmation buttons
+
+**Confirmation buttons** appear via two paths:
+1. **Tool-triggered:** AI calls `enrich_buyer` without `confirmed` → `enrich_confirm` action → store state
+2. **Text-detection fallback:** Regex patterns detect enrichment mentions in AI text → buttons auto-show
+
+### Conversation Persistence
+
+Conversations persist in `localStorage` via Zustand `persist` middleware (key: `sculptor-conversations`). Only `panelOpen`, `conversations`, and `activeConversationId` are persisted. Transient state (`isStreaming`, `activeEnrichment`) resets on refresh.

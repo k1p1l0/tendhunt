@@ -473,12 +473,12 @@ async function handleEnrichBuyer(
   const buyerId = String(buyer._id);
   const buyerName = buyer.name;
 
-  // Check if recently enriched (within 24 hours)
-  if (buyer.lastEnrichedAt) {
+  // Check if recently enriched (within 1 hour)
+  if (buyer.lastEnrichedAt && !confirmed) {
     const hoursSince = (Date.now() - new Date(buyer.lastEnrichedAt).getTime()) / (1000 * 60 * 60);
-    if (hoursSince < 24) {
+    if (hoursSince < 1) {
       return {
-        summary: `${buyerName} was already enriched ${Math.round(hoursSince)} hours ago (score: ${buyer.enrichmentScore ?? 0}/100). Re-enrichment available after 24 hours.`,
+        summary: `${buyerName} was enriched ${Math.round(hoursSince * 60)} minutes ago (score: ${buyer.enrichmentScore ?? 0}/100). Re-enrichment available after 1 hour.`,
         data: { buyerId, buyerName, enrichmentScore: buyer.enrichmentScore, lastEnrichedAt: buyer.lastEnrichedAt },
       };
     }
