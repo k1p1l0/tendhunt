@@ -22,16 +22,16 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <AgentProvider>
         <BreadcrumbProvider>
-          <AgentProvider>
+          <SidebarInset className="min-w-0">
             <Header />
-            <main className="flex-1 p-6">{children}</main>
-            <AgentPanel />
+            <main className="flex-1 overflow-auto p-6">{children}</main>
             <FloatingBubble />
-          </AgentProvider>
+          </SidebarInset>
+          <AgentPanel />
         </BreadcrumbProvider>
-      </SidebarInset>
+      </AgentProvider>
     </SidebarProvider>
   );
 }
