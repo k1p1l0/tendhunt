@@ -79,6 +79,7 @@ function extractDocuments(
   return docs.map((d) => ({
     id: d.id ?? undefined,
     documentType: d.documentType ?? undefined,
+    title: d.title ?? undefined,
     description: d.description ?? undefined,
     url: d.url ?? undefined,
     datePublished: d.datePublished ?? undefined,

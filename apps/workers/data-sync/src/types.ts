@@ -35,6 +35,7 @@ export interface OcdsRelease {
     documents?: Array<{
       id?: string;
       documentType?: string;
+      title?: string;
       description?: string;
       url?: string;
       datePublished?: string;
@@ -98,6 +99,7 @@ export interface OcdsRelease {
 export interface MappedContractDocument {
   id?: string;
   documentType?: string;
+  title?: string;
   description?: string;
   url?: string;
   datePublished?: string;

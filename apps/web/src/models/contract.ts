@@ -70,6 +70,7 @@ const contractSchema = new Schema(
         {
           id: { type: String },
           documentType: { type: String },
+          title: { type: String },
           description: { type: String },
           url: { type: String },
           datePublished: { type: String },

@@ -1,5 +1,5 @@
 import type { Db, ObjectId } from "mongodb";
-import type { EnrichmentJobDoc, EnrichmentStage } from "../types";
+import type { EnrichmentJobDoc, EnrichmentStage, DocEnrichmentStage } from "../types";
 
 const COLLECTION = "enrichmentjobs";
 
@@ -8,7 +8,7 @@ const COLLECTION = "enrichmentjobs";
  */
 export async function getOrCreateJob(
   db: Db,
-  stage: EnrichmentStage
+  stage: EnrichmentStage | DocEnrichmentStage
 ): Promise<EnrichmentJobDoc> {
   const collection = db.collection<EnrichmentJobDoc>(COLLECTION);
 
