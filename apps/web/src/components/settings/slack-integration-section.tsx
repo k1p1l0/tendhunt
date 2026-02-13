@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import {
+  Check,
   Hash,
   Loader2,
   MessageSquare,
@@ -36,6 +37,32 @@ interface SlackChannel {
   isPrivate: boolean;
 }
 
+interface AlertConfig {
+  alertType: string;
+  isActive: boolean;
+  threshold?: number;
+  digestTime?: string;
+  digestDays?: number[];
+}
+
+function SaveIndicator({ show }: { show: boolean }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.span
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.5 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="text-green-500"
+        >
+          <Check className="h-4 w-4" />
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function SlackIntegrationSection() {
   const [state, setState] = useState<SlackState>({ connected: false });
   const [channels, setChannels] = useState<SlackChannel[]>([]);
@@ -43,11 +70,98 @@ export function SlackIntegrationSection() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [alertsExpanded, setAlertsExpanded] = useState(false);
 
-  // Alert config state
   const [thresholdEnabled, setThresholdEnabled] = useState(false);
   const [thresholdValue, setThresholdValue] = useState("7");
   const [digestEnabled, setDigestEnabled] = useState(false);
   const [digestTime, setDigestTime] = useState("09:00");
+
+  const [savedField, setSavedField] = useState<string | null>(null);
+  const [alertsLoaded, setAlertsLoaded] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const showSaved = useCallback((field: string) => {
+    setSavedField(field);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => setSavedField(null), 1500);
+  }, []);
+
+  const saveAlerts = useCallback(
+    async (alerts: AlertConfig[]) => {
+      try {
+        const res = await fetch("/api/settings/slack-alerts", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ alerts }),
+        });
+        if (!res.ok) throw new Error("Save failed");
+      } catch {
+        toast.error("Failed to save alert settings");
+      }
+    },
+    []
+  );
+
+  const buildAlerts = useCallback(
+    (overrides?: Partial<Record<string, unknown>>): AlertConfig[] => {
+      const te =
+        overrides?.thresholdEnabled !== undefined
+          ? (overrides.thresholdEnabled as boolean)
+          : thresholdEnabled;
+      const tv =
+        overrides?.thresholdValue !== undefined
+          ? (overrides.thresholdValue as string)
+          : thresholdValue;
+      const de =
+        overrides?.digestEnabled !== undefined
+          ? (overrides.digestEnabled as boolean)
+          : digestEnabled;
+      const dt =
+        overrides?.digestTime !== undefined
+          ? (overrides.digestTime as string)
+          : digestTime;
+
+      return [
+        {
+          alertType: "scanner_threshold",
+          isActive: te,
+          threshold: Number(tv),
+        },
+        {
+          alertType: "daily_digest",
+          isActive: de,
+          digestTime: dt,
+          digestDays: [1, 2, 3, 4, 5],
+        },
+      ];
+    },
+    [thresholdEnabled, thresholdValue, digestEnabled, digestTime]
+  );
+
+  const loadAlerts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/slack-alerts");
+      if (!res.ok) return;
+      const data = await res.json();
+      const configs: AlertConfig[] = data.configs || [];
+
+      for (const cfg of configs) {
+        if (cfg.alertType === "scanner_threshold") {
+          setThresholdEnabled(cfg.isActive);
+          if (cfg.threshold !== undefined) {
+            setThresholdValue(String(cfg.threshold));
+          }
+        } else if (cfg.alertType === "daily_digest") {
+          setDigestEnabled(cfg.isActive);
+          if (cfg.digestTime) {
+            setDigestTime(cfg.digestTime);
+          }
+        }
+      }
+      setAlertsLoaded(true);
+    } catch {
+      // Silently fail — alerts will use defaults
+    }
+  }, []);
 
   const checkConnection = useCallback(async () => {
     try {
@@ -63,7 +177,6 @@ export function SlackIntegrationSection() {
   }, []);
 
   useEffect(() => {
-    // Check for OAuth callback result
     const params = new URLSearchParams(window.location.search);
     const slackResult = params.get("slack");
     if (slackResult === "success") {
@@ -71,11 +184,14 @@ export function SlackIntegrationSection() {
       void checkConnection();
       window.history.replaceState({}, "", window.location.pathname);
     } else if (slackResult === "error") {
-      toast.error(`Slack connection failed: ${params.get("message") || "unknown error"}`);
+      toast.error(
+        `Slack connection failed: ${params.get("message") || "unknown error"}`
+      );
       window.history.replaceState({}, "", window.location.pathname);
     }
     void checkConnection();
-  }, [checkConnection]);
+    void loadAlerts();
+  }, [checkConnection, loadAlerts]);
 
   const handleInstall = () => {
     window.location.href = "/api/slack/install";
@@ -121,6 +237,40 @@ export function SlackIntegrationSection() {
     } finally {
       setLoadingChannels(false);
     }
+  };
+
+  const handleThresholdToggle = async (checked: boolean) => {
+    setThresholdEnabled(checked);
+    if (!alertsLoaded) return;
+    const alerts = buildAlerts({ thresholdEnabled: checked });
+    await saveAlerts(alerts);
+    showSaved("threshold");
+    toast.success("Alert saved");
+  };
+
+  const handleThresholdChange = async (value: string) => {
+    setThresholdValue(value);
+    if (!alertsLoaded || !thresholdEnabled) return;
+    const alerts = buildAlerts({ thresholdValue: value });
+    await saveAlerts(alerts);
+    showSaved("threshold");
+  };
+
+  const handleDigestToggle = async (checked: boolean) => {
+    setDigestEnabled(checked);
+    if (!alertsLoaded) return;
+    const alerts = buildAlerts({ digestEnabled: checked });
+    await saveAlerts(alerts);
+    showSaved("digest");
+    toast.success("Alert saved");
+  };
+
+  const handleDigestTimeChange = async (value: string) => {
+    setDigestTime(value);
+    if (!alertsLoaded || !digestEnabled) return;
+    const alerts = buildAlerts({ digestTime: value });
+    await saveAlerts(alerts);
+    showSaved("digest");
   };
 
   return (
@@ -250,28 +400,39 @@ export function SlackIntegrationSection() {
                             Notify when AI scores exceed threshold
                           </p>
                         </div>
-                        <Switch
-                          checked={thresholdEnabled}
-                          onCheckedChange={setThresholdEnabled}
-                        />
-                      </div>
-                      {thresholdEnabled && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-2 pl-4"
-                        >
-                          <Label className="text-xs">Min Score:</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={10}
-                            value={thresholdValue}
-                            onChange={(e) => setThresholdValue(e.target.value)}
-                            className="w-20"
+                        <div className="flex items-center gap-2">
+                          <SaveIndicator
+                            show={savedField === "threshold"}
                           />
-                        </motion.div>
-                      )}
+                          <Switch
+                            checked={thresholdEnabled}
+                            onCheckedChange={handleThresholdToggle}
+                          />
+                        </div>
+                      </div>
+                      <AnimatePresence>
+                        {thresholdEnabled && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="flex items-center gap-2 pl-4"
+                          >
+                            <Label className="text-xs">Min Score:</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={10}
+                              value={thresholdValue}
+                              onChange={(e) =>
+                                handleThresholdChange(e.target.value)
+                              }
+                              className="w-20"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
                       {/* Daily Digest */}
                       <div className="flex items-center justify-between">
@@ -281,29 +442,38 @@ export function SlackIntegrationSection() {
                             Morning summary of new contracts & signals
                           </p>
                         </div>
-                        <Switch
-                          checked={digestEnabled}
-                          onCheckedChange={setDigestEnabled}
-                        />
-                      </div>
-                      {digestEnabled && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-2 pl-4"
-                        >
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <Input
-                            type="time"
-                            value={digestTime}
-                            onChange={(e) => setDigestTime(e.target.value)}
-                            className="w-32"
+                        <div className="flex items-center gap-2">
+                          <SaveIndicator show={savedField === "digest"} />
+                          <Switch
+                            checked={digestEnabled}
+                            onCheckedChange={handleDigestToggle}
                           />
-                          <span className="text-xs text-muted-foreground">
-                            Mon–Fri
-                          </span>
-                        </motion.div>
-                      )}
+                        </div>
+                      </div>
+                      <AnimatePresence>
+                        {digestEnabled && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="flex items-center gap-2 pl-4"
+                          >
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="time"
+                              value={digestTime}
+                              onChange={(e) =>
+                                handleDigestTimeChange(e.target.value)
+                              }
+                              className="w-32"
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              Mon-Fri
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.div>
                 )}
