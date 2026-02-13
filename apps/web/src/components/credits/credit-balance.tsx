@@ -102,9 +102,10 @@ export function CreditBalance() {
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild suppressHydrationWarning>
         <button
           type="button"
+          suppressHydrationWarning
           className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent transition-colors"
         >
           <Sparkles className="h-4 w-4 text-primary" />
