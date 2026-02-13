@@ -11,6 +11,7 @@ import {
   Unplug,
   Bell,
   Clock,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { SlackWizard } from "@/components/settings/slack-wizard";
 
 interface SlackState {
   connected: boolean;
@@ -69,6 +78,8 @@ export function SlackIntegrationSection() {
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [alertsExpanded, setAlertsExpanded] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitialStep, setWizardInitialStep] = useState(0);
 
   const [thresholdEnabled, setThresholdEnabled] = useState(false);
   const [thresholdValue, setThresholdValue] = useState("7");
@@ -183,6 +194,8 @@ export function SlackIntegrationSection() {
       toast.success("Slack connected successfully");
       void checkConnection();
       window.history.replaceState({}, "", window.location.pathname);
+      setWizardOpen(true);
+      setWizardInitialStep(2);
     } else if (slackResult === "error") {
       toast.error(
         `Slack connection failed: ${params.get("message") || "unknown error"}`
@@ -192,10 +205,6 @@ export function SlackIntegrationSection() {
     void checkConnection();
     void loadAlerts();
   }, [checkConnection, loadAlerts]);
-
-  const handleInstall = () => {
-    window.location.href = "/api/slack/install";
-  };
 
   const handleDisconnect = async () => {
     setDisconnecting(true);
@@ -273,6 +282,21 @@ export function SlackIntegrationSection() {
     showSaved("digest");
   };
 
+  const handleOpenWizard = useCallback((startStep?: number) => {
+    setWizardInitialStep(startStep ?? 0);
+    setWizardOpen(true);
+  }, []);
+
+  const handleWizardComplete = useCallback(() => {
+    setWizardOpen(false);
+    void checkConnection();
+    void loadAlerts();
+  }, [checkConnection, loadAlerts]);
+
+  const handleWizardCancel = useCallback(() => {
+    setWizardOpen(false);
+  }, []);
+
   return (
     <div className="space-y-4">
       <AnimatePresence mode="wait">
@@ -284,14 +308,25 @@ export function SlackIntegrationSection() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <p className="mb-4 text-sm text-muted-foreground">
-              Connect Slack to receive procurement alerts and query TendHunt
-              data from any channel.
-            </p>
-            <Button onClick={handleInstall} className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Add to Slack
-            </Button>
+            <div className="rounded-lg border border-dashed p-6 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+                <MessageSquare className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="mb-1 text-sm font-medium">
+                Connect your Slack workspace
+              </p>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Receive procurement alerts and query TendHunt data from any
+                channel.
+              </p>
+              <Button
+                onClick={() => handleOpenWizard(0)}
+                className="gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Set up Slack Integration
+              </Button>
+            </div>
           </motion.div>
         ) : (
           <motion.div
@@ -310,19 +345,30 @@ export function SlackIntegrationSection() {
                   Connected to {state.teamName}
                 </span>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-              >
-                {disconnecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Unplug className="h-4 w-4" />
-                )}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5 text-muted-foreground"
+                  onClick={() => handleOpenWizard(2)}
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
+                  <span className="text-xs">Reconfigure</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                >
+                  {disconnecting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Unplug className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Channel Selector */}
@@ -482,6 +528,23 @@ export function SlackIntegrationSection() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Slack Wizard Dialog */}
+      <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Slack Integration</DialogTitle>
+            <DialogDescription>
+              Set up Slack to receive procurement alerts.
+            </DialogDescription>
+          </DialogHeader>
+          <SlackWizard
+            onComplete={handleWizardComplete}
+            onCancel={handleWizardCancel}
+            initialStep={wizardInitialStep}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
