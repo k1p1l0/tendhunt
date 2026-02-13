@@ -85,11 +85,13 @@ async function startEnrichmentDirect(buyerId: string, buyerName: string) {
               s.updateEnrichmentStage(data.stage as string, "complete");
               break;
             case "refresh":
+              console.log("[Enrichment] refresh event, dispatching enrichment-complete for", buyerId);
               window.dispatchEvent(
                 new CustomEvent("enrichment-complete", { detail: { buyerId } })
               );
               break;
             case "done":
+              console.log("[Enrichment] done event, score:", data.enrichmentScore, "buyerId:", buyerId);
               s.completeEnrichment(data.enrichmentScore as number);
               window.dispatchEvent(
                 new CustomEvent("enrichment-complete", { detail: { buyerId } })
