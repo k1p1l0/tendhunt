@@ -21,6 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 7: Buying Signals** - Board minutes pre-tender signals display
 - [ ] **Phase 8: Landing & Pricing** - Marketing page and pricing tiers
 - [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
+- [ ] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
 
 ## Phase Details
 
@@ -220,7 +221,16 @@ Plans:
 | SLACK-07 | Phase 21 | Slack bot responds to procurement queries |
 | SLACK-08 | Phase 21 | API rate limiting and request logging |
 
-**Coverage: 54/54 v1 requirements mapped. No orphans.**
+| CRM-01 | Phase 22 | Kanban board with 5 procurement columns |
+| CRM-02 | Phase 22 | CRM cards reference any entity type |
+| CRM-03 | Phase 22 | Drag-and-drop stage management |
+| CRM-04 | Phase 22 | "Send to CRM" from entity pages |
+| CRM-05 | Phase 22 | Scanner auto-send rules |
+| CRM-06 | Phase 22 | Card entity summary display |
+| CRM-07 | Phase 22 | Notes/comments on cards |
+| CRM-08 | Phase 22 | Link back to source entity |
+
+**Coverage: 62/62 v1 requirements mapped. No orphans.**
 
 ## Progress
 
@@ -246,6 +256,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 20. Board Minutes Signals | 4/4 | ✓ Complete | 2026-02-12 |
 | 21. Slack Integration (OpenClaw) | 0/? | Not started | - |
+| 22. CRM Pipeline (Procurement Inbox) | 0/? | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -443,3 +454,26 @@ Plans:
   7. Slack bot responds to procurement queries (search buyers, contracts, signals, spending) using the user's API key
   8. API endpoints enforce rate limiting (100 req/min per key) and log requests
 **Plans:** TBD
+
+### Phase 22: CRM Pipeline (Procurement Inbox)
+
+**Goal:** Build a procurement CRM/Inbox as a top-level sidebar section where users manage deal flow through a Kanban board. All entity types (contracts, signals, buyers, scanner results) can become CRM cards via manual add ("Send to CRM" buttons on entity pages) or configurable auto-send rules (scanner AI column thresholds). Cards flow through procurement-specific stages: New → Qualified → Preparing Bid → Submitted → Won / Lost. Inspired by Getmany's Master Inbox Kanban pattern using @dnd-kit drag-and-drop.
+**Depends on:** Phase 5 (Scanners), Phase 6 (Buyers), Phase 20 (Signals)
+**Requirements**: CRM-01, CRM-02, CRM-03, CRM-04, CRM-05, CRM-06, CRM-07, CRM-08
+**Success Criteria** (what must be TRUE):
+  1. New "Inbox" top-level sidebar item opens the CRM Kanban board view
+  2. Kanban board displays 6 columns (New, Qualified, Preparing Bid, Submitted, Won, Lost) with drag-and-drop card movement using @dnd-kit
+  3. CRM cards can reference any entity type: contracts, signals, buyers — with source attribution
+  4. "Send to CRM" button on contract detail, buyer detail, and scanner entity sheet creates a new CRM card in "New" column
+  5. Scanner auto-send rules can be configured per AI column (e.g., "send to CRM when score > 7") and auto-create CRM cards
+  6. Each CRM card shows entity summary (title, buyer/org, value, source type badge), stage, and timestamps
+  7. Users can add notes/comments to CRM cards for tracking bid preparation progress
+  8. CRM cards maintain a link back to the source entity for quick navigation
+**Plans:** 5 plans
+
+Plans:
+- [ ] 22-01-PLAN.md -- Models (PipelineCard, PipelineCardNote), stage constants, types, API routes (CRUD, reorder, notes)
+- [ ] 22-02-PLAN.md -- Kanban board UI: @dnd-kit DndContext, columns, cards, drag overlay, Zustand store, sidebar nav, breadcrumb
+- [ ] 22-03-PLAN.md -- "Send to Inbox" button component + integration into contract, buyer, and scanner entity pages
+- [ ] 22-04-PLAN.md -- Card detail sheet with notes/comments, priority controls, source entity link, archive/delete actions
+- [ ] 22-05-PLAN.md -- Scanner auto-send rules: AutoSendRule model, config dialog, scoring endpoint integration
