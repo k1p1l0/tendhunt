@@ -144,31 +144,35 @@
   border-color: var(--foreground);
 }
 
-/* Colored type badge inside entity links */
-.entity-link-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* Arrow icon on entity links */
+.entity-link-icon {
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+
+.entity-link:hover .entity-link-icon {
+  opacity: 0.7;
+}
+
+/* Buyer logo placeholder & image inside entity links */
+.entity-link-logo {
+  display: none;
+  flex-shrink: 0;
   width: 1rem;
   height: 1rem;
-  border-radius: 0.25rem;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  line-height: 1;
-  flex-shrink: 0;
-  color: white;
+  border-radius: 0.1875rem;
+  overflow: hidden;
 }
 
-.entity-link-badge[data-type="buyer"] {
-  background-color: oklch(0.55 0.15 250);
+.entity-link-logo.has-logo {
+  display: inline-flex;
 }
 
-.entity-link-badge[data-type="contract"] {
-  background-color: oklch(0.55 0.18 150);
-}
-
-.entity-link-badge[data-type="scanner"] {
-  background-color: oklch(0.6 0.2 50);
+.entity-link-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* External links in agent chat */
