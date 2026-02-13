@@ -16,7 +16,9 @@ export async function GET() {
     );
   }
 
-  const state = Buffer.from(JSON.stringify({ userId })).toString("base64url");
+  const state = Buffer.from(
+    JSON.stringify({ userId, timestamp: Date.now() })
+  ).toString("base64url");
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/slack/callback`;
 
   const url = new URL("https://slack.com/oauth/v2/authorize");

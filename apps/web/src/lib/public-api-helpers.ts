@@ -2,6 +2,8 @@ import { authenticateApiKey } from "@/lib/api-key-auth";
 
 import type { ApiKeyAuth } from "@/lib/api-key-auth";
 
+// WARNING: In-memory rate limiter — works for single-instance only.
+// For multi-instance production (Cloudflare Pages, Vercel), replace with Redis or Cloudflare KV.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW = 60_000; // 1 minute
 const RATE_LIMIT_MAX = 100;

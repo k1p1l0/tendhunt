@@ -34,16 +34,20 @@ export async function authenticateApiKey(
   await dbConnect();
 
   const apiKey = await ApiKey.findOneAndUpdate(
-    { keyHash, isActive: true },
+    {
+      keyHash,
+      isActive: true,
+      $or: [
+        { expiresAt: null },
+        { expiresAt: { $exists: false } },
+        { expiresAt: { $gt: new Date() } },
+      ],
+    },
     { $set: { lastUsedAt: new Date() } },
     { new: true }
   ).lean();
 
   if (!apiKey) {
-    return null;
-  }
-
-  if (apiKey.expiresAt && new Date(apiKey.expiresAt) < new Date()) {
     return null;
   }
 

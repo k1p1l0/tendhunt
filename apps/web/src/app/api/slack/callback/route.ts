@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
 import { encrypt } from "@/lib/encryption";
 import SlackIntegration from "@/models/slack-integration";
@@ -28,6 +29,23 @@ export async function GET(request: Request) {
     const decoded = JSON.parse(
       Buffer.from(state, "base64url").toString("utf8")
     );
+
+    if (
+      !decoded.timestamp ||
+      Date.now() - decoded.timestamp > 300_000
+    ) {
+      return Response.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?slack=error&message=state_expired`
+      );
+    }
+
+    const { userId: sessionUserId } = await auth();
+    if (!sessionUserId || sessionUserId !== decoded.userId) {
+      return Response.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?slack=error&message=user_mismatch`
+      );
+    }
+
     userId = decoded.userId;
   } catch {
     return Response.redirect(

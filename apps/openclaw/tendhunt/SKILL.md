@@ -44,6 +44,12 @@ Base URL: `${TENDHUNT_BASE_URL}` (default: https://app.tendhunt.com)
 - `POST /api/public/v1/scanners/:id/columns` -- Add AI column to scanner
   - Body: `{ name, prompt }`
 
+### User Profile
+- `GET /api/public/v1/profile` -- Get the authenticated user's company profile
+  - Returns: companyName, sectors, capabilities, keywords, regions, idealContractDescription, companySize, summary
+- `GET /api/public/v1/users/me` -- Get the authenticated user's personal info
+  - Returns: firstName, lastName, email, imageUrl
+
 ### Scraping (Credit-gated)
 - `POST /api/public/v1/scrape` -- Trigger web scraping
   - Body: `{ type: "linkedin", buyerId: "...", url: "https://linkedin.com/company/..." }`

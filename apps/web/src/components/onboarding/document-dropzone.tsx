@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload } from "lucide-react";
-import { UploadProgress, type UploadedFile } from "./upload-progress";
+import { UploadProgress } from "./upload-progress";
+import type { UploadedFile } from "./upload-progress";
 
 function uploadFileWithProgress(
   url: string,

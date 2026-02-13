@@ -17,7 +17,7 @@ memory:
   enabled: true
   graphiti:
     url: ${GRAPHITI_URL}
-    group_id: tendhunt
+    group_id: user_${SLACK_USER_ID}
   native:
     auto_save_sessions: true
     search_on_conversation_start: true

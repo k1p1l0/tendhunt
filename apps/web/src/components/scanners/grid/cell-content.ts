@@ -1,4 +1,5 @@
-import { GridCellKind, type GridCell } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { GridCell } from "@glideapps/glide-data-grid";
 import type { ColumnMeta } from "./glide-columns";
 import {
   createScoreBadgeCell,
