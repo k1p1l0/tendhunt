@@ -14,9 +14,10 @@ import type { PipelineCardData, PipelineStage } from "@/types/inbox";
 interface KanbanColumnProps {
   stage: PipelineStage;
   cards: PipelineCardData[];
+  onCardClick?: (card: PipelineCardData) => void;
 }
 
-export function KanbanColumn({ stage, cards }: KanbanColumnProps) {
+export function KanbanColumn({ stage, cards, onCardClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
 
   return (
@@ -45,7 +46,7 @@ export function KanbanColumn({ stage, cards }: KanbanColumnProps) {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                <KanbanCard card={card} />
+                <KanbanCard card={card} onCardClick={onCardClick} />
               </motion.div>
             ))}
           </AnimatePresence>

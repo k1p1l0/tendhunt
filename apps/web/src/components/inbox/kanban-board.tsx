@@ -51,7 +51,11 @@ function findCardStage(
   return card?.stage ?? null;
 }
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  onCardClick?: (card: PipelineCardData) => void;
+}
+
+export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
   const { cards, setCards, fetchCards } = useInboxStore();
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -197,6 +201,7 @@ export function KanbanBoard() {
             key={stage}
             stage={stage}
             cards={cardsByStage[stage]}
+            onCardClick={onCardClick}
           />
         ))}
       </div>
