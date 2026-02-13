@@ -126,20 +126,47 @@
   }
 }
 
-/* Entity links in agent chat */
+/* Internal entity links in agent chat — clickable app navigation */
 .entity-link {
-  color: var(--primary) !important;
-  text-decoration: underline !important;
-  text-decoration-color: color-mix(in oklch, var(--primary) 40%, transparent) !important;
-  text-underline-offset: 2px;
-  text-decoration-thickness: 1px !important;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.125rem;
+  color: var(--foreground) !important;
+  text-decoration: none !important;
   font-weight: 500;
   cursor: pointer;
-  transition: text-decoration-color 0.15s ease;
+  border-bottom: 1px dashed color-mix(in oklch, var(--foreground) 30%, transparent);
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .entity-link:hover {
-  text-decoration-color: var(--primary) !important;
+  border-bottom-style: solid;
+  border-color: var(--foreground);
+}
+
+.entity-link-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  opacity: 0.4;
+  margin-left: 1px;
+  transition: opacity 0.15s ease;
+}
+
+.entity-link:hover .entity-link-icon {
+  opacity: 0.8;
+}
+
+/* External links in agent chat */
+.external-link {
+  color: oklch(0.65 0.15 250) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px !important;
+}
+
+.dark .external-link {
+  color: oklch(0.75 0.12 250) !important;
 }
 
 /* Agent trigger button */

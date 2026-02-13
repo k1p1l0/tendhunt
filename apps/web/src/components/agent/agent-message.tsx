@@ -15,6 +15,9 @@ marked.setOptions({
 
 const ENTITY_LINK_RE = /^(buyer|contract|scanner):(.+)$/;
 
+// Inline SVG arrow icon for internal entity links (12x12, arrow-up-right style)
+const ARROW_ICON = `<svg class="entity-link-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 2.5H9.5V8.5M9.5 2.5L2.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
 const renderer = new marked.Renderer();
 renderer.link = ({ href, text }) => {
   const match = href.match(ENTITY_LINK_RE);
@@ -28,13 +31,12 @@ renderer.link = ({ href, text }) => {
     };
     const path = pathMap[entityType] ?? `/${entityType}s/${id}`;
     const fullPath = query ? `${path}?${query}` : path;
-    return `<a href="${fullPath}" data-internal class="entity-link">${text}</a>`;
+    return `<a href="${fullPath}" data-internal class="entity-link">${text}${ARROW_ICON}</a>`;
   }
-  // Internal links (e.g. /scanners/abc123) should also use client-side navigation
   if (href.startsWith("/")) {
-    return `<a href="${href}" data-internal class="entity-link">${text}</a>`;
+    return `<a href="${href}" data-internal class="entity-link">${text}${ARROW_ICON}</a>`;
   }
-  return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="external-link">${text}</a>`;
 };
 marked.use({ renderer });
 
@@ -45,8 +47,13 @@ function renderMarkdown(content: string): string {
       "p", "br", "strong", "em", "ul", "ol", "li", "a", "code", "pre",
       "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
       "blockquote", "del", "hr", "span", "sup", "sub",
+      "svg", "path",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "data-internal", "class"],
+    ALLOWED_ATTR: [
+      "href", "target", "rel", "data-internal", "class",
+      "width", "height", "viewBox", "fill", "xmlns",
+      "d", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
+    ],
   });
 }
 
@@ -105,7 +112,7 @@ export function AgentMessage({ message }: AgentMessageProps) {
             className="prose prose-sm dark:prose-invert max-w-none
               prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5
               prose-headings:my-2 prose-pre:my-2 prose-table:my-2
-              prose-a:text-primary prose-a:underline
+              prose-a:no-underline
               text-[0.8125rem] leading-relaxed"
             onClick={handleClick}
             dangerouslySetInnerHTML={{ __html: htmlContent }}

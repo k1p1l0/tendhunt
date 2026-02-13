@@ -121,6 +121,7 @@ async function handleQueryContracts(
   const contracts = result.contracts.map((c) => ({
     _id: c._id,
     title: c.title,
+    buyerId: c.buyerId ?? null,
     buyerName: c.buyerName,
     sector: c.sector,
     valueMin: c.valueMin,
@@ -166,7 +167,7 @@ async function handleQuerySignals(
   const signals = await Signal.find(query)
     .sort({ sourceDate: -1 })
     .limit(limit)
-    .select("organizationName signalType title insight sourceDate sector confidence")
+    .select("buyerId organizationName signalType title insight sourceDate sector confidence")
     .lean();
 
   return {
