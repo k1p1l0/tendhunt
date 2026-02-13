@@ -10,7 +10,6 @@ import {
 import { useAgentStore } from "@/stores/agent-store";
 import { useAgent } from "@/hooks/use-agent";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebar } from "@/components/ui/sidebar";
 import { AgentPanelHeader } from "./agent-panel-header";
 import { AgentMessageList } from "./agent-message-list";
 import { AgentInput } from "./agent-input";
@@ -49,24 +48,7 @@ export function AgentPanel() {
   const setPanelOpen = useAgentStore((s) => s.setPanelOpen);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
-  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar();
-  const sidebarWasOpenRef = useRef<boolean | null>(null);
   const prefersReducedMotion = useReducedMotion();
-
-  // Sync sidebar state: collapse when panel opens, restore when it closes
-  useEffect(() => {
-    if (isMobile) return;
-
-    if (panelOpen) {
-      sidebarWasOpenRef.current = sidebarOpen;
-      setSidebarOpen(false);
-    } else if (sidebarWasOpenRef.current !== null) {
-      setSidebarOpen(sidebarWasOpenRef.current);
-      sidebarWasOpenRef.current = null;
-    }
-  // sidebarOpen is intentionally excluded — we only read it when panelOpen transitions to true
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panelOpen, isMobile, setSidebarOpen]);
 
   // Cmd+K / Ctrl+K toggle + Escape to close
   const handleKeyDown = useCallback(

@@ -8,6 +8,7 @@ import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
 
 export function Header() {
   const { breadcrumb } = useBreadcrumb();
+  const panelOpen = useAgentStore((s) => s.panelOpen);
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
@@ -20,16 +21,18 @@ export function Header() {
           </span>
         )}
       </div>
-      <button
-        type="button"
-        className="agent-trigger-btn"
-        onClick={() => useAgentStore.getState().setPanelOpen(true)}
-        aria-label="Open Sculptor (Cmd+K)"
-      >
-        <SculptorIcon size={20} animate />
-        <span className="text-sm font-medium">Sculptor</span>
-        <kbd className="agent-trigger-kbd">⌘K</kbd>
-      </button>
+      {!panelOpen && (
+        <button
+          type="button"
+          className="agent-trigger-btn"
+          onClick={() => useAgentStore.getState().setPanelOpen(true)}
+          aria-label="Open Sculptor (Cmd+K)"
+        >
+          <SculptorIcon size={20} animate />
+          <span className="text-sm font-medium">Sculptor</span>
+          <kbd className="agent-trigger-kbd">⌘K</kbd>
+        </button>
+      )}
     </header>
   );
 }

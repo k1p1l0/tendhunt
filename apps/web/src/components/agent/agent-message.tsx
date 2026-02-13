@@ -6,8 +6,6 @@ import { motion, useReducedMotion } from "motion/react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { ToolCallChain } from "./tool-call-indicator";
-import { useAgentStore } from "@/stores/agent-store";
-
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
 
 marked.setOptions({
@@ -50,7 +48,6 @@ interface AgentMessageProps {
 export function AgentMessage({ message }: AgentMessageProps) {
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
-  const setPanelOpen = useAgentStore((s) => s.setPanelOpen);
 
   const htmlContent = useMemo(() => {
     if (message.role !== "assistant" || !message.content) return "";
@@ -64,11 +61,10 @@ export function AgentMessage({ message }: AgentMessageProps) {
       e.preventDefault();
       const href = target.getAttribute("href");
       if (href) {
-        setPanelOpen(false);
         router.push(href);
       }
     },
-    [router, setPanelOpen]
+    [router]
   );
 
   const motionProps = prefersReducedMotion

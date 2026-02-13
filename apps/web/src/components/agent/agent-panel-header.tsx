@@ -46,7 +46,7 @@ export function AgentPanelHeader({ onNewChat }: AgentPanelHeaderProps) {
   };
 
   return (
-    <div className="px-4 py-3 border-b flex items-center gap-3">
+    <div className="px-4 h-14 shrink-0 border-b flex items-center gap-3">
       <SculptorIcon size={24} animate className="shrink-0" />
       <div className="flex-1 min-w-0">
         <h2 className="text-sm font-semibold leading-tight">Sculptor</h2>
