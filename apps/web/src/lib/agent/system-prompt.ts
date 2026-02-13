@@ -5,7 +5,8 @@ export interface AgentPageContext {
     | "buyer_detail"
     | "contract_detail"
     | "contracts"
-    | "buyers";
+    | "buyers"
+    | "inbox";
   scannerId?: string;
   scannerType?: string;
   scannerName?: string;
@@ -179,6 +180,7 @@ function formatPageName(page: AgentPageContext["page"]): string {
     contract_detail: "Contract Detail",
     contracts: "Contracts List",
     buyers: "Buyers List",
+    inbox: "Inbox",
   };
   return names[page] ?? page;
 }

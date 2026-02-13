@@ -16,16 +16,18 @@ export function getToolDefinitions(): Anthropic.Tool[] {
           },
           sector: {
             type: "string",
-            description: "Filter by sector (e.g. 'NHS', 'Local Government')",
+            description:
+              "Filter by sector. Must be one of: Health & Social, Construction, Business Services, Architecture & Engineering, Environmental Services, IT Services, Education, Transport, Software, Medical Equipment, Financial Services, R&D, Repair & Maintenance, Hospitality, Laboratory Equipment, Security & Defence, Real Estate, Energy, Telecoms, Publishing & Printing, Utilities, Public Administration, Recreation & Culture, Food & Beverages, IT Equipment, Furniture, Industrial Machinery. Note: NHS trusts are under 'Health & Social', schools/universities are under 'Education'.",
           },
           region: {
             type: "string",
-            description: "Filter by region (e.g. 'London', 'South East')",
+            description:
+              "Filter by region (e.g. 'London', 'South East', 'North West', 'Scotland', 'Wales')",
           },
           orgType: {
             type: "string",
             description:
-              "Filter by organisation type (e.g. 'nhs_trust_acute', 'local_council_london')",
+              "Filter by organisation type. Values: nhs_trust_acute, nhs_trust_mental_health, nhs_trust_community, nhs_trust_ambulance, icb, local_council, local_council_london, local_council_metropolitan, local_council_unitary, local_council_county, local_council_district, fire_rescue, police, combined_authority, national_park, university, fe_college, mat",
           },
           minEnrichmentScore: {
             type: "number",

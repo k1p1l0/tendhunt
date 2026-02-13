@@ -55,7 +55,12 @@ export function useAgent(): UseAgentReturn {
           const msg = current.find((m) => m.id === messageId);
           updateMessage(convId, messageId, {
             content: (msg?.content ?? "") + (event.content ?? ""),
+            isThinking: false,
           });
+          break;
+        }
+        case "thinking": {
+          updateMessage(convId, messageId, { isThinking: true });
           break;
         }
         case "tool_call_start": {
@@ -63,6 +68,7 @@ export function useAgent(): UseAgentReturn {
           const msg = current.find((m) => m.id === messageId);
           const existingToolCalls = msg?.toolCalls ?? [];
           updateMessage(convId, messageId, {
+            isThinking: false,
             toolCalls: [
               ...existingToolCalls,
               {
