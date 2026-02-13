@@ -1,7 +1,7 @@
 import { dbConnect } from "@/lib/mongodb";
 import SlackIntegration from "@/models/slack-integration";
 import SlackAlertConfig from "@/models/slack-alert-config";
-import { sendSlackMessage } from "./client";
+import { sendSlackMessage, addReaction } from "./client";
 import { formatScannerAlert } from "./formatters";
 
 export async function dispatchScannerAlert(
@@ -49,11 +49,12 @@ export async function dispatchScannerAlert(
       entityUrl: `/scanners/${scannerId}`,
     });
 
-    void sendSlackMessage(
-      integration.botToken as string,
-      channelId,
-      blocks,
-      text
-    );
+    const botToken = integration.botToken as string;
+    void sendSlackMessage(botToken, channelId, blocks, text).then((result) => {
+      if (result.ok && result.ts) {
+        const emoji = score >= 8 ? "fire" : score >= 6 ? "dart" : "eyes";
+        void addReaction(botToken, channelId, result.ts, emoji);
+      }
+    });
   }
 }

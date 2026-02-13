@@ -30,10 +30,17 @@ export function formatScannerAlert(params: ScannerAlertParams): {
   const { scannerName, columnName, entityName, score, reasoning, entityUrl } =
     params;
 
+  const scoreEmoji =
+    score >= 8 ? ":fire:" : score >= 6 ? ":dart:" : ":mag:";
+
   const blocks = [
     {
       type: "header",
-      text: { type: "plain_text", text: "Scanner Alert", emoji: true },
+      text: {
+        type: "plain_text",
+        text: `${scoreEmoji} Scanner Alert`,
+        emoji: true,
+      },
     },
     {
       type: "section",
@@ -41,7 +48,10 @@ export function formatScannerAlert(params: ScannerAlertParams): {
         { type: "mrkdwn", text: `*Scanner:*\n${scannerName}` },
         { type: "mrkdwn", text: `*Column:*\n${columnName}` },
         { type: "mrkdwn", text: `*Entity:*\n${entityName}` },
-        { type: "mrkdwn", text: `*Score:*\n${score}/10` },
+        {
+          type: "mrkdwn",
+          text: `*Score:*\n${scoreEmoji} ${score}/10`,
+        },
       ],
     },
     {
@@ -82,15 +92,21 @@ export function formatDailyDigest(params: DailyDigestParams): {
       type: "header",
       text: {
         type: "plain_text",
-        text: "Daily Procurement Digest",
+        text: ":newspaper: Daily Procurement Digest",
         emoji: true,
       },
     },
     {
       type: "section",
       fields: [
-        { type: "mrkdwn", text: `*New Contracts:*\n${newContracts}` },
-        { type: "mrkdwn", text: `*New Signals:*\n${newSignals}` },
+        {
+          type: "mrkdwn",
+          text: `*:page_facing_up: New Contracts:*\n${newContracts}`,
+        },
+        {
+          type: "mrkdwn",
+          text: `*:chart_with_upwards_trend: New Signals:*\n${newSignals}`,
+        },
       ],
     },
   ];
@@ -152,7 +168,11 @@ export function formatNewContractAlert(params: NewContractAlertParams): {
   const blocks = [
     {
       type: "header",
-      text: { type: "plain_text", text: "New Contract", emoji: true },
+      text: {
+        type: "plain_text",
+        text: ":rotating_light: New Contract",
+        emoji: true,
+      },
     },
     {
       type: "section",
