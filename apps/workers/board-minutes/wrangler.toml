@@ -3,8 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2025-03-20"
 compatibility_flags = ["nodejs_compat_v2"]
 
-# [triggers]
-# crons = ["30 * * * *"]  # DISABLED — re-enable when ready
+[triggers]
+crons = ["30 * * * *"]
 
 # Secrets: MONGODB_URI, ANTHROPIC_API_KEY
 # Set via: wrangler secret put MONGODB_URI
