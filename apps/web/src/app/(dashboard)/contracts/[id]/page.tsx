@@ -5,7 +5,8 @@ import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { ContractDetailView } from "@/components/contracts/contract-detail-view";
 import { ContractBreadcrumb } from "./breadcrumb";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Share2, Bookmark } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
+import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
 
 export default async function ContractDetailPage({
   params,
@@ -60,10 +61,15 @@ export default async function ContractDetailPage({
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button size="sm" className="active:scale-[0.97]">
-            <Bookmark className="h-4 w-4 mr-2" />
-            Track Opportunity
-          </Button>
+          <SendToInboxButton
+            entityType="contract"
+            entityId={String(contract._id)}
+            title={contract.title}
+            buyerName={contract.buyerName}
+            value={contract.valueMax ?? contract.valueMin ?? undefined}
+            deadlineDate={contract.deadlineDate?.toISOString()}
+            sector={contract.sector ?? undefined}
+          />
         </div>
       </div>
 

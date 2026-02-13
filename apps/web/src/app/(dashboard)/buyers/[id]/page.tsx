@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { dbConnect } from "@/lib/mongodb";
 import SpendSummary from "@/models/spend-summary";
 import { isValidObjectId } from "mongoose";
-import { ArrowLeft, Share2, Download } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
+import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
 
 export default async function BuyerDetailPage({
   params,
@@ -132,10 +133,15 @@ export default async function BuyerDetailPage({
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button size="sm" className="active:scale-[0.97]">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
+          <SendToInboxButton
+            entityType="buyer"
+            entityId={buyerId}
+            title={buyerName}
+            subtitle={buyer.orgType ?? buyer.sector ?? undefined}
+            buyerName={buyerName}
+            logoUrl={buyer.logoUrl ?? undefined}
+            sector={buyer.sector ?? undefined}
+          />
         </div>
       </div>
 
