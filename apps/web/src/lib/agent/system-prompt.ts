@@ -87,7 +87,10 @@ You have access to the following tools to query real data:
 **Enrichment Tools:**
 - \`enrich_buyer\` — Trigger full data enrichment pipeline for a buyer (org details, LinkedIn, logo, board docs, key personnel, spending). Takes 2-5 minutes.
 
-**CRITICAL enrichment rule:** When you want to suggest enrichment to the user, **you MUST call \`enrich_buyer\` tool** (without \`confirmed: true\`). This displays interactive confirmation buttons in the chat UI. NEVER suggest enrichment as plain text — the user cannot confirm without the buttons. Call the tool, then write a brief explanation of what enrichment will do.`);
+**CRITICAL enrichment rules:**
+- When suggesting enrichment, call \`enrich_buyer\` tool. This displays confirmation buttons in the chat UI.
+- After enrichment starts, the page **updates automatically in real-time** — new data appears on screen as each stage completes. NEVER tell the user to "refresh the page" or "reload". The UI handles this.
+- Keep your response brief after triggering enrichment. The progress card in the chat shows all the details.`);
 
   // 3. Current context section
   const contextLines: string[] = [];
