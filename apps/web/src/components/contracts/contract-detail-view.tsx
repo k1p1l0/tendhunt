@@ -26,6 +26,9 @@ import {
   Landmark,
   Mail,
   Phone,
+  Circle,
+  CircleDot,
+  Loader,
 } from "lucide-react";
 
 interface ContactData {
@@ -227,6 +230,165 @@ function documentTypeLabel(docType: string): string {
   return docType
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/^./, (c) => c.toUpperCase());
+}
+
+function relativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const absDays = Math.abs(Math.round(diffMs / (1000 * 60 * 60 * 24)));
+  const isPast = diffMs < 0;
+
+  if (absDays < 1) return isPast ? "today" : "today";
+  if (absDays < 30) return isPast ? `${absDays}d ago` : `in ${absDays}d`;
+  const months = Math.round(absDays / 30);
+  if (months < 12) return isPast ? `${months}mo ago` : `in ${months} month${months > 1 ? "s" : ""}`;
+  const years = Math.round(absDays / 365);
+  return isPast ? `${years}y ago` : `in ${years} year${years > 1 ? "s" : ""}`;
+}
+
+type TimelinePhase = "planning" | "tender" | "award";
+
+function ContractTimeline({
+  stage,
+  status,
+  title,
+  publishedDate,
+  deadlineDate,
+}: {
+  stage?: string | null;
+  status: string;
+  title: string;
+  publishedDate?: string | Date | null;
+  deadlineDate?: string | Date | null;
+}) {
+  const currentPhase: TimelinePhase =
+    stage === "PLANNING" ? "planning" : stage === "AWARD" ? "award" : "tender";
+
+  const phases: {
+    id: TimelinePhase;
+    label: string;
+    isActive: boolean;
+    isCompleted: boolean;
+  }[] = [
+    {
+      id: "planning",
+      label: "Pre-tender",
+      isActive: currentPhase === "planning",
+      isCompleted: currentPhase === "tender" || currentPhase === "award",
+    },
+    {
+      id: "tender",
+      label: "Tender",
+      isActive: currentPhase === "tender",
+      isCompleted: currentPhase === "award",
+    },
+    {
+      id: "award",
+      label: status === "AWARDED" ? "Awarded contract" : "Award",
+      isActive: currentPhase === "award",
+      isCompleted: false,
+    },
+  ];
+
+  const published = publishedDate ? formatDate(publishedDate) : null;
+  const deadline = deadlineDate ? formatDate(deadlineDate) : null;
+  const deadlineDateObj = deadlineDate ? new Date(deadlineDate) : null;
+  const deadlineRelative = deadlineDateObj ? relativeTime(deadlineDateObj) : null;
+
+  return (
+    <div className="mt-8 mb-8">
+      <h3 className="text-lg font-medium mb-5">Timeline</h3>
+      <div className="space-y-0">
+        {phases.map((phase, idx) => {
+          const isLast = idx === phases.length - 1;
+          const showDetails = phase.isActive || phase.isCompleted;
+
+          return (
+            <div key={phase.id} className="flex gap-4">
+              {/* Vertical line + icon */}
+              <div className="flex flex-col items-center">
+                {phase.isActive ? (
+                  <CircleDot className="h-5 w-5 text-blue-500 shrink-0" />
+                ) : phase.isCompleted ? (
+                  <Circle className="h-5 w-5 text-muted-foreground/60 fill-muted-foreground/20 shrink-0" />
+                ) : (
+                  <Loader className="h-5 w-5 text-muted-foreground/30 shrink-0" />
+                )}
+                {!isLast && (
+                  <div
+                    className={`w-px flex-1 min-h-[24px] ${
+                      phase.isCompleted ? "bg-muted-foreground/30" : "bg-border"
+                    }`}
+                  />
+                )}
+              </div>
+
+              {/* Content */}
+              <div className={`pb-6 ${isLast ? "pb-0" : ""}`}>
+                <div className="flex items-baseline gap-4">
+                  <span
+                    className={`text-sm font-semibold ${
+                      phase.isActive
+                        ? "text-blue-500"
+                        : phase.isCompleted
+                          ? "text-foreground"
+                          : "text-muted-foreground/50"
+                    }`}
+                  >
+                    {phase.label}
+                  </span>
+                  {!showDetails && (
+                    <span className="text-sm text-muted-foreground/50">
+                      Not identified
+                    </span>
+                  )}
+                  {phase.isActive && phase.id === "award" && (
+                    <span className="text-sm text-muted-foreground truncate max-w-xs">
+                      {title}
+                      <span className="text-xs text-muted-foreground/60 ml-2">(Current page)</span>
+                    </span>
+                  )}
+                  {phase.isActive && phase.id === "tender" && (
+                    <span className="text-sm text-muted-foreground truncate max-w-xs">
+                      {title}
+                      <span className="text-xs text-muted-foreground/60 ml-2">(Current page)</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Date details for the active/completed phase */}
+                {showDetails && (phase.id === "tender" || phase.id === "award") && (
+                  <div className="mt-2 space-y-1.5">
+                    {published && (
+                      <div className="flex items-baseline gap-6">
+                        <span className="text-sm text-muted-foreground w-20">Published</span>
+                        <span className="text-sm">{published}</span>
+                      </div>
+                    )}
+                    {deadline && (
+                      <div className="flex items-baseline gap-6">
+                        <span className="text-sm text-muted-foreground w-20">
+                          {phase.id === "award" ? "Expiry" : "Deadline"}
+                        </span>
+                        <span className="text-sm">
+                          {deadline}
+                          {deadlineRelative && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {deadlineRelative}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function DetailRow({
@@ -860,6 +1022,15 @@ export function ContractDetailView({
               }
             />
           </div>
+
+          {/* Timeline */}
+          <ContractTimeline
+            stage={contract.stage}
+            status={contract.status}
+            title={contract.title}
+            publishedDate={contract.publishedDate}
+            deadlineDate={contract.deadlineDate}
+          />
 
           {/* Description */}
           <div className="max-w-none">
