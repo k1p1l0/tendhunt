@@ -54,7 +54,14 @@ export async function POST(request: NextRequest) {
       integrationId,
     }).lean();
     if (saved?.apiKey) {
-      keyToTest = decrypt(saved.apiKey);
+      try {
+        keyToTest = decrypt(saved.apiKey);
+      } catch {
+        return Response.json(
+          { error: "Failed to decrypt saved key. Please re-enter it." },
+          { status: 500 }
+        );
+      }
     }
   }
 

@@ -29,7 +29,13 @@ export async function getAnthropicKey(userId: string): Promise<string> {
     }
   }
 
-  return process.env.ANTHROPIC_API_KEY!;
+  const platformKey = process.env.ANTHROPIC_API_KEY;
+  if (!platformKey) {
+    throw new Error(
+      `[ai-key-resolver] No ANTHROPIC_API_KEY configured and user ${userId} has no BYOK key`
+    );
+  }
+  return platformKey;
 }
 
 /**

@@ -54,7 +54,13 @@ export async function GET() {
       isEnabled: userConfig?.isEnabled ?? false,
       hasApiKey: Boolean(userConfig?.apiKey),
       apiKeyMask: userConfig?.apiKey
-        ? maskKey(decrypt(userConfig.apiKey))
+        ? (() => {
+            try {
+              return maskKey(decrypt(userConfig.apiKey));
+            } catch {
+              return "****";
+            }
+          })()
         : null,
       lastTestedAt: userConfig?.lastTestedAt ?? null,
       config: userConfig?.config ?? {},
