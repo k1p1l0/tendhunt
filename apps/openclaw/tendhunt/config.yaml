@@ -22,6 +22,10 @@ memory:
     auto_save_sessions: true
     search_on_conversation_start: true
 
+hooks:
+  on_message_received: /data/skills/tendhunt/hooks/on-message-received.sh
+  on_response_sent: /data/skills/tendhunt/hooks/on-response-sent.sh
+
 tools:
   allowed:
     - tendhunt_api

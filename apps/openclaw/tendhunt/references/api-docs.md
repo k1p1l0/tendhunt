@@ -394,6 +394,75 @@ curl -X POST -H "Authorization: Bearer th_live_xxx" \
 
 ---
 
+## User Profile
+
+### Get Company Profile
+
+```
+GET /api/public/v1/profile
+```
+
+Returns the authenticated user's company profile including sectors, capabilities, and preferences.
+
+```bash
+curl -H "Authorization: Bearer th_live_xxx" \
+  "https://app.tendhunt.com/api/public/v1/profile"
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "data": {
+    "summary": "Profile for Acme Consulting Ltd",
+    "data": {
+      "companyName": "Acme Consulting Ltd",
+      "website": "https://acmeconsulting.co.uk",
+      "sectors": ["NHS", "Education"],
+      "capabilities": ["IT Strategy", "Digital Transformation"],
+      "keywords": ["cloud migration", "data analytics"],
+      "certifications": ["ISO 27001", "Cyber Essentials Plus"],
+      "regions": ["London", "South East"],
+      "idealContractDescription": "IT consulting and digital transformation projects for NHS trusts",
+      "companySize": "50-249",
+      "summary": "Acme Consulting provides IT strategy and digital transformation services...",
+      "logoUrl": "https://..."
+    }
+  }
+}
+```
+
+### Get Current User
+
+```
+GET /api/public/v1/users/me
+```
+
+Returns the authenticated user's personal information.
+
+```bash
+curl -H "Authorization: Bearer th_live_xxx" \
+  "https://app.tendhunt.com/api/public/v1/users/me"
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "data": {
+    "summary": "User Jane Smith",
+    "data": {
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "email": "jane@acmeconsulting.co.uk",
+      "imageUrl": "https://..."
+    }
+  }
+}
+```
+
+---
+
 ## Error Codes
 
 | Status | Meaning |

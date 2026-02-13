@@ -1,0 +1,13 @@
+name = "tendhunt-slack-alerts"
+main = "src/index.ts"
+compatibility_date = "2025-03-20"
+compatibility_flags = ["nodejs_compat_v2"]
+
+[triggers]
+crons = ["0 9 * * 1-5"]
+
+[vars]
+APP_URL = "https://app.tendhunt.com"
+
+# Secrets: MONGODB_URI
+# Set via: wrangler secret put MONGODB_URI
