@@ -57,15 +57,21 @@ function extractAttachmentUrls(
     const idx = html.indexOf(match[0]);
     const surrounding = html.slice(Math.max(0, idx - 300), idx + match[0].length + 200);
 
-    // Look for link text or title attribute
-    const titleMatch =
-      surrounding.match(/title="([^"]+)"/) ||
-      surrounding.match(/>([^<]{3,80})<\/a>/) ||
-      surrounding.match(/alt="([^"]+)"/);
+    // Prefer link text (filename) over title attribute (often generic "Open attachment")
+    const linkTextMatch = surrounding.match(/>([^<]{3,80})<\/a>/);
+    const titleAttrMatch = surrounding.match(/title="([^"]+)"/);
+    const altMatch = surrounding.match(/alt="([^"]+)"/);
 
-    const title = titleMatch
-      ? titleMatch[1].trim()
-      : "Attachment";
+    const linkText = linkTextMatch?.[1]?.trim();
+    const titleAttr = titleAttrMatch?.[1]?.trim();
+    const altText = altMatch?.[1]?.trim();
+
+    const title =
+      (linkText && linkText !== "Open attachment" ? linkText : null) ??
+      (titleAttr && titleAttr !== "Open attachment" ? titleAttr : null) ??
+      altText ??
+      linkText ??
+      "Attachment";
 
     results.push({ url: fullUrl, title });
   }
@@ -73,15 +79,15 @@ function extractAttachmentUrls(
   return results;
 }
 
-function guessFormat(url: string): string | undefined {
-  const lower = url.toLowerCase();
+function guessFormat(url: string, title?: string): string | undefined {
+  const lower = `${url} ${title ?? ""}`.toLowerCase();
   if (lower.includes(".pdf")) return "application/pdf";
-  if (lower.includes(".doc") && !lower.includes(".docx")) return "application/msword";
   if (lower.includes(".docx"))
     return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (lower.includes(".xls") && !lower.includes(".xlsx")) return "application/vnd.ms-excel";
+  if (lower.includes(".doc")) return "application/msword";
   if (lower.includes(".xlsx"))
     return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (lower.includes(".xls")) return "application/vnd.ms-excel";
   if (lower.includes(".zip")) return "application/zip";
   return undefined;
 }
@@ -195,7 +201,7 @@ export async function enrichProactisDocuments(
           description: undefined,
           url: a.url,
           datePublished: undefined,
-          format: guessFormat(a.url),
+          format: guessFormat(a.url, a.title),
         }));
 
       if (newDocs.length === 0) {
