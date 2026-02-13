@@ -24,38 +24,40 @@ export function Pagination({
   };
 
   return (
-    <div className="flex items-center justify-center gap-4">
-      {currentPage <= 1 ? (
-        <Button variant="outline" size="sm" disabled>
-          <ChevronLeft />
-          Previous
-        </Button>
-      ) : (
-        <Button variant="outline" size="sm" asChild>
-          <Link href={createPageURL(currentPage - 1)}>
-            <ChevronLeft />
-            Previous
-          </Link>
-        </Button>
-      )}
-
-      <span className="text-sm text-muted-foreground">
+    <div className="flex items-center justify-between border-t border-border pt-4">
+      <span className="text-xs text-muted-foreground">
         Page {currentPage} of {totalPages}
       </span>
 
-      {currentPage >= totalPages ? (
-        <Button variant="outline" size="sm" disabled>
-          Next
-          <ChevronRight />
-        </Button>
-      ) : (
-        <Button variant="outline" size="sm" asChild>
-          <Link href={createPageURL(currentPage + 1)}>
+      <div className="flex gap-2">
+        {currentPage <= 1 ? (
+          <Button variant="outline" size="sm" disabled>
+            <ChevronLeft />
+            Previous
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={createPageURL(currentPage - 1)}>
+              <ChevronLeft />
+              Previous
+            </Link>
+          </Button>
+        )}
+
+        {currentPage >= totalPages ? (
+          <Button variant="outline" size="sm" disabled>
             Next
             <ChevronRight />
-          </Link>
-        </Button>
-      )}
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={createPageURL(currentPage + 1)}>
+              Next
+              <ChevronRight />
+            </Link>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

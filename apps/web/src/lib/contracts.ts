@@ -86,7 +86,29 @@ export async function fetchContracts(filters: ContractFilters) {
     Contract.estimatedDocumentCount(),
   ]);
 
-  return { contracts, filteredCount, totalCount };
+  // Batch-populate buyer logoUrl for contracts that have a buyerId
+  const buyerIds = contracts
+    .map((c) => c.buyerId)
+    .filter((id): id is mongoose.Types.ObjectId => id != null);
+
+  let buyerLogoMap = new Map<string, string>();
+  if (buyerIds.length > 0) {
+    const buyers = await Buyer.find({ _id: { $in: buyerIds } })
+      .select("_id logoUrl")
+      .lean();
+    buyerLogoMap = new Map(
+      buyers
+        .filter((b) => b.logoUrl)
+        .map((b) => [String(b._id), b.logoUrl as string])
+    );
+  }
+
+  const contractsWithLogos = contracts.map((c) => ({
+    ...c,
+    buyerLogoUrl: c.buyerId ? buyerLogoMap.get(String(c.buyerId)) ?? null : null,
+  }));
+
+  return { contracts: contractsWithLogos, filteredCount, totalCount };
 }
 
 export async function fetchContractById(id: string) {
@@ -100,15 +122,17 @@ export async function fetchContractById(id: string) {
   if (!contract) return null;
 
   // Resolve buyer data via buyerId (preferred) or nameLower fallback (pre-backfill contracts)
+  const buyerSelect = "name sector region orgType orgSubType website logoUrl enrichmentScore linkedinUrl contractCount description address industry staffCount annualBudget contacts linkedin enrichmentSources lastEnrichedAt democracyPortalUrl boardPapersUrl";
+
   let buyer = null;
   if (contract.buyerId) {
     buyer = await Buyer.findById(contract.buyerId)
-      .select("name sector region orgType website logoUrl enrichmentScore linkedinUrl contractCount description")
+      .select(buyerSelect)
       .lean();
   }
   if (!buyer && contract.buyerName) {
     buyer = await Buyer.findOne({ nameLower: contract.buyerName.toLowerCase().trim() })
-      .select("name sector region orgType website logoUrl enrichmentScore linkedinUrl contractCount description")
+      .select(buyerSelect)
       .lean();
   }
 

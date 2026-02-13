@@ -1,12 +1,15 @@
+import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { fetchBuyerById } from "@/lib/buyers";
 import { BuyerDetailClient } from "@/components/buyers/buyer-detail-client";
 import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { BuyerBreadcrumb } from "./breadcrumb";
+import { Button } from "@/components/ui/button";
 import { dbConnect } from "@/lib/mongodb";
 import SpendSummary from "@/models/spend-summary";
 import { isValidObjectId } from "mongoose";
+import { ArrowLeft, Share2, Download } from "lucide-react";
 
 export default async function BuyerDetailPage({
   params,
@@ -25,7 +28,6 @@ export default async function BuyerDetailPage({
     notFound();
   }
 
-  // Serialize for client components
   const buyerId = String(buyer._id);
   const buyerName = buyer.name ?? "";
 
@@ -84,7 +86,6 @@ export default async function BuyerDetailPage({
     extractionMethod: p.extractionMethod ?? undefined,
   }));
 
-  // Check for spend data
   let hasSpendData = false;
   let spendTransactionCount = 0;
   if (isValidObjectId(buyerId)) {
@@ -95,7 +96,7 @@ export default async function BuyerDetailPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
       <AgentContextSetter
         context={{
           page: "buyer_detail",
@@ -107,42 +108,78 @@ export default async function BuyerDetailPage({
         }}
       />
       <BuyerBreadcrumb name={buyerName} />
-      <BuyerDetailClient
-        initialTab={tab}
-        buyer={{
-          _id: buyerId,
-          name: buyerName,
-          sector: buyer.sector ?? undefined,
-          region: buyer.region ?? undefined,
-          contractCount: buyer.contractCount ?? 0,
-          website: buyer.website ?? undefined,
-          description: buyer.description ?? undefined,
-          address: buyer.address ?? undefined,
-          industry: buyer.industry ?? undefined,
-          contacts,
-          contracts,
-          signals,
-          boardDocuments,
-          keyPersonnel,
-          enrichmentScore: buyer.enrichmentScore ?? undefined,
-          enrichmentSources: buyer.enrichmentSources ?? undefined,
-          orgType: buyer.orgType ?? undefined,
-          staffCount: buyer.staffCount ?? undefined,
-          annualBudget: buyer.annualBudget ?? undefined,
-          democracyPortalUrl: buyer.democracyPortalUrl ?? undefined,
-          lastEnrichedAt: buyer.lastEnrichedAt ? String(buyer.lastEnrichedAt) : undefined,
-          logoUrl: buyer.logoUrl ?? undefined,
-          linkedinUrl: buyer.linkedinUrl ?? undefined,
-          linkedin: buyer.linkedin ? {
-            ...(buyer.linkedin as Record<string, unknown>),
-            lastFetchedAt: (buyer.linkedin as Record<string, unknown>)?.lastFetchedAt
-              ? String((buyer.linkedin as Record<string, unknown>).lastFetchedAt)
-              : undefined,
-          } : undefined,
-          hasSpendData,
-          spendTransactionCount,
-        }}
-      />
+
+      {/* Sticky Header */}
+      <div className="px-8 py-3 border-b border-border flex items-center justify-between bg-background sticky top-0 z-20">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link
+            href="/buyers"
+            className="p-2 -ml-2 rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Back to buyers"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-base font-semibold truncate max-w-2xl">
+            {buyerName}
+          </h1>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="active:scale-[0.97]"
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            Share
+          </Button>
+          <Button size="sm" className="active:scale-[0.97]">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6">
+          <BuyerDetailClient
+            initialTab={tab}
+            buyer={{
+              _id: buyerId,
+              name: buyerName,
+              sector: buyer.sector ?? undefined,
+              region: buyer.region ?? undefined,
+              contractCount: buyer.contractCount ?? 0,
+              website: buyer.website ?? undefined,
+              description: buyer.description ?? undefined,
+              address: buyer.address ?? undefined,
+              industry: buyer.industry ?? undefined,
+              contacts,
+              contracts,
+              signals,
+              boardDocuments,
+              keyPersonnel,
+              enrichmentScore: buyer.enrichmentScore ?? undefined,
+              enrichmentSources: buyer.enrichmentSources ?? undefined,
+              orgType: buyer.orgType ?? undefined,
+              staffCount: buyer.staffCount ?? undefined,
+              annualBudget: buyer.annualBudget ?? undefined,
+              democracyPortalUrl: buyer.democracyPortalUrl ?? undefined,
+              lastEnrichedAt: buyer.lastEnrichedAt ? String(buyer.lastEnrichedAt) : undefined,
+              logoUrl: buyer.logoUrl ?? undefined,
+              linkedinUrl: buyer.linkedinUrl ?? undefined,
+              linkedin: buyer.linkedin ? {
+                ...(buyer.linkedin as Record<string, unknown>),
+                lastFetchedAt: (buyer.linkedin as Record<string, unknown>)?.lastFetchedAt
+                  ? String((buyer.linkedin as Record<string, unknown>).lastFetchedAt)
+                  : undefined,
+              } : undefined,
+              hasSpendData,
+              spendTransactionCount,
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

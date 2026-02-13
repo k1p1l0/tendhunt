@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchContractById } from "@/lib/contracts";
 import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { ContractDetailView } from "@/components/contracts/contract-detail-view";
+import { ContractBreadcrumb } from "./breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Bookmark } from "lucide-react";
 
@@ -32,10 +33,11 @@ export default async function ContractDetailPage({
             : undefined,
         }}
       />
+      <ContractBreadcrumb name={contract.title} />
 
       {/* Sticky Header */}
-      <div className="px-8 py-4 border-b border-border flex items-center justify-between bg-background sticky top-0 z-20">
-        <div className="flex items-center gap-4 min-w-0">
+      <div className="px-8 py-3 border-b border-border flex items-center justify-between bg-background sticky top-0 z-20">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/contracts"
             className="p-2 -ml-2 rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -43,17 +45,11 @@ export default async function ContractDetailPage({
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs text-muted-foreground flex items-center gap-2">
-              Contracts / {String(contract._id).slice(-6)}
-            </span>
-            <h1
-              className="text-lg font-semibold truncate max-w-2xl"
-              style={{ textWrap: "balance" }}
-            >
-              {contract.title}
-            </h1>
-          </div>
+          <h1
+            className="text-base font-semibold truncate max-w-2xl"
+          >
+            {contract.title}
+          </h1>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <Button
