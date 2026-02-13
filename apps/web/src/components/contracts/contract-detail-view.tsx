@@ -523,29 +523,36 @@ function BuyerContactCard({
 
 function DocumentsSection({
   documents,
+  submissionPortalUrl,
 }: {
   documents: NonNullable<ContractDetailData["documents"]>;
+  submissionPortalUrl?: string | null;
 }) {
+  const downloadable = documents.filter((d) => d.url);
+  const metadataOnly = documents.filter((d) => !d.url);
+
+  if (downloadable.length === 0 && metadataOnly.length === 0) return null;
+
   return (
     <div className="mt-8">
       <h3 className="text-lg font-medium mb-4">Documents</h3>
-      <div className="space-y-2">
-        {documents.map((doc, idx) => (
-          <div
-            key={doc.id || idx}
-            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">
-                {doc.documentType ? documentTypeLabel(doc.documentType) : "Document"}
-              </div>
-              {doc.description && (
-                <div className="text-xs text-muted-foreground line-clamp-1">
-                  {doc.description}
+      {downloadable.length > 0 && (
+        <div className="space-y-2">
+          {downloadable.map((doc, idx) => (
+            <div
+              key={doc.id || idx}
+              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">
+                  {doc.documentType ? documentTypeLabel(doc.documentType) : "Document"}
                 </div>
-              )}
-            </div>
-            {doc.url ? (
+                {doc.description && (
+                  <div className="text-xs text-muted-foreground line-clamp-1">
+                    {doc.description}
+                  </div>
+                )}
+              </div>
               <a
                 href={doc.url}
                 target="_blank"
@@ -557,14 +564,33 @@ function DocumentsSection({
                   Download
                 </Button>
               </a>
+            </div>
+          ))}
+        </div>
+      )}
+      {metadataOnly.length > 0 && (
+        <div className="p-3 bg-muted/50 rounded-lg border border-border mt-2">
+          <div className="text-sm text-muted-foreground">
+            {metadataOnly.length} additional document{metadataOnly.length > 1 ? "s" : ""} available
+            ({metadataOnly.map((d) => d.documentType ? documentTypeLabel(d.documentType) : "Document").join(", ")})
+            {submissionPortalUrl ? (
+              <>
+                {" — "}
+                <a
+                  href={submissionPortalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+                >
+                  download from portal <ExternalLink className="h-3 w-3" />
+                </a>
+              </>
             ) : (
-              <Badge variant="secondary" className="shrink-0 ml-3">
-                No link
-              </Badge>
+              " — check the original notice for download links"
             )}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -650,10 +676,12 @@ function LotsSection({
   lots,
   lotCount,
   maxLotsBidPerSupplier,
+  submissionPortalUrl,
 }: {
   lots: NonNullable<ContractDetailData["lots"]>;
   lotCount?: number | null;
   maxLotsBidPerSupplier?: number | null;
+  submissionPortalUrl?: string | null;
 }) {
   const displayCount = lotCount ?? lots.length;
 
@@ -665,6 +693,28 @@ function LotsSection({
           <Badge variant="outline">Max {maxLotsBidPerSupplier} lots per supplier</Badge>
         )}
       </div>
+      <p className="text-sm text-muted-foreground mb-4">
+        This tender is divided into {displayCount} lot{displayCount > 1 ? "s" : ""}.
+        {maxLotsBidPerSupplier != null
+          ? ` You can bid on up to ${maxLotsBidPerSupplier} lot${maxLotsBidPerSupplier > 1 ? "s" : ""}.`
+          : displayCount > 1
+            ? " You can bid on any or all lots."
+            : ""}
+        {submissionPortalUrl && (
+          <>
+            {" Submit your bid via the "}
+            <a
+              href={submissionPortalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+            >
+              e-tendering portal <ExternalLink className="h-3 w-3" />
+            </a>
+            .
+          </>
+        )}
+      </p>
       <div className="space-y-3">
         {lots.map((lot, idx) => (
           <LotItem key={lot.lotId || idx} lot={lot} index={idx} />
@@ -734,6 +784,26 @@ export function ContractDetailView({
             </span>
           </div>
 
+          {/* Apply CTA */}
+          {contract.submissionPortalUrl && contract.status === "OPEN" && (
+            <a
+              href={contract.submissionPortalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-4 mb-6 rounded-lg border border-lime-400/30 bg-lime-400/5 hover:bg-lime-400/10 transition-colors group"
+            >
+              <div>
+                <div className="text-sm font-semibold text-lime-400">
+                  Apply for this tender
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Register and submit your bid on {getDomain(contract.submissionPortalUrl)}
+                </div>
+              </div>
+              <ExternalLink className="h-5 w-5 text-lime-400 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </a>
+          )}
+
           {/* Key Details Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-5 bg-muted/50 rounded-lg border border-border mb-8">
             <DetailRow
@@ -755,24 +825,6 @@ export function ContractDetailView({
             <DetailRow label="Published" value={published ?? "Unknown"} />
             <DetailRow label="Procedure" value={procedureLabel} />
             <DetailRow label="Notice Type" value={contract.status} />
-            <DetailRow
-              label="Submission"
-              value={
-                contract.submissionPortalUrl ? (
-                  <a
-                    href={contract.submissionPortalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-blue-400 transition-colors hover:text-blue-300 text-xs"
-                  >
-                    {getDomain(contract.submissionPortalUrl)}
-                    <ExternalLink className="h-3 w-3 shrink-0" />
-                  </a>
-                ) : (
-                  "\u2014"
-                )
-              }
-            />
             {contract.lotCount != null && contract.lotCount > 0 && (
               <DetailRow
                 label="Lots"
@@ -839,7 +891,10 @@ export function ContractDetailView({
 
           {/* Documents */}
           {contract.documents && contract.documents.length > 0 && (
-            <DocumentsSection documents={contract.documents} />
+            <DocumentsSection
+              documents={contract.documents}
+              submissionPortalUrl={contract.submissionPortalUrl}
+            />
           )}
 
           {/* Lots */}
@@ -848,6 +903,7 @@ export function ContractDetailView({
               lots={contract.lots}
               lotCount={contract.lotCount}
               maxLotsBidPerSupplier={contract.maxLotsBidPerSupplier}
+              submissionPortalUrl={contract.submissionPortalUrl}
             />
           )}
         </div>
