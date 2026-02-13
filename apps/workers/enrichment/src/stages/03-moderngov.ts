@@ -94,6 +94,14 @@ export async function fetchModernGovData(
           errorMessages.push(
             `Connection failed: ${buyer.name} (${baseUrl})`
           );
+          // Mark as processed to prevent infinite retry of unreachable APIs
+          await collection.updateOne(
+            { _id: buyer._id },
+            {
+              $set: { lastEnrichedAt: new Date(), updatedAt: new Date() },
+              $addToSet: { enrichmentSources: "moderngov" },
+            }
+          );
           continue;
         }
 

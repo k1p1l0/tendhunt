@@ -19,8 +19,9 @@ import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-j
 // ---------------------------------------------------------------------------
 // Enrichment Worker entry point
 //
-// Runs hourly via cron trigger.
-// Processes the buyer enrichment pipeline in 8 sequential stages:
+// Two cron triggers, offset by 30 minutes to avoid resource contention:
+//
+// :00 — Buyer enrichment pipeline (8 sequential stages):
 //   1. classify            — Fuzzy-match buyers to DataSource entries
 //   2. website_discovery   — Google Search via Apify to find missing websites
 //   3. logo_linkedin       — logo.dev CDN + LinkedIn company search + og:image
@@ -30,7 +31,7 @@ import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-j
 //   7. personnel           — Claude Haiku key personnel extraction
 //   8. score               — Compute enrichment scores (0-100)
 //
-// Then runs document enrichment (contract-level):
+// :30 — Document enrichment pipeline (contract-level):
 //   A. pcs_documents       — PCS OCDS API document URL enrichment
 //   B. proactis_documents  — ProActis advert page attachment scraping
 // ---------------------------------------------------------------------------
@@ -277,22 +278,28 @@ export default {
   },
 
   async scheduled(
-    _controller: ScheduledController,
+    controller: ScheduledController,
     env: Env,
     _ctx: ExecutionContext
   ): Promise<void> {
-    try {
-      await runPipeline(env);
-    } catch (err) {
-      console.error("Enrichment pipeline failed:", err);
-      throw err;
-    }
+    const minute = new Date(controller.scheduledTime).getUTCMinutes();
 
-    // Run document enrichment after buyer enrichment
-    try {
-      await runDocEnrichmentPipeline(env, 500);
-    } catch (err) {
-      console.error("Document enrichment pipeline failed:", err);
+    if (minute < 15) {
+      // :00 cron — buyer enrichment pipeline (8 stages)
+      try {
+        await runPipeline(env);
+      } catch (err) {
+        console.error("Enrichment pipeline failed:", err);
+        throw err;
+      }
+    } else {
+      // :30 cron — document enrichment pipeline (PCS + ProActis)
+      try {
+        await runDocEnrichmentPipeline(env, 500);
+      } catch (err) {
+        console.error("Document enrichment pipeline failed:", err);
+        throw err;
+      }
     }
   },
 } satisfies ExportedHandler<Env>;

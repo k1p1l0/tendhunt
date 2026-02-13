@@ -226,13 +226,14 @@ export async function testConnection(baseUrl: string): Promise<boolean> {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "text/xml; charset=utf-8",
         SOAPAction: "http://tempuri.org/GetCommitteesByUser",
+        "User-Agent": "TendHunt/1.0 (procurement data platform)",
       },
       body: buildSoapEnvelope(soapBody),
       signal: controller.signal,

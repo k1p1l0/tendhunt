@@ -4,7 +4,7 @@ compatibility_date = "2025-03-20"
 compatibility_flags = ["nodejs_compat_v2"]
 
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 * * * *", "30 * * * *"]
 
 [[r2_buckets]]
 binding = "DOCS"
