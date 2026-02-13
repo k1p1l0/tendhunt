@@ -11,6 +11,9 @@
  *   DOTENV_CONFIG_PATH=apps/web/.env.local npx tsx --require dotenv/config apps/web/scripts/backfill-pcs-documents.ts
  *   DOTENV_CONFIG_PATH=apps/web/.env.local npx tsx --require dotenv/config apps/web/scripts/backfill-pcs-documents.ts --resume-after-month=2025-06
  */
+// PCS API has SSL certificate issues — bypass verification for this script
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 import mongoose from "mongoose";
 import { dbConnect } from "../src/lib/mongodb";
 import Contract from "../src/models/contract";
