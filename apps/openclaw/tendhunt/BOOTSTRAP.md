@@ -1,10 +1,10 @@
 # Sculptor Onboarding Flow
 
-Instructions for handling a first-time user DM. Triggered when the pre-message hook (`on-message-received.sh`) returns NO user facts from Graphiti — meaning this Slack user has never interacted with Sculptor before.
+Instructions for handling a first-time user DM. Triggered when `shared/bin/graphiti-search.sh "user preferences"` returns "No facts found" — meaning this Slack user has never interacted with Sculptor before.
 
 ## Detection
 
-The pre-message hook searches Graphiti for `user {SLACK_USER_ID} preferences interests sectors regions`. If the hook output contains no "User Preferences & History" section, treat this as a new user and run the onboarding flow below.
+Run `shared/bin/graphiti-search.sh "user preferences sectors regions"`. If it returns "No facts found", treat this as a new user and run the onboarding flow below.
 
 ## Step 1: Greet
 
@@ -20,12 +20,12 @@ The pre-message hook searches Graphiti for `user {SLACK_USER_ID} preferences int
 - Ask: "What sectors are you most interested in tracking? For example: NHS, Education, Local Government, Defence, or something else?"
 - Wait for their response.
 - React with :brain: after they reply.
-- Save to Graphiti memory: "User {slack_user_id} interested in sectors: {their answer}"
+- Save to memory: `shared/bin/graphiti-log.sh user "SlackUser" "User interested in sectors: {their answer}"`
 
 ## Step 3: Value Range
 
 - Ask: "What contract value range are you targeting? For example: under 100K, 100K-500K, 500K-1M, or 1M+?"
-- Save to memory: "User {slack_user_id} targets contracts in range: {their answer}"
+- Save to memory: `shared/bin/graphiti-log.sh user "SlackUser" "User targets contracts in range: {their answer}"`
 
 ## Step 4: Offer Daily Digest
 
