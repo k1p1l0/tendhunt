@@ -220,6 +220,31 @@
   }
 }
 
+/* Sculptor icon animation */
+@keyframes sculptor-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sculptor-icon-animated {
+  animation: sculptor-rotate 12s linear infinite;
+}
+
+/* Sculptor bubble pulse */
+@keyframes sculptor-bubble-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.sculptor-bubble-pulse {
+  animation: sculptor-bubble-pulse 3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agent-trigger-orb {
     animation: none;
@@ -229,5 +254,11 @@
   }
   .agent-trigger-btn:active {
     transform: none;
+  }
+  .sculptor-icon-animated {
+    animation: none;
+  }
+  .sculptor-bubble-pulse {
+    animation: none;
   }
 }

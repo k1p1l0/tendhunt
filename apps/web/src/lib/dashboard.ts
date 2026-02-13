@@ -3,6 +3,7 @@ import Scanner from "@/models/scanner";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import Buyer from "@/models/buyer";
+import ChatConversation from "@/models/chat-conversation";
 
 export const ACCOUNT_MANAGER = {
   name: "Matt",
@@ -169,4 +170,41 @@ export async function getTopScores(
     ...entry,
     entityName: nameMap.get(entry.entityId) || "Unknown",
   }));
+}
+
+export interface RecentConversation {
+  _id: string;
+  title: string;
+  lastMessageAt: Date;
+  messageCount: number;
+  context?: { page: string };
+}
+
+export async function getRecentConversations(
+  userId: string,
+  limit = 5
+): Promise<RecentConversation[]> {
+  await dbConnect();
+
+  const conversations = await ChatConversation.find({ userId })
+    .sort({ lastMessageAt: -1 })
+    .limit(limit)
+    .select("title lastMessageAt messages context")
+    .lean();
+
+  return conversations.map(
+    (c: {
+      _id: unknown;
+      title?: string;
+      lastMessageAt: Date;
+      messages?: unknown[];
+      context?: unknown;
+    }) => ({
+      _id: String(c._id),
+      title: c.title || "New conversation",
+      lastMessageAt: new Date(c.lastMessageAt),
+      messageCount: c.messages?.length ?? 0,
+      context: c.context as { page: string } | undefined,
+    })
+  );
 }
