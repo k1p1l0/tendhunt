@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Buyer Intelligence & Credits** - Buyer profiles, contact reveal, credit system
 - [ ] **Phase 7: Buying Signals** - Board minutes pre-tender signals display
 - [ ] **Phase 8: Landing & Pricing** - Marketing page and pricing tiers
+- [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
 
 ## Phase Details
 
@@ -210,7 +211,16 @@ Plans:
 | DATA-05 | Phase 2 | Seed buyer contacts from public sources |
 | DATA-06 | Phase 2 | Source attribution on contracts |
 
-**Coverage: 46/46 v1 requirements mapped. No orphans.**
+| SLACK-01 | Phase 21 | Public API endpoints with API key auth |
+| SLACK-02 | Phase 21 | API key management UI in settings |
+| SLACK-03 | Phase 21 | User-scoped API key access |
+| SLACK-04 | Phase 21 | OpenClaw TendHunt SKILL.md |
+| SLACK-05 | Phase 21 | OpenClaw deploy on Hetzner + Slack config |
+| SLACK-06 | Phase 21 | Add to Slack OAuth button |
+| SLACK-07 | Phase 21 | Slack bot responds to procurement queries |
+| SLACK-08 | Phase 21 | API rate limiting and request logging |
+
+**Coverage: 54/54 v1 requirements mapped. No orphans.**
 
 ## Progress
 
@@ -235,6 +245,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 18. Admin Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 19. Research Agent Chat Panel | 4/4 | ✓ Complete | 2026-02-12 |
 | 20. Board Minutes Signals | 4/4 | ✓ Complete | 2026-02-12 |
+| 21. Slack Integration (OpenClaw) | 0/? | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -416,3 +427,19 @@ Plans:
 - [x] 20-02-PLAN.md -- Schema extensions (Signal + BoardDocument), enrichment worker chaining, signal buyerId query fix
 - [x] 20-03-PLAN.md -- Signal extraction stage (chunking, Claude Haiku, JSON parsing, upsert) + deduplication stage
 - [x] 20-04-PLAN.md -- SignalsTab frontend: type filter pills, confidence indicators, quote display, entity badges, animations
+
+### Phase 21: Slack Integration (OpenClaw)
+
+**Goal:** Bring TendHunt's procurement intelligence to Slack via OpenClaw — users click "Add to Slack" in TendHunt settings, and a managed bot responds to procurement queries (search buyers, contracts, signals, spending) using user-scoped API keys that call public REST endpoints wrapping existing tool handlers
+**Depends on:** Phase 19 (Research Agent Chat Panel — provides the tool handlers to wrap)
+**Requirements**: SLACK-01, SLACK-02, SLACK-03, SLACK-04, SLACK-05, SLACK-06, SLACK-07, SLACK-08
+**Success Criteria** (what must be TRUE):
+  1. Public REST API endpoints exist at `/api/public/*` wrapping all existing tool handlers (buyers, contracts, signals, personnel, spend, board docs) with API key auth middleware
+  2. User can generate, view, and revoke API keys from a new "API Keys" section in TendHunt settings page
+  3. Each API key is scoped to the user — all queries return data filtered by their account and permissions
+  4. OpenClaw TendHunt skill (SKILL.md) defines all curl commands for the public API with correct parameters
+  5. OpenClaw daemon is deployed on Hetzner VPS with Slack channel configured (socket mode)
+  6. "Add to Slack" OAuth button in TendHunt settings connects user's workspace to the managed OpenClaw bot
+  7. Slack bot responds to procurement queries (search buyers, contracts, signals, spending) using the user's API key
+  8. API endpoints enforce rate limiting (100 req/min per key) and log requests
+**Plans:** TBD

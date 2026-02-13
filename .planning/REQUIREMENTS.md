@@ -81,6 +81,17 @@ Requirements for hackathon investor demo. Each maps to roadmap phases.
 - [ ] **DATA-05**: Database is seeded with buyer contact data from public sources (GOV.UK appointments, council committee pages, NHS board member lists)
 - [ ] **DATA-06**: Contracts display source attribution (Find a Tender or Contracts Finder)
 
+### Slack Integration (OpenClaw)
+
+- [ ] **SLACK-01**: System exposes public REST API endpoints wrapping existing tool handlers (buyers, contracts, signals, personnel, spend, board docs) with API key authentication
+- [ ] **SLACK-02**: User can generate and manage API keys from TendHunt settings page (create, revoke, view last used)
+- [ ] **SLACK-03**: API key is scoped to the authenticated user — all queries return data filtered by their account, scanners, and permissions
+- [ ] **SLACK-04**: OpenClaw TendHunt skill (SKILL.md) teaches the agent to curl all public API endpoints with correct parameters and auth
+- [ ] **SLACK-05**: OpenClaw is deployed on Hetzner VPS with Slack channel configured (socket mode, bot token, app token)
+- [ ] **SLACK-06**: User can click "Add to Slack" OAuth button in TendHunt settings to connect their Slack workspace to the OpenClaw bot
+- [ ] **SLACK-07**: Slack bot responds to user queries with procurement data (search buyers, contracts, signals, spending) using the user's API key for scoped access
+- [ ] **SLACK-08**: API endpoints include rate limiting (100 requests/minute per key) and request logging
+
 ## v2 Requirements
 
 Deferred to post-hackathon. Tracked but not in current roadmap.
@@ -190,11 +201,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-05 | Phase 2: Data Pipeline | Pending |
 | DATA-06 | Phase 2: Data Pipeline | Pending |
 
+| SLACK-01 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-02 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-03 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-04 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-05 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-06 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-07 | Phase 21: Slack Integration (OpenClaw) | Pending |
+| SLACK-08 | Phase 21: Slack Integration (OpenClaw) | Pending |
+
 **Coverage:**
-- v1 requirements: 46 total
-- Mapped to phases: 46
+- v1 requirements: 54 total
+- Mapped to phases: 54
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 -- Traceability updated after roadmap creation*
+*Last updated: 2026-02-13 -- Added SLACK-01 through SLACK-08 for OpenClaw Slack integration (Phase 9)*
