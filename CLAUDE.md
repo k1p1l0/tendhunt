@@ -1,5 +1,14 @@
 # TendHunt — Project Instructions
 
+## Active Worktrees
+
+| Branch | Path | Phase |
+|--------|------|-------|
+| `main` | `/Users/kirillkozak/Projects/tendhunt.com` | Main development |
+| `feat/phase-32-contract-enrichment` | `/Users/kirillkozak/Projects/tendhunt-contract-enrichment` | Phase 32: Contract Enrichment |
+
+When working on Phase 32, use the worktree path. Merge back to main via PR when complete.
+
 ## Source of Truth
 
 This project uses **three synchronized sources of truth**:
@@ -584,3 +593,70 @@ Initial backfill (2026-02-14): 227 children → 119 parents. Top parents: Minist
 ### Gotcha: `children` is a reserved React prop
 
 Never pass `children` as an explicit JSX prop name — ESLint `react/no-children-prop` will error. Use `departments` instead when passing child buyer arrays between components.
+
+## Spend Intelligence — SME Openness & Vendor Churn (Phase 11-07)
+
+**Origin:** Matt's Tussle.com interview (2026-02-14). Tussle has spend data but forces users to manually eyeball each council to assess SME vs large vendor split. TendHunt automates this signal across all buyers.
+
+### Two Intelligence Signals
+
+| Signal | What it measures | How suppliers use it |
+|--------|-----------------|---------------------|
+| **SME Openness** (0-100) | % of buyer spend going to SMEs vs large vendors | High score = buyer works with lots of SMEs → "go pitch them". Low score = "locked in" with large orgs → harder to break in |
+| **Vendor Stability** (0-100) | How much vendors change year-over-year | Low stability (high churn) = they change providers regularly → open to new suppliers. High stability = same vendors every year → harder to win |
+
+### Vendor Size Heuristic
+
+No external API (Companies House etc.) — heuristic classification from spend patterns:
+- **Large vendor**: Total spend from this buyer > £500k OR > 50 transactions
+- **SME vendor**: Everything else
+
+Works because UK transparency data is £25k+ or £500+ payments — frequent large payments indicate a major contractor.
+
+### Schema Additions (SpendSummary)
+
+```
+vendorSizeBreakdown: { sme: { totalSpend, vendorCount, transactionCount }, large: { ... } }
+yearlyVendorSets: [{ year, vendors: [string], totalSpend }]
+smeOpennessScore: Number (0-100)
+vendorStabilityScore: Number (0-100)
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/workers/spend-ingest/src/stages/04-aggregate.ts` | Computes vendor mix + yearly sets during aggregation |
+| `apps/web/src/lib/spend-analytics.ts` | `computeVendorMixAnalysis()` + `computeVendorChurnAnalysis()` |
+| `apps/web/src/components/buyers/spend-vendor-mix.tsx` | SME vs Large donut chart + signal badge |
+| `apps/web/src/components/buyers/spend-vendor-churn.tsx` | Year-over-year vendor change bar chart |
+| `apps/web/src/components/buyers/spend-opportunities.tsx` | Two new opportunity cards (SME Openness, Vendor Stability) |
+
+### Competitive Edge vs Tussle
+
+Tussle: "Go into each council manually, look at invoices, figure out SME split yourself"
+TendHunt: Automated SME Openness score + Vendor Stability score computed across all buyers, surfaced proactively on buyer pages and in scanners
+
+## Admin Panel — Worker Budget Controls
+
+The admin panel (`apps/admin/`) includes a Settings page (`/settings`) for controlling worker budget limits.
+
+### How It Works
+
+- **Budget enabled** (default): Workers process up to configured `maxItems` per cron run (enrichment=500, data-sync=9000, spend=200, board-minutes=100)
+- **Budget disabled**: Workers process all remaining items in one invocation (passes `max=999999` to worker URL)
+- Settings stored in MongoDB `adminsettings` collection with key `"worker_budgets"`
+- When admin clicks "Run Now" on Workers page, the API reads budget settings and passes `?max=N` to the Cloudflare Worker
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/admin/src/lib/settings.ts` | `getWorkerBudgets()` / `updateWorkerBudgets()` — reads/writes adminsettings |
+| `apps/admin/src/app/api/settings/route.ts` | GET + PATCH endpoints for budget settings |
+| `apps/admin/src/app/(dashboard)/settings/page.tsx` | Settings page with per-worker toggle + limit input |
+| `apps/admin/src/app/api/workers/run/route.ts` | Reads budget before triggering worker run |
+
+### Single-Buyer Enrichment Priority Fix
+
+The `/run-buyer` endpoint (Sculptor enrichment) uses `enrichmentPriority: 10` to ensure the target buyer is processed first. Before setting priority, it resets all stale priority-10 entries from previous failed runs to prevent the wrong buyer from being processed.
