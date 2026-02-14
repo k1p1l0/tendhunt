@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Crosshair, ChevronRight, AlertTriangle, X } from "lucide-react";
+import { Loader2, ChevronRight, AlertTriangle, X } from "lucide-react";
 import { ScannerHeader } from "@/components/scanners/scanner-header";
 import { ScannerDataGrid } from "@/components/scanners/grid/scanner-data-grid";
 import type { RunColumnOptions } from "@/components/scanners/grid/header-menu";
@@ -1136,14 +1136,6 @@ export default function ScannerDetailPage({
     setBreadcrumb(
       <nav className="flex items-center gap-1.5 text-sm">
         <Link
-          href="/dashboard"
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Crosshair className="h-4 w-4" />
-          <span className="font-medium">TendHunt</span>
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-        <Link
           href="/scanners"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -1151,8 +1143,8 @@ export default function ScannerDetailPage({
         </Link>
         {scanner && (
           <>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-            <span className="text-foreground font-medium truncate max-w-[200px]">
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium truncate max-w-[300px]">
               {scanner.name}
             </span>
           </>
