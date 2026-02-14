@@ -1,7 +1,7 @@
 # Requirements: Competitor Contract Intelligence
 
 **Defined:** 2026-02-14
-**Core Value:** Users can search any company name and instantly see every public contract they've won and every buyer that pays them — revealing market footprint and opportunities.
+**Core Value:** Users can search any company name and instantly see every public contract they've won and every buyer that pays them — revealing market footprint and opportunities. Users can watch competitors and get alerted when they win new contracts or expand into new regions/sectors.
 
 ## v1 Requirements
 
@@ -60,6 +60,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **AI-01**: Sculptor agent has a `search_competitor` tool that searches for supplier contracts
 - [x] **AI-02**: AI can answer questions like "show me contracts for [company name]" with formatted results
 - [x] **AI-03**: AI responses include entity links to competitor profile pages
+
+### Competitor Monitoring
+
+- [ ] **WATCH-01**: User can save competitors to a watchlist from the profile page
+- [ ] **WATCH-02**: Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
+- [ ] **WATCH-03**: In-app notification when a watched competitor wins a new contract
+- [ ] **WATCH-04**: Competitor activity feed on dashboard showing recent wins by watched competitors
+- [ ] **WATCH-05**: Change detection — alert when competitor enters a new region or sector
+- [ ] **WATCH-06**: Email digest (optional) summarizing watched competitor activity
 
 ## v2 Requirements
 
@@ -126,12 +135,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-01 | Phase 4 | Done |
 | AI-02 | Phase 4 | Done |
 | AI-03 | Phase 4 | Done |
+| WATCH-01 | Phase 5 | Pending |
+| WATCH-02 | Phase 5 | Pending |
+| WATCH-03 | Phase 5 | Pending |
+| WATCH-04 | Phase 5 | Pending |
+| WATCH-05 | Phase 5 | Pending |
+| WATCH-06 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 30 total
-- Mapped to phases: 30
+- v1 requirements: 36 total
+- Mapped to phases: 36
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after Phase 4 completion*
+*Last updated: 2026-02-14 after Phase 5 planning*

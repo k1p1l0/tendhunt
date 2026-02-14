@@ -6,9 +6,9 @@
 
 ## Current Phase
 
-**Phase 4: Navigation & AI Integration** — Done
+**Phase 5: Competitor Monitoring & Alerts** — Planned
 
-**All 4 phases complete. Feature ready for PR.**
+**Phases 1-4 complete. Phase 5 planned and ready to begin.**
 
 ## Phase Progress
 
@@ -18,6 +18,7 @@
 | 2 | Done | 12 | 12 |
 | 3 | Done | 4 | 4 |
 | 4 | Done | 6 | 6 |
+| 5 | Planned | 6 | 0 |
 
 ## Planning Artifacts
 
@@ -25,8 +26,8 @@
 |----------|--------|
 | PROJECT.md | Done |
 | Research (5 files) | Done |
-| REQUIREMENTS.md (30 reqs) | Done |
-| ROADMAP.md (4 phases) | Done |
+| REQUIREMENTS.md (36 reqs) | Done |
+| ROADMAP.md (5 phases) | Done |
 | STATE.md | Done |
 
 ## Phase 1 Deliverables
@@ -122,7 +123,14 @@ Key files modified:
 
 ## What's Next
 
-All 4 phases complete. The feature is ready for a PR to merge into main.
+Phase 5: Competitor Monitoring & Alerts (6 requirements: WATCH-01 through WATCH-06).
+
+Key work areas:
+1. **Watchlist model + API** (WATCH-01) — MongoDB collection for user watchlists, CRUD endpoints, watch/unwatch toggle on competitor profile
+2. **Detection pipeline** (WATCH-02, WATCH-05) — Post-sync hook in data-sync worker to compare new contract awards against watchlists, plus region/sector change detection
+3. **In-app notifications** (WATCH-03) — Notification model, bell icon in header, mark-as-read flow
+4. **Dashboard feed** (WATCH-04) — Activity feed card on main dashboard showing recent competitor wins
+5. **Email digest** (WATCH-06) — Optional email summaries via transactional email provider
 
 ## Notes
 
@@ -143,3 +151,4 @@ All 4 phases complete. The feature is ready for a PR to merge into main.
 *Phase 2 completed: 2026-02-14*
 *Phase 3 completed: 2026-02-14*
 *Phase 4 completed: 2026-02-14*
+*Phase 5 planned: 2026-02-14*

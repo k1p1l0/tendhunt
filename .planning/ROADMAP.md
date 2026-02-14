@@ -1,8 +1,8 @@
 # Roadmap: Competitor Contract Intelligence
 
 **Created:** 2026-02-14
-**Total phases:** 4
-**Total requirements:** 30
+**Total phases:** 5
+**Total requirements:** 36
 
 ## Phase Overview
 
@@ -12,6 +12,7 @@
 | 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Done |
 | 3 | Spend Intelligence | 4 (SPND-01..04) | Done |
 | 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Done |
+| 5 | Competitor Monitoring & Alerts | 6 (WATCH-01..06) | Planned |
 
 ---
 
@@ -130,6 +131,40 @@
 
 ---
 
+## Phase 5: Competitor Monitoring & Alerts
+
+**Goal:** Users can watch competitors and receive proactive alerts when those competitors win new contracts, expand into new regions or sectors, with an activity feed on the dashboard and optional email digests.
+
+**Requirements:**
+- [ ] WATCH-01 — User can save competitors to a watchlist from the profile page
+- [ ] WATCH-02 — Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
+- [ ] WATCH-03 — In-app notification when a watched competitor wins a new contract
+- [ ] WATCH-04 — Competitor activity feed on dashboard showing recent wins by watched competitors
+- [ ] WATCH-05 — Change detection — alert when competitor enters a new region or sector
+- [ ] WATCH-06 — Email digest (optional) summarizing watched competitor activity
+
+**Key deliverables:**
+1. `apps/web/src/models/watchlist.ts` — Mongoose schema for user watchlist entries (userId, supplierName, normalizedName, createdAt, notifyEmail flag)
+2. `apps/web/src/app/api/watchlist/route.ts` — CRUD endpoints for managing watched competitors
+3. `apps/web/src/components/competitors/watch-button.tsx` — Toggle button on profile page to add/remove from watchlist
+4. `apps/web/src/components/dashboard/competitor-feed.tsx` — Activity feed card showing recent wins by watched competitors
+5. `apps/web/src/models/notification.ts` — Notification schema (userId, type, title, body, entityLink, read, createdAt)
+6. `apps/web/src/components/layout/notification-bell.tsx` — Header notification icon with unread count badge
+7. Detection logic in data-sync worker post-sync hook — compare new contract awards against watchlist entries
+8. `apps/web/src/app/api/notifications/route.ts` — Notification list + mark-as-read endpoints
+9. Change detection job — snapshot supplier region/sector set, diff on each sync cycle
+10. Email digest worker or cron — aggregate unread notifications per user, send via Resend/SES
+
+**Dependencies:** Phase 4 (competitor profiles and search exist, AI integration established)
+
+**Risks:**
+- Data-sync worker frequency (hourly) limits alert freshness — acceptable for v1, real-time can come later
+- Watchlist scale — each sync must check new awards against all watchlists; mitigate with normalized name index on watchlist collection
+- Email delivery requires a transactional email provider (Resend or AWS SES) — new infrastructure dependency
+- Change detection (region/sector) needs a baseline snapshot per supplier; first run won't detect changes until second sync cycle
+
+---
+
 ## Dependency Graph
 
 ```
@@ -143,6 +178,9 @@ Phase 3 (Spend Intelligence)
     │
     ▼
 Phase 4 (Navigation & AI)
+    │
+    ▼
+Phase 5 (Competitor Monitoring & Alerts)
 ```
 
 All phases are sequential. Each builds on the previous.
@@ -198,6 +236,21 @@ All phases are sequential. Each builds on the previous.
 | Modify | `apps/web/src/components/competitors/search-bar.tsx` (add animations) |
 | Modify | `apps/web/src/components/competitors/profile-tabs.tsx` (add animations) |
 
+### Phase 5
+| Action | File |
+|--------|------|
+| Create | `apps/web/src/models/watchlist.ts` |
+| Create | `apps/web/src/models/notification.ts` |
+| Create | `apps/web/src/app/api/watchlist/route.ts` |
+| Create | `apps/web/src/app/api/notifications/route.ts` |
+| Create | `apps/web/src/components/competitors/watch-button.tsx` |
+| Create | `apps/web/src/components/dashboard/competitor-feed.tsx` |
+| Create | `apps/web/src/components/layout/notification-bell.tsx` |
+| Modify | `apps/web/src/app/(dashboard)/competitors/[name]/page.tsx` (add watch button) |
+| Modify | `apps/web/src/app/(dashboard)/page.tsx` (add competitor activity feed) |
+| Modify | `apps/web/src/components/layout/header.tsx` (add notification bell) |
+| Modify | `apps/workers/data-sync/src/index.ts` (add post-sync watchlist check) |
+
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 — Phase 4 completed (all phases done)*
+*Last updated: 2026-02-14 — Phase 5 planned (Competitor Monitoring & Alerts)*
