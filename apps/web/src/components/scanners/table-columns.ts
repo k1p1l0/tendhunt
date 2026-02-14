@@ -50,7 +50,6 @@ export const ENTITY_FIELDS: Record<ScannerType, EntityField[]> = {
     { field: "valueMax", label: "Value (Max)", suggestedType: "currency" },
     { field: "publishedDate", label: "Published Date", suggestedType: "date" },
     { field: "deadlineDate", label: "Deadline Date", suggestedType: "date" },
-    { field: "contractMechanism", label: "Mechanism", suggestedType: "badge" },
     { field: "source", label: "Source", suggestedType: "badge" },
     { field: "sourceUrl", label: "Source URL", suggestedType: "url" },
     { field: "cpvCodes", label: "CPV Codes", suggestedType: "text" },
