@@ -9,7 +9,7 @@
 | # | Phase | Requirements | Status |
 |---|-------|-------------|--------|
 | 1 | Search & Data Foundation | 7 (SRCH-01..04, DATA-01..03) | Done |
-| 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Pending |
+| 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Done |
 | 3 | Spend Intelligence | 4 (SPND-01..04) | Pending |
 | 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Pending |
 
@@ -48,19 +48,19 @@
 **Goal:** Users see a complete profile for a searched supplier — overview stats, contract list, and buyer relationships.
 
 **Requirements:**
-- [ ] DATA-04 — Aggregation pipeline for competitor profile
-- [ ] PROF-01 — Company name header with key stats (contracts, value, active, buyers)
-- [ ] PROF-02 — Sector breakdown
-- [ ] PROF-03 — Geographic breakdown (buyer regions)
-- [ ] PROF-04 — Timeline of contract activity
-- [ ] CONT-01 — Contract list table (title, buyer, value, dates, status)
-- [ ] CONT-02 — Server-side pagination
-- [ ] CONT-03 — Sortable by value, date, buyer name
-- [ ] CONT-04 — Contract rows link to contract detail pages
-- [ ] BUYR-01 — Buyer list with contract count and total value
-- [ ] BUYR-02 — Sorted by total value (highest first)
-- [ ] BUYR-03 — Buyer rows link to buyer detail pages
-- [ ] BUYR-04 — Buyer entries show sector, region, relationship duration
+- [x] DATA-04 — Aggregation pipeline for competitor profile
+- [x] PROF-01 — Company name header with key stats (contracts, value, active, buyers)
+- [x] PROF-02 — Sector breakdown
+- [x] PROF-03 — Geographic breakdown (buyer regions)
+- [x] PROF-04 — Timeline of contract activity
+- [x] CONT-01 — Contract list table (title, buyer, value, dates, status)
+- [x] CONT-02 — Server-side pagination
+- [x] CONT-03 — Sortable by value, date, buyer name
+- [x] CONT-04 — Contract rows link to contract detail pages
+- [x] BUYR-01 — Buyer list with contract count and total value
+- [x] BUYR-02 — Sorted by total value (highest first)
+- [x] BUYR-03 — Buyer rows link to buyer detail pages
+- [x] BUYR-04 — Buyer entries show sector, region, relationship duration
 
 **Key deliverables:**
 1. `lib/competitors.ts` — `getCompetitorProfile()`, `getCompetitorContracts()`, `getCompetitorBuyers()` aggregation functions
@@ -200,4 +200,4 @@ All phases are sequential. Each builds on the previous.
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14*
+*Last updated: 2026-02-14 — Phase 2 completed*

@@ -16,24 +16,24 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Profile
 
-- [ ] **PROF-01**: Competitor profile page shows company name as header with key stats (total contracts, total value, active contracts, buyer count)
-- [ ] **PROF-02**: Profile shows sector breakdown of contracts (which sectors they operate in)
-- [ ] **PROF-03**: Profile shows geographic breakdown (which regions their buyers are in)
-- [ ] **PROF-04**: Profile shows timeline of contract activity (contracts won over time)
+- [x] **PROF-01**: Competitor profile page shows company name as header with key stats (total contracts, total value, active contracts, buyer count)
+- [x] **PROF-02**: Profile shows sector breakdown of contracts (which sectors they operate in)
+- [x] **PROF-03**: Profile shows geographic breakdown (which regions their buyers are in)
+- [x] **PROF-04**: Profile shows timeline of contract activity (contracts won over time)
 
 ### Contracts
 
-- [ ] **CONT-01**: Contracts tab shows all awarded contracts for this supplier in a table (title, buyer, value, dates, status)
-- [ ] **CONT-02**: Contract list is paginated (server-side)
-- [ ] **CONT-03**: User can sort contracts by value, date, or buyer name
-- [ ] **CONT-04**: Each contract row links to the existing contract detail page
+- [x] **CONT-01**: Contracts tab shows all awarded contracts for this supplier in a table (title, buyer, value, dates, status)
+- [x] **CONT-02**: Contract list is paginated (server-side)
+- [x] **CONT-03**: User can sort contracts by value, date, or buyer name
+- [x] **CONT-04**: Each contract row links to the existing contract detail page
 
 ### Buyers
 
-- [ ] **BUYR-01**: Buyers tab shows all buyers this supplier has contracts with, grouped with contract count and total value
-- [ ] **BUYR-02**: Buyer list is sorted by total value (highest first)
-- [ ] **BUYR-03**: Each buyer links to the existing buyer detail page
-- [ ] **BUYR-04**: Buyer entries show sector, region, and relationship duration (first to latest contract)
+- [x] **BUYR-01**: Buyers tab shows all buyers this supplier has contracts with, grouped with contract count and total value
+- [x] **BUYR-02**: Buyer list is sorted by total value (highest first)
+- [x] **BUYR-03**: Each buyer links to the existing buyer detail page
+- [x] **BUYR-04**: Buyer entries show sector, region, and relationship duration (first to latest contract)
 
 ### Spend
 
@@ -47,7 +47,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DATA-01**: MongoDB index on `awardedSuppliers.name` for efficient supplier search
 - [x] **DATA-02**: Supplier name normalization utility that strips legal suffixes (Ltd, Limited, PLC, LLP, CIC) and normalizes whitespace/case
 - [x] **DATA-03**: Search API route that queries both contracts and spend data for matching supplier names
-- [ ] **DATA-04**: Aggregation pipeline that builds a complete competitor profile from contract + spend data
+- [x] **DATA-04**: Aggregation pipeline that builds a complete competitor profile from contract + spend data
 
 ### Navigation
 
@@ -103,19 +103,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-01 | Phase 1 | Done |
 | DATA-02 | Phase 1 | Done |
 | DATA-03 | Phase 1 | Done |
-| DATA-04 | Phase 2 | Pending |
-| PROF-01 | Phase 2 | Pending |
-| PROF-02 | Phase 2 | Pending |
-| PROF-03 | Phase 2 | Pending |
-| PROF-04 | Phase 2 | Pending |
-| CONT-01 | Phase 2 | Pending |
-| CONT-02 | Phase 2 | Pending |
-| CONT-03 | Phase 2 | Pending |
-| CONT-04 | Phase 2 | Pending |
-| BUYR-01 | Phase 2 | Pending |
-| BUYR-02 | Phase 2 | Pending |
-| BUYR-03 | Phase 2 | Pending |
-| BUYR-04 | Phase 2 | Pending |
+| DATA-04 | Phase 2 | Done |
+| PROF-01 | Phase 2 | Done |
+| PROF-02 | Phase 2 | Done |
+| PROF-03 | Phase 2 | Done |
+| PROF-04 | Phase 2 | Done |
+| CONT-01 | Phase 2 | Done |
+| CONT-02 | Phase 2 | Done |
+| CONT-03 | Phase 2 | Done |
+| CONT-04 | Phase 2 | Done |
+| BUYR-01 | Phase 2 | Done |
+| BUYR-02 | Phase 2 | Done |
+| BUYR-03 | Phase 2 | Done |
+| BUYR-04 | Phase 2 | Done |
 | SPND-01 | Phase 3 | Pending |
 | SPND-02 | Phase 3 | Pending |
 | SPND-03 | Phase 3 | Pending |
@@ -134,4 +134,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after Phase 1 completion*
+*Last updated: 2026-02-14 after Phase 2 completion*
