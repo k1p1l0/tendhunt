@@ -159,6 +159,9 @@ export default function ScannerDetailPage({
   // Abort controller for cancelling active SSE scoring streams
   const scoringAbortRef = useRef<AbortController | null>(null);
 
+  // Display-order row IDs from the grid (sorted + filtered)
+  const displayRowIdsRef = useRef<string[]>([]);
+
   // Store refs for SSE callbacks (avoid stale closures)
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
@@ -571,35 +574,16 @@ export default function ScannerDetailPage({
   }
 
   /**
-   * Compute filtered row IDs based on active column filters.
-   * Always returns IDs from the currently loaded rows, respecting both
-   * row pagination and column filters. Never returns null — the backend
-   * should only score what the user can see.
+   * Returns entity IDs in display order (sorted + filtered as shown in the grid).
+   * Uses the grid's displayRowIdsRef which is kept in sync via useEffect.
    */
   function getVisibleEntityIds(): string[] {
-    const currentRows = rowsRef.current;
-    const filters = useScannerStore.getState().columnFilters;
-    const activeFilters = Object.entries(filters).filter(
-      ([, vals]) => vals.length > 0
-    );
-
-    if (activeFilters.length === 0) {
-      return currentRows.map((r) => String(r._id));
+    // Prefer grid's display order (sorted + filtered)
+    if (displayRowIdsRef.current.length > 0) {
+      return displayRowIdsRef.current;
     }
-
-    const cols = columns;
-    const filtered = currentRows.filter((row) =>
-      activeFilters.every(([colId, allowedValues]) => {
-        const col = cols.find((c) => c.id === colId);
-        if (!col) return true;
-        const raw = row[col.accessor];
-        if (raw == null) return false;
-        const val = String(raw).trim();
-        return allowedValues.includes(val);
-      })
-    );
-
-    return filtered.map((r) => String(r._id));
+    // Fallback: raw rows (before grid mounts)
+    return rowsRef.current.map((r) => String(r._id));
   }
 
   async function scoreSingleColumn(
@@ -1282,6 +1266,7 @@ export default function ScannerDetailPage({
           columns={columns}
           rows={rows}
           scannerType={scanner.type}
+          displayRowIdsRef={displayRowIdsRef}
           onAiCellClick={handleAiCellClick}
           onScoreColumn={(colId) => {
             const visibleIds = getVisibleEntityIds();

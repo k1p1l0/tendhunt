@@ -28,6 +28,7 @@ interface ScannerDataGridProps {
   columns: ColumnDef[];
   rows: Array<Record<string, unknown>>;
   scannerType: ScannerType;
+  displayRowIdsRef?: React.MutableRefObject<string[]>;
   onAiCellClick?: (columnId: string, entityId: string) => void;
   onScoreColumn?: (columnId: string) => void;
   onCancelScoring?: () => void;
@@ -45,6 +46,7 @@ interface ScannerDataGridProps {
 export function ScannerDataGrid({
   columns,
   rows,
+  displayRowIdsRef,
   onAiCellClick,
   onScoreColumn,
   onCancelScoring,
@@ -180,6 +182,13 @@ export function ScannerDataGrid({
 
   // Display rows = filtered rows (no threshold splitting)
   const displayRows = filteredRows;
+
+  // Expose display-order entity IDs to parent for scoring order
+  useEffect(() => {
+    if (displayRowIdsRef) {
+      displayRowIdsRef.current = displayRows.map((r) => String(r._id));
+    }
+  }, [displayRows, displayRowIdsRef]);
 
   // getCellContent callback — include animTick so Glide repaints animated cells
   // eslint-disable-next-line react-hooks/exhaustive-deps
