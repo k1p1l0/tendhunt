@@ -7,8 +7,6 @@ import { ContractBreadcrumb } from "./breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2 } from "lucide-react";
 import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
-import { dbConnect } from "@/lib/mongodb";
-import OfstedSchool from "@/models/ofsted-school";
 
 export default async function ContractDetailPage({
   params,
@@ -20,52 +18,6 @@ export default async function ContractDetailPage({
 
   if (!contract) {
     notFound();
-  }
-
-  // Fetch Ofsted context for education-sector contracts
-  const isEducation =
-    contract.sector?.toLowerCase().includes("education") ||
-    (contract.cpvCodes ?? []).some((c: string) => c.startsWith("80"));
-
-  let ofstedContext: { totalSchools: number; belowGoodCount: number; schools: Array<{ name: string; worstRating: number }> } | null = null;
-
-  if (isEducation && contract.buyerId) {
-    await dbConnect();
-    const schools = await OfstedSchool.find({ buyerId: contract.buyerId })
-      .select("name overallEffectiveness qualityOfEducation behaviourAndAttitudes personalDevelopment leadershipAndManagement")
-      .lean();
-
-    if (schools.length > 0) {
-      const belowGood = schools.filter((s) => {
-        const ratings = [
-          s.overallEffectiveness,
-          s.qualityOfEducation,
-          s.behaviourAndAttitudes,
-          s.personalDevelopment,
-          s.leadershipAndManagement,
-        ].filter((r): r is number => r != null);
-        return ratings.some((r) => r >= 3);
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ofstedContext = {
-        totalSchools: schools.length,
-        belowGoodCount: belowGood.length,
-        schools: belowGood.slice(0, 5).map((s) => {
-          const ratings = [
-            s.overallEffectiveness,
-            s.qualityOfEducation,
-            s.behaviourAndAttitudes,
-            s.personalDevelopment,
-            s.leadershipAndManagement,
-          ].filter((r): r is number => r != null);
-          return {
-            name: s.name,
-            worstRating: Math.max(...ratings),
-          };
-        }),
-      };
-    }
   }
 
   return (
@@ -197,7 +149,7 @@ export default async function ContractDetailPage({
                 lastEnrichedAt: contract.buyer.lastEnrichedAt,
               }
             : null,
-          ofstedContext,
+          ofstedContext: contract.ofstedContext ?? null,
         }}
       />
     </div>
