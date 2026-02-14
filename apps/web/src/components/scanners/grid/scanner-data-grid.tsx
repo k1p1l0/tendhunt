@@ -825,7 +825,7 @@ export function ScannerDataGrid({
   );
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border">
+    <div className="relative h-full w-full overflow-hidden rounded-lg border hide-scrollbar">
       <DataEditor
         columns={gridColumns}
         rows={displayRows.length}
