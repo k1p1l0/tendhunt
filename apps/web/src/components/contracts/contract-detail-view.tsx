@@ -136,6 +136,24 @@ interface ContractDetailData {
   }> | null;
   lotCount?: number | null;
   maxLotsBidPerSupplier?: number | null;
+
+  // Contract enrichment fields
+  contractType?: string | null;
+  suitableForSme?: boolean | null;
+  suitableForVco?: boolean | null;
+  hasEuFunding?: boolean | null;
+  canRenew?: boolean | null;
+  renewalDescription?: string | null;
+  geographicScope?: string | null;
+  awardedSuppliers?: Array<{
+    name: string;
+    supplierId?: string | null;
+  }> | null;
+  awardDate?: string | Date | null;
+  awardValue?: number | null;
+  tenderPeriodStart?: string | Date | null;
+  enquiryPeriodEnd?: string | Date | null;
+
   buyer?: BuyerData | null;
 }
 
@@ -1070,6 +1088,170 @@ export function ContractDetailView({
               }
             />
           </div>
+
+          {/* Contract Enrichment Details */}
+          {(contract.contractType ||
+            contract.suitableForSme != null ||
+            contract.suitableForVco != null ||
+            contract.hasEuFunding != null ||
+            contract.canRenew != null ||
+            (contract.awardedSuppliers &&
+              contract.awardedSuppliers.length > 0)) && (
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">
+                Contract Details
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-5 bg-muted/50 rounded-lg border border-border">
+                {contract.contractType && (
+                  <DetailRow
+                    label="Contract Type"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className="capitalize"
+                      >
+                        {contract.contractType}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.suitableForSme != null && (
+                  <DetailRow
+                    label="SME Suitable"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className={
+                          contract.suitableForSme
+                            ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                            : "bg-red-500/15 text-red-400 border-red-500/20"
+                        }
+                      >
+                        {contract.suitableForSme ? "Yes" : "No"}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.suitableForVco != null && (
+                  <DetailRow
+                    label="VCO Suitable"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className={
+                          contract.suitableForVco
+                            ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                            : "bg-red-500/15 text-red-400 border-red-500/20"
+                        }
+                      >
+                        {contract.suitableForVco ? "Yes" : "No"}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.hasEuFunding != null && (
+                  <DetailRow
+                    label="EU Funding"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className={
+                          contract.hasEuFunding
+                            ? "bg-blue-500/15 text-blue-400 border-blue-500/20"
+                            : ""
+                        }
+                      >
+                        {contract.hasEuFunding ? "Yes" : "No"}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.canRenew != null && (
+                  <DetailRow
+                    label="Can Renew"
+                    value={
+                      <>
+                        <Badge
+                          variant="outline"
+                          className={
+                            contract.canRenew
+                              ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                              : ""
+                          }
+                        >
+                          {contract.canRenew ? "Yes" : "No"}
+                        </Badge>
+                        {contract.renewalDescription && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {contract.renewalDescription}
+                          </p>
+                        )}
+                      </>
+                    }
+                  />
+                )}
+                {contract.geographicScope && (
+                  <DetailRow
+                    label="Geographic Scope"
+                    value={resolveRegionName(contract.geographicScope)}
+                  />
+                )}
+                {contract.awardValue != null && (
+                  <DetailRow
+                    label="Award Value"
+                    value={
+                      <span
+                        className="font-mono text-lime-400/90"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {currencyFormatter.format(contract.awardValue)}
+                      </span>
+                    }
+                  />
+                )}
+                {contract.awardDate && (
+                  <DetailRow
+                    label="Award Date"
+                    value={formatDate(contract.awardDate)}
+                  />
+                )}
+                {contract.tenderPeriodStart && (
+                  <DetailRow
+                    label="Tender Opens"
+                    value={formatDate(contract.tenderPeriodStart)}
+                  />
+                )}
+                {contract.enquiryPeriodEnd && (
+                  <DetailRow
+                    label="Enquiry Deadline"
+                    value={formatDate(contract.enquiryPeriodEnd)}
+                  />
+                )}
+              </div>
+
+              {/* Awarded Suppliers */}
+              {contract.awardedSuppliers &&
+                contract.awardedSuppliers.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                      Awarded Suppliers
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {contract.awardedSuppliers.map((s, i) => (
+                        <Badge
+                          key={i}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          <Building2 className="h-3 w-3 mr-1" />
+                          {s.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+          )}
 
           {/* Timeline */}
           <ContractTimeline

@@ -12,6 +12,9 @@ export interface ContractFilters {
   maxValue?: number;
   stage?: string;
   status?: string;
+  contractType?: string;
+  smeOnly?: boolean;
+  vcoOnly?: boolean;
   sort?: "date" | "score";
   page?: number;
   pageSize?: number;
@@ -64,6 +67,18 @@ export async function fetchContracts(filters: ContractFilters) {
 
   if (filters.status) {
     conditions.push({ status: filters.status });
+  }
+
+  if (filters.contractType) {
+    conditions.push({ contractType: filters.contractType });
+  }
+
+  if (filters.smeOnly) {
+    conditions.push({ suitableForSme: true });
+  }
+
+  if (filters.vcoOnly) {
+    conditions.push({ suitableForVco: true });
   }
 
   const query = conditions.length > 0 ? { $and: conditions } : {};
