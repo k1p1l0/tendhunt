@@ -198,7 +198,7 @@ export async function scoreOneEntity(
     try {
       const response = await anthropic.messages.create({
         model: resolveModelId(model),
-        max_tokens: resolveMaxTokens(model),
+        max_tokens: resolveMaxTokens(model, useCase),
         system: [
           {
             type: "text",
