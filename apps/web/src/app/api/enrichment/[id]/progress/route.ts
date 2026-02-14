@@ -10,6 +10,7 @@ const SPEND_INGEST_WORKER_URL =
   process.env.SPEND_INGEST_WORKER_URL ?? "https://tendhunt-spend-ingest.kozak-74d.workers.dev";
 
 const ENRICHMENT_STAGES = [
+  { name: "parent_link", label: "Linking parent organisation" },
   { name: "classify", label: "Classifying organisation" },
   { name: "website_discovery", label: "Finding website" },
   { name: "logo_linkedin", label: "Fetching LinkedIn & logo" },
@@ -72,8 +73,7 @@ export async function GET(
 
       // Simulate stage progress while enrichment worker runs
       // The worker processes all stages sequentially — we estimate timing
-      const stageTimings = [1, 5, 5, 1, 10, 5, 15, 1, 8, 5, 10, 3]; // seconds per stage (rough)
-      const allStages = [...ENRICHMENT_STAGES, ...SPEND_STAGES];
+      const stageTimings = [1, 1, 5, 5, 1, 10, 5, 15, 1, 8, 5, 10, 3]; // seconds per stage (rough)
 
       // Fire enrichment worker (non-blocking)
       const enrichmentPromise = fetch(
