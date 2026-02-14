@@ -158,6 +158,12 @@ export default {
           return Response.json({ error: "Buyer not found" }, { status: 404 });
         }
 
+        // Reset any stale priority-10 buyers from previous failed runs
+        await db.collection("buyers").updateMany(
+          { enrichmentPriority: 10, _id: { $ne: oid } },
+          { $set: { enrichmentPriority: 0, updatedAt: new Date() } }
+        );
+
         // Mark as manually triggered (highest priority)
         await db.collection("buyers").updateOne(
           { _id: oid },

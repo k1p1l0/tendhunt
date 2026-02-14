@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAgentStore } from "@/stores/agent-store";
 
 export function EnrichmentRefresh({ buyerId }: { buyerId: string }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const activeEnrichment = useAgentStore((s) => s.activeEnrichment);
   const lastRefreshRef = useRef(0);
 
@@ -17,10 +15,7 @@ export function EnrichmentRefresh({ buyerId }: { buyerId: string }) {
     lastRefreshRef.current = now;
 
     setTimeout(() => {
-      // Preserve existing search params (e.g. ?tab=contacts) + add cache bust
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("_t", String(Date.now()));
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      router.refresh();
     }, 800);
   };
 
