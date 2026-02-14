@@ -131,6 +131,43 @@ export function computeSpendOpportunities(
 
 // --- Profile Match ---
 
+// Cross-sector keyword mapping: maps profile sector terms to related
+// spend category terms found in council accounting codes
+const SECTOR_SYNONYMS: Record<string, string[]> = {
+  education: ["school", "dsg", "early years", "tuition", "pupil", "academy", "learning", "curriculum", "sen ", "semh", "neet", "college"],
+  tutoring: ["tuition", "tutor", "school", "pupil", "learning", "sen "],
+  "special educational needs": ["sen ", "semh", "pupil referral", "alternative provision"],
+  health: ["nhs", "clinical", "medical", "nursing", "ambulance", "hospital", "care", "therapy"],
+  "social care": ["care", "foster", "residential care", "home care", "supported living", "respite", "day care"],
+  construction: ["building", "contractor", "maintenance", "repairs", "refurbishment", "demolition"],
+  "it services": ["computer", "software", "hardware", "digital", "licence", "cloud", "cyber"],
+  software: ["computer software", "licence", "saas", "digital", "application"],
+  transport: ["vehicle", "fleet", "hire of transport", "parking"],
+  "facilities management": ["cleaning", "security", "grounds maintenance", "catering", "waste"],
+  "legal services": ["legal fees", "solicitor", "barrister", "litigation"],
+  "financial services": ["audit", "bank", "insurance", "pension", "treasury"],
+  consulting: ["consultancy", "consultant", "advisory", "professional fees"],
+  housing: ["housing", "tenant", "rent", "void", "leaseholder"],
+  "environmental services": ["waste", "recycling", "grounds", "parks", "green"],
+};
+
+function expandProfileTerms(terms: string[]): string[] {
+  const expanded = new Set(terms);
+  for (const term of terms) {
+    const synonyms = SECTOR_SYNONYMS[term];
+    if (synonyms) {
+      for (const s of synonyms) expanded.add(s);
+    }
+    // Also check partial key matches (e.g. "education management" contains "education")
+    for (const [key, synonymList] of Object.entries(SECTOR_SYNONYMS)) {
+      if (term.includes(key) || key.includes(term)) {
+        for (const s of synonymList) expanded.add(s);
+      }
+    }
+  }
+  return [...expanded];
+}
+
 function computeProfileMatch(
   summary: ISpendSummary,
   userProfile: ICompanyProfile | null,
@@ -138,23 +175,24 @@ function computeProfileMatch(
 ): ProfileMatch | null {
   if (!userProfile) return null;
 
-  const profileTerms = [
+  const rawTerms = [
     ...(userProfile.sectors ?? []),
     ...(userProfile.capabilities ?? []),
     ...(userProfile.keywords ?? []),
   ].map((s) => s.toLowerCase());
 
-  if (profileTerms.length === 0) {
+  if (rawTerms.length === 0) {
     return { matchedCategories: [], totalMatchedSpend: 0, matchPercentage: 0 };
   }
 
+  const profileTerms = expandProfileTerms(rawTerms);
   const categories = summary.categoryBreakdown ?? [];
   const totalSpend = summary.totalSpend ?? 0;
 
   const matchedCategories: string[] = [];
   let totalMatchedSpend = 0;
 
-  // Match against spend categories
+  // Match against spend categories using expanded terms
   if (totalSpend > 0) {
     for (const cat of categories) {
       const catLower = cat.category.toLowerCase();

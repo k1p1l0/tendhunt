@@ -10,8 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
   AlertTriangle,
-  Target,
-  Users,
   Shuffle,
 } from "lucide-react";
 
@@ -73,19 +71,14 @@ interface SpendOpportunitiesProps {
 
 export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
   const {
-    profileMatch,
-    recurringPatterns,
     vendorConcentration,
     spendGrowthSignals,
-    smeOpenness,
     vendorStability,
   } = opportunities;
 
   const hasAnyOpportunities =
-    profileMatch ||
     vendorConcentration.length > 0 ||
     spendGrowthSignals.length > 0 ||
-    smeOpenness ||
     vendorStability;
 
   if (!hasAnyOpportunities) {
@@ -102,43 +95,6 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {/* Profile Match */}
-      {profileMatch && profileMatch.matchedCategories.length > 0 && (
-        <Card className="border-l-4 border-l-blue-500 transition-all hover:shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg">Profile Match</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-3xl font-bold text-blue-500">
-                {profileMatch.matchPercentage}%
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                £{profileMatch.totalMatchedSpend.toLocaleString()} spent in your sectors
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Top matched categories:</p>
-              <div className="flex flex-wrap gap-2">
-                {profileMatch.matchedCategories.slice(0, 3).map((cat) => (
-                  <Badge key={cat} variant="secondary">
-                    {cat}
-                  </Badge>
-                ))}
-                {profileMatch.matchedCategories.length > 3 && (
-                  <Badge variant="outline">
-                    +{profileMatch.matchedCategories.length - 3} more
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Vendor Concentration */}
       {vendorConcentration.length > 0 && (
         <Card className="border-l-4 border-l-amber-500 transition-all hover:shadow-md">
