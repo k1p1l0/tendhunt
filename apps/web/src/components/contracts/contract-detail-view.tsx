@@ -29,6 +29,7 @@ import {
   Circle,
   CircleDot,
   Loader,
+  GraduationCap,
 } from "lucide-react";
 
 interface ContactData {
@@ -155,7 +156,25 @@ interface ContractDetailData {
   enquiryPeriodEnd?: string | Date | null;
 
   buyer?: BuyerData | null;
+
+  ofstedContext?: {
+    totalSchools: number;
+    belowGoodCount: number;
+    schools: Array<{ name: string; worstRating: number }>;
+  } | null;
 }
+
+const OFSTED_GRADE_LABELS: Record<number, string> = {
+  1: "Outstanding",
+  2: "Good",
+  3: "Requires Improvement",
+  4: "Inadequate",
+};
+
+const OFSTED_GRADE_COLORS: Record<number, string> = {
+  3: "text-amber-600 dark:text-amber-400",
+  4: "text-red-500 dark:text-red-400",
+};
 
 const currencyFormatter = new Intl.NumberFormat("en-GB", {
   style: "currency",
@@ -1341,6 +1360,64 @@ export function ContractDetailView({
 
         {/* Buyer Intelligence Card */}
         {contract.buyer && <BuyerIntelligenceCard buyer={contract.buyer} />}
+
+        {/* Ofsted Context Card */}
+        {contract.ofstedContext && contract.ofstedContext.totalSchools > 0 && (
+          <div
+            className="p-5 rounded-xl bg-card border border-amber-500/20"
+            style={{
+              opacity: 0,
+              animation: "sidebarCardIn 200ms ease-out 250ms both",
+            }}
+          >
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <GraduationCap className="h-3.5 w-3.5 text-amber-500" />
+              Ofsted Context
+            </h3>
+
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="p-2.5 bg-muted/50 rounded-lg border border-border text-center">
+                <div className="text-sm font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {contract.ofstedContext.totalSchools}
+                </div>
+                <div className="text-[10px] text-muted-foreground">Schools</div>
+              </div>
+              <div className="p-2.5 bg-muted/50 rounded-lg border border-border text-center">
+                <div className="text-sm font-semibold text-amber-500" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {contract.ofstedContext.belowGoodCount}
+                </div>
+                <div className="text-[10px] text-muted-foreground">Below Good</div>
+              </div>
+            </div>
+
+            {contract.ofstedContext.schools.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Schools Needing Improvement
+                </div>
+                {contract.ofstedContext.schools.map((school, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded border border-border"
+                  >
+                    <span className="truncate mr-2">{school.name}</span>
+                    <span className={`shrink-0 font-medium ${OFSTED_GRADE_COLORS[school.worstRating] ?? "text-muted-foreground"}`}>
+                      {OFSTED_GRADE_LABELS[school.worstRating] ?? `Grade ${school.worstRating}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {contract.buyer && (
+              <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+                <Link href={`/buyers/${contract.buyer._id}?tab=schools`}>
+                  View All Schools
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Contact from Notice Card */}
         {hasBuyerContact && (
