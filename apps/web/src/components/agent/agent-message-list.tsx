@@ -6,6 +6,7 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentMessage } from "./agent-message";
 import { SuggestedActions } from "./suggested-actions";
+import { QuickReplyChips } from "./quick-reply-chips";
 import { EnrichmentConfirm } from "./enrichment-confirm";
 import { EnrichmentProgress } from "./enrichment-progress";
 import { useAgentStore } from "@/stores/agent-store";
@@ -74,6 +75,12 @@ export function AgentMessageList({
           <AgentMessage key={msg.id} message={msg} />
         ))}
       </AnimatePresence>
+
+      <QuickReplyChips
+        lastMessage={lastMessage}
+        isStreaming={isStreaming}
+        onSend={onSend}
+      />
 
       <EnrichmentConfirm
         lastMessage={lastMessage}

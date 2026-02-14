@@ -6,6 +6,8 @@ import { motion, useReducedMotion } from "motion/react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { ToolCallChain } from "./tool-call-indicator";
+import { stripChipTokens } from "./quick-reply-chips";
+
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
 
 marked.setOptions({
@@ -44,7 +46,8 @@ renderer.link = ({ href, text }) => {
 marked.use({ renderer });
 
 function renderMarkdown(content: string): string {
-  const html = marked.parse(content, { async: false }) as string;
+  const cleaned = stripChipTokens(content);
+  const html = marked.parse(cleaned, { async: false }) as string;
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       "p", "br", "strong", "em", "ul", "ol", "li", "a", "code", "pre",
