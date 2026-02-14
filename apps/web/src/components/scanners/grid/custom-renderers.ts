@@ -366,23 +366,12 @@ const textStatusRenderer: CustomRenderer<TextStatusCell> = {
       return false;
     }
 
-    // Empty state: dashed pill + "--"
-    const pillR = 8;
-    const pillX = rect.x + padX;
-    ctx.beginPath();
-    ctx.arc(pillX + pillR, cy, pillR, 0, Math.PI * 2);
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = theme.textLight;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    const textX = pillX + pillR * 2 + 8;
+    // Empty state: just muted "--" text (no circle, to differentiate from score-mode)
     ctx.fillStyle = theme.textLight;
     ctx.font = `12px ${theme.fontFamily}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillText("--", textX, cy);
+    ctx.fillText("--", rect.x + padX, cy);
     return false;
   },
 };
