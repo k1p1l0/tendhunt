@@ -43,6 +43,14 @@
 - [x] **AI-03**: Default "Tuition Relevance" prompt scores 0-10 how likely a school needs tuition services based on report content (literacy, numeracy, catch-up, pupil premium, attainment gaps)
 - [x] **AI-04**: AI analysis results include reasoning explaining what in the report suggests tuition need
 
+### Ofsted Data Sync
+
+- [ ] **SYNC-01**: New enrichment stage downloads latest Ofsted CSVs from GOV.UK on a weekly cron schedule, running as part of the existing enrichment worker pipeline
+- [ ] **SYNC-02**: Stage diffs downloaded inspections against existing inspectionHistory per school, only processing new inspections not already stored (avoids re-processing)
+- [ ] **SYNC-03**: Downgrade detection runs automatically on newly ingested inspections, using the existing `ofsted-downgrade.ts` utility
+- [ ] **SYNC-04**: `lastDowngradeDate` and `ratingDirection` are recomputed for any school that received new inspections during sync
+- [ ] **SYNC-05**: Sync progress is tracked in enrichment job logs, recording schools updated count and new downgrades found
+
 ## v2 Requirements
 
 ### Extended Features
@@ -90,12 +98,17 @@
 | AI-02 | Phase 5 | Done |
 | AI-03 | Phase 5 | Done |
 | AI-04 | Phase 5 | Done |
+| SYNC-01 | Phase 6 | Pending |
+| SYNC-02 | Phase 6 | Pending |
+| SYNC-03 | Phase 6 | Pending |
+| SYNC-04 | Phase 6 | Pending |
+| SYNC-05 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 22 total
-- Mapped to phases: 22
+- v1 requirements: 27 total
+- Mapped to phases: 27
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after Phase 5 completion*
+*Last updated: 2026-02-14 — added Phase 6 Ofsted Data Sync requirements*

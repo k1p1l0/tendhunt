@@ -5,9 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Suppliers can instantly find schools downgraded by Ofsted in the last N months and assess whether each school's inspection report suggests a need for their services.
-**Current focus:** All phases complete
+**Current focus:** Phase 6 — Ofsted Data Sync (Enrichment Stage)
 
 ## Current Phase
+
+**Phase 6: Ofsted Data Sync (Enrichment Stage)**
+- Status: Not Started
+- Goal: Automated weekly Ofsted CSV sync as a new stage in the enrichment worker, with diff-based ingestion and automatic downgrade detection
+- Requirements: SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
+
+### Previous Phase
 
 **Phase 5: AI Report Analysis Column**
 - Status: Complete
@@ -75,6 +82,14 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - [x] Enhance "Outreach Priority" prompt to reference report content themes
 - [x] MongoDB cache collection (ofstedReportCache) with TTL index for 90-day expiry
 
+### Phase 6: Ofsted Data Sync (Enrichment Stage)
+- [ ] Create new enrichment stage `09-ofsted-sync.ts` that downloads latest Ofsted CSVs from GOV.UK
+- [ ] Implement diff logic: compare downloaded inspections against existing inspectionHistory by inspectionNumber
+- [ ] Run downgrade detection on newly ingested inspections using ofsted-downgrade.ts
+- [ ] Recompute lastDowngradeDate and ratingDirection for affected schools
+- [ ] Add sync progress tracking to enrichment job logs (schools updated, new downgrades found)
+- [ ] Gate stage to run at most once per week via last-sync timestamp
+
 ## Key Context
 
 - Branch: `feat/ofsted-timeline`
@@ -110,4 +125,4 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 None currently.
 
 ---
-*Last updated: 2026-02-14 after Phase 5 completion*
+*Last updated: 2026-02-14 — added Phase 6 Ofsted Data Sync planning*

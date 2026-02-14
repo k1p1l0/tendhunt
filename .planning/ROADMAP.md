@@ -2,9 +2,9 @@
 
 ## Overview
 
-This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tuition companies to discover recently-downgraded schools as sales targets. The build follows a data-first order: historical inspection data ingestion first (foundation for everything), then the schools scanner type with filters (discovery UI), then downgrade detection logic (the core intelligence), then the school detail page with timeline visualization (deep-dive), and finally AI report analysis columns (the differentiator). Five phases, each delivering testable capability.
+This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tuition companies to discover recently-downgraded schools as sales targets. The build follows a data-first order: historical inspection data ingestion first (foundation for everything), then the schools scanner type with filters (discovery UI), then downgrade detection logic (the core intelligence), then the school detail page with timeline visualization (deep-dive), AI report analysis columns (the differentiator), and finally automated data sync as an enrichment worker stage (keeping it all fresh). Six phases, each delivering testable capability.
 
-**5 phases** | **22 requirements** | **Depth: standard**
+**6 phases** | **27 requirements** | **Depth: standard**
 
 ## Phase 1: Inspection History Data Foundation
 
@@ -152,6 +152,35 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 
 ---
 
+## Phase 6: Ofsted Data Sync (Enrichment Stage)
+
+**Goal:** Keep Ofsted inspection data fresh by adding a new stage to the existing enrichment worker that downloads latest CSVs, diffs against stored data, and auto-detects new downgrades.
+
+**Requirements:** SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
+
+**What we build:**
+1. New enrichment stage (`09-ofsted-sync.ts`) that downloads the latest Ofsted management information CSVs from GOV.UK
+2. Diff logic comparing downloaded inspections against each school's existing `inspectionHistory` by `inspectionNumber` — only new inspections are processed
+3. Automatic downgrade detection on newly ingested inspections using the existing `ofsted-downgrade.ts` utility
+4. Recomputation of `lastDowngradeDate` and `ratingDirection` for any school that received new inspections
+5. Sync progress logging in enrichment job output: schools updated count, new inspections found, new downgrades detected
+6. Weekly cron scheduling (enrichment worker already runs on a cron; this stage gates itself to run once per week via a last-sync timestamp)
+
+**Key files to create/modify:**
+- `apps/workers/enrichment/src/stages/09-ofsted-sync.ts` -- new enrichment stage for Ofsted CSV sync
+- `apps/workers/enrichment/src/index.ts` -- register stage 09 in the enrichment pipeline
+- `apps/web/src/models/ofsted-school.ts` -- add `lastSyncedAt` field for tracking sync freshness
+- `apps/web/src/lib/ofsted-downgrade.ts` -- reuse existing downgrade detection (no changes expected)
+
+**Success criteria:**
+- [ ] Enrichment worker runs stage 09 on its regular cron, gated to execute Ofsted sync at most once per week
+- [ ] Only new inspections (not already in inspectionHistory by inspectionNumber) are inserted
+- [ ] Schools receiving new inspections have lastDowngradeDate and ratingDirection recomputed
+- [ ] New downgrades are detected and flagged automatically without manual re-ingestion
+- [ ] Enrichment job logs include sync summary (schools updated, new downgrades found)
+
+---
+
 ## Phase Summary
 
 | # | Phase | Goal | Requirements | Plans |
@@ -161,7 +190,8 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 | 3 | Downgrade Detection & Sorting | Core intelligence logic | DOWN-01..03 | 2-3 |
 | 4 | School Detail Page & Timeline | Deep-dive with timeline visualization | DETL-01..05 | 3-4 |
 | 5 | AI Report Analysis Column | PDF analysis differentiator | AI-01..04 | 3-4 |
+| 6 | Ofsted Data Sync (Enrichment Stage) | Automated weekly Ofsted data refresh | SYNC-01..05 | 2-3 |
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 after Phase 5 completion*
+*Last updated: 2026-02-14 — added Phase 6 Ofsted Data Sync*
