@@ -219,6 +219,7 @@ export function useAgent(): UseAgentReturn {
             messages: apiMessages,
             context,
             conversationId: conversationIdRef.current,
+            settings: useAgentStore.getState().conversationSettings,
           }),
           signal: abortController.signal,
         });

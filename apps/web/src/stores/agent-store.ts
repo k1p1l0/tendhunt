@@ -1,6 +1,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export type ResponseDetail = "concise" | "normal" | "detailed";
+export type ContextScope = "table_only" | "table_and_business";
+
+export interface ConversationSettings {
+  responseDetail: ResponseDetail;
+  askClarifyingQuestions: boolean;
+  contextScope: ContextScope;
+}
+
+export const DEFAULT_CONVERSATION_SETTINGS: ConversationSettings = {
+  responseDetail: "normal",
+  askClarifyingQuestions: true,
+  contextScope: "table_and_business",
+};
+
 export interface AgentMessage {
   id: string;
   role: "user" | "assistant";
@@ -63,8 +78,10 @@ interface AgentStore {
   isStreaming: boolean;
   enrichmentConfirmation: EnrichmentConfirmation | null;
   activeEnrichment: ActiveEnrichment | null;
+  conversationSettings: ConversationSettings;
 
   setPanelOpen: (open: boolean) => void;
+  updateConversationSettings: (updates: Partial<ConversationSettings>) => void;
   addMessage: (conversationId: string, message: AgentMessage) => void;
   updateMessage: (
     conversationId: string,
@@ -91,8 +108,14 @@ export const useAgentStore = create<AgentStore>()(
   isStreaming: false,
   enrichmentConfirmation: null,
   activeEnrichment: null,
+  conversationSettings: DEFAULT_CONVERSATION_SETTINGS,
 
   setPanelOpen: (open) => set({ panelOpen: open }),
+
+  updateConversationSettings: (updates) =>
+    set((state) => ({
+      conversationSettings: { ...state.conversationSettings, ...updates },
+    })),
 
   addMessage: (conversationId, message) =>
     set((state) => ({
@@ -198,6 +221,7 @@ export const useAgentStore = create<AgentStore>()(
         panelOpen: state.panelOpen,
         conversations: state.conversations,
         activeConversationId: state.activeConversationId,
+        conversationSettings: state.conversationSettings,
       }),
       storage: {
         getItem: (name) => {

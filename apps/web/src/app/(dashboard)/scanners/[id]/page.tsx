@@ -885,6 +885,14 @@ export default function ScannerDetailPage({
     loadData();
   }
 
+  function handleScoreCell(columnId: string, entityId: string) {
+    scoreSingleColumn(columnId, {
+      force: true,
+      entityIds: [entityId],
+      limit: 1,
+    });
+  }
+
   function handleRunColumn(options: RunColumnOptions) {
     const visibleIds = getVisibleEntityIds();
     scoreSingleColumn(options.columnId, {
@@ -1230,11 +1238,10 @@ export default function ScannerDetailPage({
 
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
-      {/* Sticky toolbar area */}
-      <div className="shrink-0 space-y-3 px-1 pb-3">
-        {/* Scanner Header */}
+      {/* Compact single-line toolbar */}
+      <div className="shrink-0 px-1 pb-1">
         <ScannerHeader
-          scanner={{ ...scanner, autoRun }}
+          scanner={{ ...scanner, autoRun, searchQuery: scanner.searchQuery }}
           rowCount={filteredRowCount}
           totalRowCount={totalRowCount}
           activeFilterCount={Object.values(columnFilters).filter((v) => v.length > 0).length}
@@ -1247,7 +1254,7 @@ export default function ScannerDetailPage({
           onEditScanner={handleEditScanner}
         />
 
-        {/* Filter chip toolbar */}
+        {/* Filter chip toolbar (auto-hides when no filters) */}
         <ScannerFilterToolbar columns={columns} />
       </div>
 
@@ -1289,6 +1296,8 @@ export default function ScannerDetailPage({
           onDeleteColumn={handleDeleteColumn}
           onRowDoubleClick={handleRowDoubleClick}
           onInsertColumn={handleInsertColumn}
+          onScoreCell={handleScoreCell}
+          onOpenEntity={(row) => setDetailRow(row)}
           onAutoRule={(columnId, columnName) =>
             setAutoRuleColumn({ columnId, columnName })
           }
@@ -1329,6 +1338,8 @@ export default function ScannerDetailPage({
         onOpenChange={setAddColumnOpen}
         scannerId={id}
         scannerType={scanner.type}
+        existingAiColumns={scanner.aiColumns}
+        existingCustomColumns={scanner.customColumns}
         onColumnAdded={handleColumnAdded}
       />
 
@@ -1340,6 +1351,9 @@ export default function ScannerDetailPage({
         }}
         column={editColumn}
         scannerId={id}
+        scannerType={scanner.type}
+        scannerAiColumns={scanner.aiColumns}
+        scannerCustomColumns={scanner.customColumns}
         onColumnUpdated={handleColumnUpdated}
       />
 

@@ -10,14 +10,22 @@ import "@glideapps/glide-data-grid/dist/index.css";
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import type { ScannerType } from "@/models/scanner";
+import type { CellClickedEventArgs } from "@glideapps/glide-data-grid";
 import { toGlideColumns } from "./glide-columns";
 import type { ColumnMeta } from "./glide-columns";
 import { createGetCellContent } from "./cell-content";
 import { customRenderers, setLogoRedrawCallback } from "./custom-renderers";
 import { useGlideTheme } from "./glide-theme";
-import { resolveAccessor, getUniqueColumnValues } from "./format-utils";
+import {
+  resolveAccessor,
+  getUniqueColumnValues,
+  formatDate,
+  formatCurrency,
+  formatNumber,
+} from "./format-utils";
 import { HeaderMenu } from "./header-menu";
 import type { RunColumnOptions } from "./header-menu";
+import { CellContextMenu } from "./cell-context-menu";
 import { isTextUseCase } from "@/lib/ai-column-config";
 
 // Play button hit area: 24×24 icon in the right side of the header
@@ -41,6 +49,8 @@ interface ScannerDataGridProps {
   onRowDoubleClick?: (row: Record<string, unknown>, columnMeta: { type: string; aiColumnId?: string }) => void;
   onInsertColumn?: (referenceColumnId: string, side: "left" | "right") => void;
   onAutoRule?: (columnId: string, columnName: string) => void;
+  onScoreCell?: (columnId: string, entityId: string) => void;
+  onOpenEntity?: (row: Record<string, unknown>) => void;
 }
 
 export function ScannerDataGrid({
@@ -59,12 +69,21 @@ export function ScannerDataGrid({
   onRowDoubleClick,
   onInsertColumn,
   onAutoRule,
+  onScoreCell,
+  onOpenEntity,
 }: ScannerDataGridProps) {
   const [sortColumnIdx, setSortColumnIdx] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const [headerMenu, setHeaderMenu] = useState<{
     col: number;
     title: string;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  const [cellMenu, setCellMenu] = useState<{
+    col: number;
+    row: number;
+    entityId: string;
     position: { x: number; y: number };
   } | null>(null);
 
@@ -800,6 +819,7 @@ export function ScannerDataGrid({
 
       // Any other click on the header → open the column menu
       const title = gridColumns[col]?.title ?? "";
+      setCellMenu(null);
       setHeaderMenu({
         col,
         title,
@@ -832,6 +852,7 @@ export function ScannerDataGrid({
       }
 
       const title = gridColumns[col]?.title ?? "";
+      setCellMenu(null);
       setHeaderMenu({ col, title, position });
     },
     [columnMeta, isScoring, onScoreColumn, onCancelScoring, gridColumns]
@@ -936,6 +957,76 @@ export function ScannerDataGrid({
     [onAddColumn]
   );
 
+  const getCellText = useCallback(
+    (meta: ColumnMeta, row: Record<string, unknown>): string => {
+      if (meta.type === "ai" && meta.aiColumnId) {
+        const entry = getScore(scores, meta.aiColumnId, String(row._id));
+        if (!entry) return "";
+        if (isTextUseCase(meta.aiUseCase)) return entry.response || "";
+        return entry.score != null ? String(entry.score) : "";
+      }
+      const value = resolveAccessor(row, meta.accessor);
+      if (value == null || value === "") return "";
+      switch (meta.type) {
+        case "date":
+          return formatDate(value);
+        case "currency":
+          return formatCurrency(value);
+        case "number":
+          return formatNumber(value);
+        default:
+          return String(value);
+      }
+    },
+    [scores]
+  );
+
+  const handleCopyCell = useCallback(
+    (col: number, rowIdx: number) => {
+      const meta = columnMeta[col];
+      const row = displayRows[rowIdx];
+      if (!meta || !row) return;
+      const text = getCellText(meta, row);
+      navigator.clipboard.writeText(text);
+    },
+    [columnMeta, displayRows, getCellText]
+  );
+
+  const handleCopyRow = useCallback(
+    (rowIdx: number) => {
+      const row = displayRows[rowIdx];
+      if (!row) return;
+      const parts = columnMeta.map((meta) => getCellText(meta, row));
+      navigator.clipboard.writeText(parts.join("\t"));
+    },
+    [displayRows, columnMeta, getCellText]
+  );
+
+  const onCellContextMenu = useCallback(
+    (cell: Item, event: CellClickedEventArgs) => {
+      event.preventDefault();
+      const [col, rowIdx] = cell;
+      const row = displayRows[rowIdx];
+      if (!row) return;
+      setHeaderMenu(null);
+      setCellMenu({
+        col,
+        row: rowIdx,
+        entityId: String(row._id),
+        position: {
+          x: event.bounds.x + event.localEventX,
+          y: event.bounds.y + event.localEventY,
+        },
+      });
+      setSelection({
+        columns: CompactSelection.empty(),
+        rows: CompactSelection.empty(),
+        current: { cell: [col, rowIdx], range: { x: col, y: rowIdx, width: 1, height: 1 }, rangeStack: [] },
+      });
+    },
+    [displayRows]
+  );
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg border hide-scrollbar">
       <DataEditor
@@ -964,7 +1055,7 @@ export function ScannerDataGrid({
         onHeaderMenuClick={onHeaderMenuClick}
         onHeaderContextMenu={(col, event) => {
           event.preventDefault();
-          // Right-click always opens the context menu (even for AI columns)
+          setCellMenu(null);
           const title = gridColumns[col]?.title ?? "";
           setHeaderMenu({
             col,
@@ -979,7 +1070,37 @@ export function ScannerDataGrid({
         onColumnMoved={onColumnMoved}
         onCellClicked={onCellClicked}
         onCellActivated={onCellActivated}
+        onCellContextMenu={onCellContextMenu}
       />
+      {cellMenu && (() => {
+        const meta = columnMeta[cellMenu.col];
+        if (!meta) return null;
+        const isAi = meta.type === "ai" && !!meta.aiColumnId;
+        return (
+          <CellContextMenu
+            position={cellMenu.position}
+            isAiColumn={isAi}
+            isScoring={isScoring}
+            onScoreCell={() => {
+              if (isAi && meta.aiColumnId) {
+                onScoreCell?.(meta.aiColumnId, cellMenu.entityId);
+              }
+            }}
+            onCopyCell={() => handleCopyCell(cellMenu.col, cellMenu.row)}
+            onCopyRow={() => handleCopyRow(cellMenu.row)}
+            onViewDetails={() => {
+              if (isAi && meta.aiColumnId) {
+                onAiCellClick?.(meta.aiColumnId, cellMenu.entityId);
+              }
+            }}
+            onOpenEntity={() => {
+              const row = displayRows[cellMenu.row];
+              if (row) onOpenEntity?.(row);
+            }}
+            onClose={() => setCellMenu(null)}
+          />
+        );
+      })()}
       {headerMenu && (() => {
         const meta = columnMeta[headerMenu.col];
         const filterableTypes = new Set(["badge", "text", "entity-name"]);

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAgentContext } from "./agent-provider";
 import { useAgentStore } from "@/stores/agent-store";
 import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
+import { AgentSettings } from "./agent-settings";
 
 function getContextLabel(context: ReturnType<typeof useAgentContext>["context"]): string {
   if (context.buyerName) return context.buyerName;
@@ -63,6 +64,7 @@ export function AgentPanelHeader({ onNewChat }: AgentPanelHeaderProps) {
       >
         <RotateCcw className="h-3.5 w-3.5" />
       </Button>
+      <AgentSettings />
       <Button
         variant="ghost"
         size="icon"

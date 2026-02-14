@@ -12,6 +12,11 @@ import {
   scoreOneEntity,
   buildScoringSystemPrompt,
 } from "@/lib/scoring-engine";
+import {
+  hasColumnReferences,
+  resolveColumnReferences,
+  extractReferencedColumnIds,
+} from "@/lib/column-references";
 import type { AIModel } from "@/lib/ai-column-config";
 import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
@@ -261,12 +266,43 @@ export async function POST(
       );
     }
 
-    // Build system prompt for this column
-    const systemPrompt = buildScoringSystemPrompt(
-      baseScoringPrompt,
-      column.prompt,
-      column.useCase
-    );
+    // Check if the prompt references other columns ({{Column Name}} tokens)
+    const promptHasRefs = hasColumnReferences(column.prompt);
+
+    // Build scores lookup for referenced AI columns (only when needed)
+    const allScores = ((scanner.scores ?? []) as unknown) as Array<{
+      columnId: string;
+      entityId: string;
+      score?: number | null;
+      value?: string;
+      reasoning?: string;
+    }>;
+    const aiColumns = (scanner.aiColumns as Array<{ columnId: string; name: string; useCase?: string }>) ?? [];
+    const customColumns = (scanner.customColumns as Array<{
+      columnId: string;
+      name: string;
+      accessor: string;
+      dataType: string;
+    }> | undefined) ?? [];
+
+    let referencedScores: typeof allScores = [];
+    if (promptHasRefs) {
+      const refColumnIds = extractReferencedColumnIds(
+        column.prompt,
+        scanner.type,
+        aiColumns,
+        customColumns
+      );
+      if (refColumnIds.length > 0) {
+        const refSet = new Set(refColumnIds);
+        referencedScores = allScores.filter((s) => refSet.has(s.columnId));
+      }
+    }
+
+    // Build system prompt — static when no refs, per-entity when refs exist
+    const staticSystemPrompt = promptHasRefs
+      ? null
+      : buildScoringSystemPrompt(baseScoringPrompt, column.prompt, column.useCase);
 
     // Load auto-send rules for this scanner + column (cached for entire run)
     const autoSendRules = await AutoSendRule.find({
@@ -321,10 +357,23 @@ export async function POST(
               const entityId = String(entity._id || entity.id || "unknown");
 
               try {
+                const entitySystemPrompt = staticSystemPrompt ?? buildScoringSystemPrompt(
+                  baseScoringPrompt,
+                  resolveColumnReferences(
+                    column.prompt,
+                    entity,
+                    scanner.type,
+                    referencedScores,
+                    aiColumns,
+                    customColumns
+                  ),
+                  column.useCase
+                );
+
                 const result = await scoreOneEntity(
                   entity,
                   scanner.type,
-                  systemPrompt,
+                  entitySystemPrompt,
                   scanner.searchQuery || "",
                   (column.model as AIModel) || "haiku",
                   column.useCase

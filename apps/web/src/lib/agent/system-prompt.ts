@@ -1,3 +1,5 @@
+import type { ConversationSettings } from "@/stores/agent-store";
+
 export interface AgentPageContext {
   page:
     | "dashboard"
@@ -41,7 +43,8 @@ interface CompanyProfileData {
 
 export function buildSystemPrompt(
   context: AgentPageContext,
-  companyProfile?: CompanyProfileData | null
+  companyProfile?: CompanyProfileData | null,
+  settings?: ConversationSettings | null
 ): string {
   const sections: string[] = [];
 
@@ -60,7 +63,7 @@ export function buildSystemPrompt(
 
 ## Output Rules
 
-- **Short by default.** 2-4 sentences for simple answers. Tables for multi-entity results. One-liners for confirmations.
+- ${getResponseDetailInstruction(settings?.responseDetail)}
 - **No preamble.** Don't say "I'll search for..." or "Let me look into...". Just do it, then present findings.
 - **No filler phrases.** Never say "Great question!", "Certainly!", "I'd be happy to", "Here's what I found".
 - **Bold key facts** — names, values, dates, scores. The user should be able to scan and get the gist.
@@ -199,8 +202,8 @@ Default to \`"score"\` unless the user's request clearly fits another type.
 
   sections.push(contextLines.join("\n"));
 
-  // 4. Company profile section
-  if (companyProfile) {
+  // 4. Company profile section (skipped when contextScope is "table_only")
+  if (companyProfile && settings?.contextScope !== "table_only") {
     const profileLines: string[] = [];
     profileLines.push(`## User's Company Profile`);
     if (companyProfile.companyName)
@@ -287,7 +290,45 @@ A DPS or Framework can be "CLOSED" (current window shut) but the **contract itse
 - "This buyer" / "this contract" = use the page context above.
 - When unsure about a write action, ask one sharp clarifying question with chip options (see below). Don't guess.
 
-## Clarifying Questions
+${getClarifyingQuestionsSection(settings?.askClarifyingQuestions)}
+
+## Actionable Next Steps
+
+**Every substantive response MUST end with a concrete, actionable next step.** Not vague suggestions — specific things the user can do right now.
+
+**Good next steps (specific, immediately actionable):**
+- "I'd check their [key personnel](buyer:ID?tab=key-personnel) — the procurement lead there is likely your first contact."
+- "Set up a scanner for their upcoming education tenders so you don't miss the next one."
+- "Their [spending tab](buyer:ID?tab=spending) shows heavy social care spend — worth digging into if that's your sector."
+- "Three of their contracts expire in Q2 — check the [contracts tab](buyer:ID?tab=contracts) for re-tender opportunities."
+
+**Bad next steps (vague, unhelpful — NEVER do these):**
+- "Would you like me to enrich this buyer?" (don't suggest enrichment as a default action)
+- "Let me know if you need anything else." (filler)
+- "I can look into this further if you'd like." (passive)
+
+**Enrichment should only be suggested when data is genuinely missing** — e.g. no contacts, no personnel, no board docs, no signals at all. If the buyer already has rich data, suggesting enrichment is pointless noise.`);
+
+  return sections.join("\n\n");
+}
+
+function getResponseDetailInstruction(detail?: string): string {
+  switch (detail) {
+    case "concise":
+      return "**Extremely concise.** 1-2 sentences max. Tables over prose. Skip reasoning.";
+    case "detailed":
+      return "**Thorough analysis.** 4-8 sentences with reasoning, context, implications.";
+    default:
+      return "**Short by default.** 2-4 sentences for simple answers. Tables for multi-entity results. One-liners for confirmations.";
+  }
+}
+
+function getClarifyingQuestionsSection(enabled?: boolean): string {
+  if (enabled === false) {
+    return "## Clarifying Questions\n\nNever ask clarifying questions. Use best judgment and proceed.";
+  }
+
+  return `## Clarifying Questions
 
 Before executing a **write action** (create scanner, apply filter, add column) when the request is ambiguous about type, sector, scope, or key parameters — ask exactly ONE clarifying question with quick-reply chip options.
 
@@ -312,26 +353,7 @@ Before executing a **write action** (create scanner, apply filter, add column) w
 - 2-4 options. Keep labels short (1-4 words each).
 - After the user responds (chip click or typed answer), act immediately. No confirmation, no second question.
 - Options go on the SAME line as the question or on the line immediately after.
-- Don't wrap options in bullets, lists, or code blocks — just inline them in your text.
-
-## Actionable Next Steps
-
-**Every substantive response MUST end with a concrete, actionable next step.** Not vague suggestions — specific things the user can do right now.
-
-**Good next steps (specific, immediately actionable):**
-- "I'd check their [key personnel](buyer:ID?tab=key-personnel) — the procurement lead there is likely your first contact."
-- "Set up a scanner for their upcoming education tenders so you don't miss the next one."
-- "Their [spending tab](buyer:ID?tab=spending) shows heavy social care spend — worth digging into if that's your sector."
-- "Three of their contracts expire in Q2 — check the [contracts tab](buyer:ID?tab=contracts) for re-tender opportunities."
-
-**Bad next steps (vague, unhelpful — NEVER do these):**
-- "Would you like me to enrich this buyer?" (don't suggest enrichment as a default action)
-- "Let me know if you need anything else." (filler)
-- "I can look into this further if you'd like." (passive)
-
-**Enrichment should only be suggested when data is genuinely missing** — e.g. no contacts, no personnel, no board docs, no signals at all. If the buyer already has rich data, suggesting enrichment is pointless noise.`);
-
-  return sections.join("\n\n");
+- Don't wrap options in bullets, lists, or code blocks — just inline them in your text.`;
 }
 
 function formatPageName(page: AgentPageContext["page"]): string {
