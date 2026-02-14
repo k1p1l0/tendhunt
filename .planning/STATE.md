@@ -10,7 +10,7 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Phase
 
 **Phase 6: Ofsted Data Sync (Enrichment Stage)**
-- Status: Not Started
+- Status: Complete
 - Goal: Automated weekly Ofsted CSV sync as a new stage in the enrichment worker, with diff-based ingestion and automatic downgrade detection
 - Requirements: SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
 
@@ -83,12 +83,16 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - [x] MongoDB cache collection (ofstedReportCache) with TTL index for 90-day expiry
 
 ### Phase 6: Ofsted Data Sync (Enrichment Stage)
-- [ ] Create new enrichment stage `09-ofsted-sync.ts` that downloads latest Ofsted CSVs from GOV.UK
-- [ ] Implement diff logic: compare downloaded inspections against existing inspectionHistory by inspectionNumber
-- [ ] Run downgrade detection on newly ingested inspections using ofsted-downgrade.ts
-- [ ] Recompute lastDowngradeDate and ratingDirection for affected schools
-- [ ] Add sync progress tracking to enrichment job logs (schools updated, new downgrades found)
-- [ ] Gate stage to run at most once per week via last-sync timestamp
+- [x] Create new enrichment stage `09-ofsted-sync.ts` that downloads latest Ofsted CSVs from GOV.UK
+- [x] Implement diff logic: compare downloaded inspections against existing inspectionHistory by inspectionNumber
+- [x] Run downgrade detection on newly ingested inspections using ofsted-downgrade.ts
+- [x] Recompute lastDowngradeDate and ratingDirection for affected schools
+- [x] Add sync progress tracking to enrichment job logs (schools updated, new downgrades found)
+- [x] Gate stage to run at most once per week via last-sync timestamp
+- [x] Register stage in enrichment worker index.ts (runs after buyer pipeline completes)
+- [x] Add manual trigger endpoint `/run-ofsted-sync` with `?force=1` option
+- [x] Add `lastSyncedAt` field to OfstedSchool model
+- [x] Add `papaparse` dependency for in-memory CSV parsing in Cloudflare Worker
 
 ## Key Context
 
@@ -120,9 +124,22 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - Non-school scanner types are unaffected (additionalContext parameter is optional)
 - Report API endpoint at `/api/schools/[urn]/report` supports `?inspectionNumber=` for historical reports
 
+## Key Context (Phase 6 additions)
+
+- Ofsted sync stage is `09-ofsted-sync.ts` in enrichment worker — NOT a buyer pipeline stage
+- Runs after all buyer enrichment stages complete (in the `all_complete` block), self-gated to once per week
+- Weekly gate uses `ofstedsyncmeta` collection with `key: "ofsted_sync"` + `lastSyncedAt` timestamp
+- Diff logic: downloads all 3 CSV sources, groups by URN, fetches existing `inspectionHistory` per school, only inserts inspections with new `inspectionNumber`s
+- Recomputes `lastDowngradeDate`, `ratingDirection`, `downgradeType` on merged history
+- Also updates top-level school metadata (name, ratings, phase, etc.) from latest CSV data
+- New downgrades detected when the latest inspection in merged history is both new AND a downgrade
+- Manual trigger: `GET /run-ofsted-sync` (respects weekly gate), `GET /run-ofsted-sync?force=1` (resets gate)
+- Uses `papaparse` for in-memory CSV parsing (no filesystem access in Cloudflare Workers)
+- OfstedSchool model now has `lastSyncedAt` field for per-school sync tracking
+
 ## Blockers
 
 None currently.
 
 ---
-*Last updated: 2026-02-14 — added Phase 6 Ofsted Data Sync planning*
+*Last updated: 2026-02-14 — Phase 6 Ofsted Data Sync complete*

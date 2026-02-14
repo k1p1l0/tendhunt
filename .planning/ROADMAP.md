@@ -173,11 +173,11 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 - `apps/web/src/lib/ofsted-downgrade.ts` -- reuse existing downgrade detection (no changes expected)
 
 **Success criteria:**
-- [ ] Enrichment worker runs stage 09 on its regular cron, gated to execute Ofsted sync at most once per week
-- [ ] Only new inspections (not already in inspectionHistory by inspectionNumber) are inserted
-- [ ] Schools receiving new inspections have lastDowngradeDate and ratingDirection recomputed
-- [ ] New downgrades are detected and flagged automatically without manual re-ingestion
-- [ ] Enrichment job logs include sync summary (schools updated, new downgrades found)
+- [x] Enrichment worker runs stage 09 on its regular cron, gated to execute Ofsted sync at most once per week
+- [x] Only new inspections (not already in inspectionHistory by inspectionNumber) are inserted
+- [x] Schools receiving new inspections have lastDowngradeDate and ratingDirection recomputed
+- [x] New downgrades are detected and flagged automatically without manual re-ingestion
+- [x] Enrichment job logs include sync summary (schools updated, new downgrades found)
 
 ---
 

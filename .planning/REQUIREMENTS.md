@@ -45,11 +45,11 @@
 
 ### Ofsted Data Sync
 
-- [ ] **SYNC-01**: New enrichment stage downloads latest Ofsted CSVs from GOV.UK on a weekly cron schedule, running as part of the existing enrichment worker pipeline
-- [ ] **SYNC-02**: Stage diffs downloaded inspections against existing inspectionHistory per school, only processing new inspections not already stored (avoids re-processing)
-- [ ] **SYNC-03**: Downgrade detection runs automatically on newly ingested inspections, using the existing `ofsted-downgrade.ts` utility
-- [ ] **SYNC-04**: `lastDowngradeDate` and `ratingDirection` are recomputed for any school that received new inspections during sync
-- [ ] **SYNC-05**: Sync progress is tracked in enrichment job logs, recording schools updated count and new downgrades found
+- [x] **SYNC-01**: New enrichment stage downloads latest Ofsted CSVs from GOV.UK on a weekly cron schedule, running as part of the existing enrichment worker pipeline
+- [x] **SYNC-02**: Stage diffs downloaded inspections against existing inspectionHistory per school, only processing new inspections not already stored (avoids re-processing)
+- [x] **SYNC-03**: Downgrade detection runs automatically on newly ingested inspections, using the existing `ofsted-downgrade.ts` utility
+- [x] **SYNC-04**: `lastDowngradeDate` and `ratingDirection` are recomputed for any school that received new inspections during sync
+- [x] **SYNC-05**: Sync progress is tracked in enrichment job logs, recording schools updated count and new downgrades found
 
 ## v2 Requirements
 
@@ -98,11 +98,11 @@
 | AI-02 | Phase 5 | Done |
 | AI-03 | Phase 5 | Done |
 | AI-04 | Phase 5 | Done |
-| SYNC-01 | Phase 6 | Pending |
-| SYNC-02 | Phase 6 | Pending |
-| SYNC-03 | Phase 6 | Pending |
-| SYNC-04 | Phase 6 | Pending |
-| SYNC-05 | Phase 6 | Pending |
+| SYNC-01 | Phase 6 | Done |
+| SYNC-02 | Phase 6 | Done |
+| SYNC-03 | Phase 6 | Done |
+| SYNC-04 | Phase 6 | Done |
+| SYNC-05 | Phase 6 | Done |
 
 **Coverage:**
 - v1 requirements: 27 total

@@ -58,6 +58,8 @@ const ofstedSchoolSchema = new Schema(
     },
     downgradeType: { type: String },
 
+    lastSyncedAt: { type: Date },
+
     buyerId: {
       type: Schema.Types.ObjectId,
       ref: "Buyer",
