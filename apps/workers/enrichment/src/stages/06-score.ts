@@ -160,7 +160,7 @@ export async function computeEnrichmentScores(
  *   democracyPortalUrl(8) + boardPapersUrl(8) + description(5) +
  *   staffCount(8) + annualBudget(8) + personnel(18) + documents(15) = 100
  */
-function computeScore(
+export function computeScore(
   buyer: BuyerDoc,
   personnelCount: number,
   docCount: number

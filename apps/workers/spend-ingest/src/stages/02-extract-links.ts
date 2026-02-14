@@ -214,7 +214,7 @@ function parseLinkExtractionResponse(text: string): string[] {
  * Google Sheets: append /export?format=csv
  * Google Drive files: use /uc?export=download&id=FILE_ID
  */
-function transformGoogleUrls(urls: string[]): string[] {
+export function transformGoogleUrls(urls: string[]): string[] {
   const transformed: string[] = [];
 
   for (const url of urls) {
@@ -262,7 +262,7 @@ function transformGoogleUrls(urls: string[]): string[] {
  * Extract Google Sheets/Drive links from HTML that the regex patterns miss.
  * These links don't match standard CSV patterns but are valid data sources.
  */
-function extractGoogleLinks(html: string): string[] {
+export function extractGoogleLinks(html: string): string[] {
   const links: string[] = [];
   const seen = new Set<string>();
 

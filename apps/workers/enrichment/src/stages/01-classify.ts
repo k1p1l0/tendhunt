@@ -38,7 +38,7 @@ const STRIP_PATTERNS = [
  * Normalize a buyer name for fuzzy matching.
  * Strips common institutional words, lowercases, trims whitespace.
  */
-function normalizeName(name: string): string {
+export function normalizeName(name: string): string {
   let normalized = name;
   for (const pattern of STRIP_PATTERNS) {
     normalized = normalized.replace(pattern, "");
@@ -97,7 +97,7 @@ const HEURISTIC_RULES: Array<{
  * Attempt to classify a buyer by name/sector heuristics.
  * Returns orgType string or null if no rule matches.
  */
-function classifyByHeuristic(name: string, sector: string): string | null {
+export function classifyByHeuristic(name: string, sector: string): string | null {
   for (const rule of HEURISTIC_RULES) {
     if (rule.test(name, sector)) return rule.orgType;
   }

@@ -22,7 +22,7 @@ import type { ColumnMapping } from "../normalization/known-schemas";
  * Fetch a URL through Scrapeless Web Unlocker to bypass WAF/bot protection.
  * Used as fallback when direct fetch returns 403 (Incapsula, Cloudflare, etc.).
  */
-async function fetchViaScrapeless(
+export async function fetchViaScrapeless(
   url: string,
   apiKey: string
 ): Promise<Response> {
@@ -63,7 +63,7 @@ type FileFormat = "csv" | "ods" | "xlsx" | "pdf" | "unknown";
 /**
  * Detect file format from content-type header and URL extension.
  */
-function detectFileFormat(contentType: string, url: string): FileFormat {
+export function detectFileFormat(contentType: string, url: string): FileFormat {
   const ct = contentType.toLowerCase();
 
   if (ct.includes("application/pdf")) return "pdf";
