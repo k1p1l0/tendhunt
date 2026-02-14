@@ -9,10 +9,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Search
 
-- [ ] **SRCH-01**: User can search for a supplier/competitor by company name via a search bar with autocomplete suggestions
-- [ ] **SRCH-02**: Search handles name variations (Ltd vs Limited, case insensitive, extra whitespace)
-- [ ] **SRCH-03**: Search results show supplier name, contract count, and total value as preview
-- [ ] **SRCH-04**: User can click a search result to navigate to the competitor profile page
+- [x] **SRCH-01**: User can search for a supplier/competitor by company name via a search bar with autocomplete suggestions
+- [x] **SRCH-02**: Search handles name variations (Ltd vs Limited, case insensitive, extra whitespace)
+- [x] **SRCH-03**: Search results show supplier name, contract count, and total value as preview
+- [x] **SRCH-04**: User can click a search result to navigate to the competitor profile page
 
 ### Profile
 
@@ -44,9 +44,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Data Layer
 
-- [ ] **DATA-01**: MongoDB index on `awardedSuppliers.name` for efficient supplier search
-- [ ] **DATA-02**: Supplier name normalization utility that strips legal suffixes (Ltd, Limited, PLC, LLP, CIC) and normalizes whitespace/case
-- [ ] **DATA-03**: Search API route that queries both contracts and spend data for matching supplier names
+- [x] **DATA-01**: MongoDB index on `awardedSuppliers.name` for efficient supplier search
+- [x] **DATA-02**: Supplier name normalization utility that strips legal suffixes (Ltd, Limited, PLC, LLP, CIC) and normalizes whitespace/case
+- [x] **DATA-03**: Search API route that queries both contracts and spend data for matching supplier names
 - [ ] **DATA-04**: Aggregation pipeline that builds a complete competitor profile from contract + spend data
 
 ### Navigation
@@ -96,13 +96,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRCH-01 | Phase 1 | Pending |
-| SRCH-02 | Phase 1 | Pending |
-| SRCH-03 | Phase 1 | Pending |
-| SRCH-04 | Phase 1 | Pending |
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
+| SRCH-01 | Phase 1 | Done |
+| SRCH-02 | Phase 1 | Done |
+| SRCH-03 | Phase 1 | Done |
+| SRCH-04 | Phase 1 | Done |
+| DATA-01 | Phase 1 | Done |
+| DATA-02 | Phase 1 | Done |
+| DATA-03 | Phase 1 | Done |
 | DATA-04 | Phase 2 | Pending |
 | PROF-01 | Phase 2 | Pending |
 | PROF-02 | Phase 2 | Pending |
@@ -134,4 +134,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after initial definition*
+*Last updated: 2026-02-14 after Phase 1 completion*

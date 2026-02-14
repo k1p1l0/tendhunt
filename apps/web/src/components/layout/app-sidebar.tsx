@@ -8,6 +8,7 @@ import {
   Building2,
   Radar,
   Inbox,
+  Swords,
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +56,11 @@ const dataItems: NavItem[] = [
     title: "Contracts",
     href: "/contracts",
     icon: FileText,
+  },
+  {
+    title: "Competitors",
+    href: "/competitors",
+    icon: Swords,
   },
 ];
 

@@ -8,7 +8,7 @@
 
 | # | Phase | Requirements | Status |
 |---|-------|-------------|--------|
-| 1 | Search & Data Foundation | 7 (SRCH-01..04, DATA-01..03) | Pending |
+| 1 | Search & Data Foundation | 7 (SRCH-01..04, DATA-01..03) | Done |
 | 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Pending |
 | 3 | Spend Intelligence | 4 (SPND-01..04) | Pending |
 | 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Pending |
@@ -20,13 +20,13 @@
 **Goal:** Users can search for a supplier/competitor by name and see matching results. The data layer supports efficient querying.
 
 **Requirements:**
-- [ ] SRCH-01 — Search bar with autocomplete suggestions
-- [ ] SRCH-02 — Handle name variations (Ltd vs Limited, case insensitive)
-- [ ] SRCH-03 — Search results show supplier name, contract count, total value
-- [ ] SRCH-04 — Click result to navigate to competitor profile page
-- [ ] DATA-01 — MongoDB index on `awardedSuppliers.name`
-- [ ] DATA-02 — Supplier name normalization utility
-- [ ] DATA-03 — Search API route (contracts + spend data)
+- [x] SRCH-01 — Search bar with autocomplete suggestions
+- [x] SRCH-02 — Handle name variations (Ltd vs Limited, case insensitive)
+- [x] SRCH-03 — Search results show supplier name, contract count, total value
+- [x] SRCH-04 — Click result to navigate to competitor profile page
+- [x] DATA-01 — MongoDB index on `awardedSuppliers.name`
+- [x] DATA-02 — Supplier name normalization utility
+- [x] DATA-03 — Search API route (contracts + spend data)
 
 **Key deliverables:**
 1. `lib/supplier-normalize.ts` — Name normalization (strip Ltd/Limited/PLC/LLP/CIC, lowercase, trim)
