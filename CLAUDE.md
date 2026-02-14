@@ -170,6 +170,17 @@ pnpm typecheck
 cd apps/web && bun run lint
 ```
 
+## Testing
+
+- **Framework:** Vitest (shared across `apps/web` and `apps/workers/*`)
+- **Run:** `cd apps/web && bun run test` or `bun run --cwd apps/web test`
+- **Config:** `apps/web/vitest.config.mts` with `@` path alias pointing to `./src`
+- **Convention:** Co-locate tests next to source files as `*.test.ts` (e.g. `scanner-store.test.ts` beside `scanner-store.ts`)
+- **What to test:** Pure functions, Zustand store logic, system prompt builders — anything that doesn't need a DOM or real DB
+- **What NOT to test:** React components (no testing-library set up), API routes (need real MongoDB)
+- **Existing pattern:** See `contract-mechanism.test.ts` for fake timers usage
+- **Rule:** Every bug fix MUST include a regression test
+
 ## CI Lint Rules (React Compiler + ESLint)
 
 CI runs `bun run lint` which includes the React compiler plugin. These rules are stricter than local dev and MUST pass before merge.
