@@ -599,24 +599,29 @@ export default function ScannerDetailPage({
       ? new Set(options.entityIds)
       : null;
 
-    // Track queued entities for progressive activation
+    // Build list of entity IDs that will actually be scored (matching backend logic)
     const queuedEntityIds = new Set<string>();
+    const rowLimit = options?.limit && options.limit > 0 ? options.limit : Infinity;
 
     for (const row of currentRows) {
+      if (queuedEntityIds.size >= rowLimit) break;
       const entityId = String(row._id);
-      // Skip rows not in the target set (when scoped to filtered rows)
       if (targetIds && !targetIds.has(entityId)) continue;
       const existing = scores[`${columnId}:${entityId}`];
       const hasResult = existing && (existing.score != null || !!existing.response);
       if (options?.force || !hasResult) {
-        setScore(columnId, entityId, {
-          isLoading: true,
-          isQueued: true,
-          response: "",
-          reasoning: "",
-        });
         queuedEntityIds.add(entityId);
       }
+    }
+
+    // Only set queued state on rows that will actually be scored
+    for (const entityId of queuedEntityIds) {
+      setScore(columnId, entityId, {
+        isLoading: true,
+        isQueued: true,
+        response: "",
+        reasoning: "",
+      });
     }
 
     setIsScoring(true);
