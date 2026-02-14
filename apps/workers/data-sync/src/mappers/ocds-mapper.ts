@@ -192,6 +192,42 @@ function extractContractEndDate(release: OcdsRelease): Date | null {
 }
 
 // ---------------------------------------------------------------------------
+// Contract mechanism classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify contract procurement mechanism from OCDS data.
+ * Priority: procurementMethodDetails (most reliable) > title patterns.
+ */
+export function classifyContractMechanism(
+  procurementMethodDetails: string | null | undefined,
+  title: string
+): "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework" {
+  const pmd = procurementMethodDetails?.toLowerCase() ?? "";
+
+  // Signal 1: procurementMethodDetails (most reliable)
+  if (pmd.includes("call-off from a dynamic purchasing system")) {
+    return "call_off_dps";
+  }
+  if (pmd.includes("call-off from a framework agreement")) {
+    return "call_off_framework";
+  }
+
+  // Signal 2: Title pattern matching (word boundaries to avoid false positives)
+  if (/\bdynamic purchasing system\b/i.test(title) || /\bDPS\b/.test(title)) {
+    return "dps";
+  }
+  if (/\bframework\s+agreement\b/i.test(title)) {
+    return "framework";
+  }
+  if (/\bframework\b/i.test(title)) {
+    return "framework";
+  }
+
+  return "standard";
+}
+
+// ---------------------------------------------------------------------------
 // Main mapper
 // ---------------------------------------------------------------------------
 
@@ -273,6 +309,10 @@ export function mapOcdsToContract(
     rawData: release,
     procurementMethod: release.tender?.procurementMethod ?? null,
     procurementMethodDetails: release.tender?.procurementMethodDetails ?? null,
+    contractMechanism: classifyContractMechanism(
+      release.tender?.procurementMethodDetails,
+      release.tender?.title ?? "Untitled"
+    ),
     submissionMethod: release.tender?.submissionMethod ?? [],
     submissionPortalUrl: release.tender?.submissionMethodDetails ?? null,
     buyerContact,
