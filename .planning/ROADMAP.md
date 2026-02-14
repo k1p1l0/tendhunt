@@ -116,11 +116,11 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 - `apps/web/src/app/api/schools/[urn]/route.ts` -- API for school detail data
 
 **Success criteria:**
-- [ ] Navigating to `/schools/[urn]` shows a school detail page with full inspection history
-- [ ] Timeline visualization displays ratings over time with color coding (red=downgrade, green=improvement)
-- [ ] Each inspection in the timeline links to the corresponding Ofsted report PDF
-- [ ] School detail page links to the buyer page when buyerId exists
-- [ ] Buyer Ofsted tab shows inspection history for linked schools (not just current ratings)
+- [x] Navigating to `/schools/[urn]` shows a school detail page with full inspection history
+- [x] Timeline visualization displays ratings over time with color coding (red=downgrade, green=improvement)
+- [x] Each inspection in the timeline links to the corresponding Ofsted report PDF
+- [x] School detail page links to the buyer page when buyerId exists
+- [x] Buyer Ofsted tab shows inspection history for linked schools (not just current ratings)
 
 ---
 

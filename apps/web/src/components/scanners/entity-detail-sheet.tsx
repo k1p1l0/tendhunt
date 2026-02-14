@@ -497,14 +497,24 @@ export function EntityDetailSheet({
           )}
 
           {/* View full profile link */}
-          {(scannerType === "rfps" || scannerType === "buyers") && (
+          {(scannerType === "rfps" || scannerType === "buyers" || scannerType === "schools") && (
             <>
               <Separator />
               <Link
-                href={scannerType === "rfps" ? `/contracts/${entityId}` : `/buyers/${entityId}`}
+                href={
+                  scannerType === "rfps"
+                    ? `/contracts/${entityId}`
+                    : scannerType === "buyers"
+                      ? `/buyers/${entityId}`
+                      : `/schools/${row.urn ?? entityId}`
+                }
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
               >
-                {scannerType === "rfps" ? "View full contract" : "View full buyer profile"}
+                {scannerType === "rfps"
+                  ? "View full contract"
+                  : scannerType === "buyers"
+                    ? "View full buyer profile"
+                    : "View school detail & timeline"}
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             </>

@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 
 ## Current Phase
 
-**Phase 3: Downgrade Detection & Sorting**
+**Phase 4: School Detail Page & Timeline**
 - Status: Complete
-- Goal: Robust downgrade detection for both pre-2024 and post-2024 inspections with color-coded badges and sort options
-- Requirements: DOWN-01, DOWN-02, DOWN-03
+- Goal: Deep-dive view with full inspection history and visual timeline
+- Requirements: DETL-01, DETL-02, DETL-03, DETL-04, DETL-05
 
 ## Progress
 
@@ -52,7 +52,18 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - [x] Add Sort By dropdown to SchoolsFilters in both creation form and edit dialog
 
 ### Phase 4: School Detail Page & Timeline
-- [ ] Not started
+- [x] Create /schools/[urn] route with server component fetching school + inspection history
+- [x] SchoolHeader component with current ratings, school info, buyer link, overall rating circle
+- [x] InspectionTimeline component with animated vertical timeline entries (color-coded)
+- [x] RatingChart sparkline SVG showing grades over time with animated path
+- [x] Each inspection entry links to Ofsted report PDF via ExternalLink icon
+- [x] School detail breadcrumb: Scanners > Schools > [Name]
+- [x] Scanner entity detail sheet now links to /schools/[urn] for schools scanner type
+- [x] Buyer Ofsted tab upgraded: shows inspection history per school (expandable)
+- [x] Buyer Ofsted tab now links each school to /schools/[urn] detail page
+- [x] Buyer Ofsted tab shows downgrade stats + rating direction icons
+- [x] API route /api/schools/[urn] returns full school data including inspectionHistory
+- [x] fetchBuyerById now selects inspectionHistory + ratingDirection for Ofsted schools
 
 ### Phase 5: AI Report Analysis Column
 - [ ] Not started
@@ -80,4 +91,4 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 None currently.
 
 ---
-*Last updated: 2026-02-14 after Phase 3 completion*
+*Last updated: 2026-02-14 after Phase 4 completion*

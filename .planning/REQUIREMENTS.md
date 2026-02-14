@@ -30,11 +30,11 @@
 
 ### Detail Page
 
-- [ ] **DETL-01**: User can view a school detail page at /schools/[urn] showing full inspection history
-- [ ] **DETL-02**: School detail page shows a timeline visualization of rating changes over time, color-coded by direction (red=downgrade, green=improvement, amber=unchanged)
-- [ ] **DETL-03**: School detail page links to the Ofsted report PDF for each inspection
-- [ ] **DETL-04**: School detail page links to the associated buyer page when the school has a buyerId
-- [ ] **DETL-05**: Buyer detail page Ofsted tab shows inspection history for linked schools, not just current ratings
+- [x] **DETL-01**: User can view a school detail page at /schools/[urn] showing full inspection history
+- [x] **DETL-02**: School detail page shows a timeline visualization of rating changes over time, color-coded by direction (red=downgrade, green=improvement, amber=unchanged)
+- [x] **DETL-03**: School detail page links to the Ofsted report PDF for each inspection
+- [x] **DETL-04**: School detail page links to the associated buyer page when the school has a buyerId
+- [x] **DETL-05**: Buyer detail page Ofsted tab shows inspection history for linked schools, not just current ratings
 
 ### AI Report Analysis
 
@@ -81,11 +81,11 @@
 | DOWN-01 | Phase 3 | Done |
 | DOWN-02 | Phase 3 | Done |
 | DOWN-03 | Phase 3 | Done |
-| DETL-01 | Phase 4 | Pending |
-| DETL-02 | Phase 4 | Pending |
-| DETL-03 | Phase 4 | Pending |
-| DETL-04 | Phase 4 | Pending |
-| DETL-05 | Phase 4 | Pending |
+| DETL-01 | Phase 4 | Done |
+| DETL-02 | Phase 4 | Done |
+| DETL-03 | Phase 4 | Done |
+| DETL-04 | Phase 4 | Done |
+| DETL-05 | Phase 4 | Done |
 | AI-01 | Phase 5 | Pending |
 | AI-02 | Phase 5 | Pending |
 | AI-03 | Phase 5 | Pending |
