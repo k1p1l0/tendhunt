@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Radar } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { WatchButton } from "./watch-button";
 
 interface ProfileHeaderProps {
   name: string;
@@ -60,24 +61,26 @@ export function ProfileHeader({ name, sectors }: ProfileHeaderProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-xl font-semibold truncate">{name}</h1>
-          <Button
-            size="sm"
-            onClick={handleCreateScanner}
-            disabled={isCreating}
-            className="shrink-0"
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Radar className="h-3.5 w-3.5" />
-                Track Contracts
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <WatchButton supplierName={name} />
+            <Button
+              size="sm"
+              onClick={handleCreateScanner}
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Radar className="h-3.5 w-3.5" />
+                  Track Contracts
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         {sectors.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">

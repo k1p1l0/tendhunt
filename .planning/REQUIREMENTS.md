@@ -63,12 +63,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Competitor Monitoring
 
-- [ ] **WATCH-01**: User can save competitors to a watchlist from the profile page
-- [ ] **WATCH-02**: Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
-- [ ] **WATCH-03**: In-app notification when a watched competitor wins a new contract
-- [ ] **WATCH-04**: Competitor activity feed on dashboard showing recent wins by watched competitors
-- [ ] **WATCH-05**: Change detection — alert when competitor enters a new region or sector
-- [ ] **WATCH-06**: Email digest (optional) summarizing watched competitor activity
+- [x] **WATCH-01**: User can save competitors to a watchlist from the profile page
+- [x] **WATCH-02**: Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
+- [x] **WATCH-03**: In-app notification when a watched competitor wins a new contract
+- [x] **WATCH-04**: Competitor activity feed on dashboard showing recent wins by watched competitors
+- [x] **WATCH-05**: Change detection — alert when competitor enters a new region or sector
+- [x] **WATCH-06**: Email digest (optional) summarizing watched competitor activity
 
 ## v2 Requirements
 
@@ -135,12 +135,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-01 | Phase 4 | Done |
 | AI-02 | Phase 4 | Done |
 | AI-03 | Phase 4 | Done |
-| WATCH-01 | Phase 5 | Pending |
-| WATCH-02 | Phase 5 | Pending |
-| WATCH-03 | Phase 5 | Pending |
-| WATCH-04 | Phase 5 | Pending |
-| WATCH-05 | Phase 5 | Pending |
-| WATCH-06 | Phase 5 | Pending |
+| WATCH-01 | Phase 5 | Done |
+| WATCH-02 | Phase 5 | Done |
+| WATCH-03 | Phase 5 | Done |
+| WATCH-04 | Phase 5 | Done |
+| WATCH-05 | Phase 5 | Done |
+| WATCH-06 | Phase 5 | Done |
 
 **Coverage:**
 - v1 requirements: 36 total
@@ -149,4 +149,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after Phase 5 planning*
+*Last updated: 2026-02-14 after Phase 5 completion*

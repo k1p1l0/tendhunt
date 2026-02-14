@@ -6,6 +6,7 @@ import { Search, TrendingUp, Building2, FileText } from "lucide-react";
 import { motion } from "motion/react";
 import { CompetitorsListBreadcrumb } from "./breadcrumb";
 import { CompetitorSearchBar } from "@/components/competitors/search-bar";
+import { WatchlistSection } from "@/components/competitors/watchlist-section";
 import { useAgentContext } from "@/components/agent/agent-provider";
 
 import type { SupplierSearchResult } from "@/lib/competitors";
@@ -71,6 +72,8 @@ export default function CompetitorsPage() {
           description="View actual payment data from buyer transparency reports."
         />
       </motion.div>
+
+      <WatchlistSection />
     </div>
   );
 }

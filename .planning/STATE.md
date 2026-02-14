@@ -6,9 +6,9 @@
 
 ## Current Phase
 
-**Phase 5: Competitor Monitoring & Alerts** — Planned
+**Phase 5: Competitor Monitoring & Alerts** — Done
 
-**Phases 1-4 complete. Phase 5 planned and ready to begin.**
+**All 5 phases complete. All 36 requirements delivered.**
 
 ## Phase Progress
 
@@ -18,7 +18,7 @@
 | 2 | Done | 12 | 12 |
 | 3 | Done | 4 | 4 |
 | 4 | Done | 6 | 6 |
-| 5 | Planned | 6 | 0 |
+| 5 | Done | 6 | 6 |
 
 ## Planning Artifacts
 
@@ -121,16 +121,38 @@ Key files modified:
 - `apps/web/src/app/(dashboard)/competitors/page.tsx` — added agent context setter for competitor list page
 - `apps/web/src/app/(dashboard)/competitors/[name]/page.tsx` — added `AgentContextSetter` with full competitor profile context
 
-## What's Next
+## Phase 5 Deliverables
 
-Phase 5: Competitor Monitoring & Alerts (6 requirements: WATCH-01 through WATCH-06).
+All 6 requirements completed:
 
-Key work areas:
-1. **Watchlist model + API** (WATCH-01) — MongoDB collection for user watchlists, CRUD endpoints, watch/unwatch toggle on competitor profile
-2. **Detection pipeline** (WATCH-02, WATCH-05) — Post-sync hook in data-sync worker to compare new contract awards against watchlists, plus region/sector change detection
-3. **In-app notifications** (WATCH-03) — Notification model, bell icon in header, mark-as-read flow
-4. **Dashboard feed** (WATCH-04) — Activity feed card on main dashboard showing recent competitor wins
-5. **Email digest** (WATCH-06) — Optional email summaries via transactional email provider
+| Requirement | Deliverable |
+|-------------|-------------|
+| WATCH-01 | `apps/web/src/models/watchlist.ts` — Mongoose schema (userId, supplierName, normalizedName, notifyEmail, lastSnapshot with sectors/regions). `apps/web/src/app/api/watchlist/route.ts` — CRUD endpoints (GET with check mode, POST, DELETE, PATCH). `apps/web/src/components/competitors/watch-button.tsx` — Toggle button on profile header with animated state transitions and email notification popover. |
+| WATCH-02 | `apps/workers/data-sync/src/db/watchlist.ts` — `checkWatchlistMatches()` runs after each sync batch in `sync-engine.ts`. Compares new awarded contracts against all watchlist entries by normalized supplier name matching. Creates `NEW_CONTRACT` notifications for each user watching a matching supplier. |
+| WATCH-03 | `apps/web/src/models/notification.ts` — Mongoose schema (userId, type, title, body, entityLink, supplierName, read, emailSent). `apps/web/src/app/api/notifications/route.ts` — GET (list with pagination + unread count) and PATCH (mark-as-read by IDs or markAllRead). `apps/web/src/components/layout/notification-bell.tsx` — Popover in header with unread badge, 60s polling, mark-all-read, click-to-navigate. |
+| WATCH-04 | `apps/web/src/components/dashboard/competitor-feed.tsx` — Activity feed card on dashboard (Sculptor homepage) showing recent notifications with type badges, time-ago, and links to competitor profiles. Auto-hides when no notifications exist. |
+| WATCH-05 | Region/sector change detection integrated into `checkWatchlistMatches()` in the data-sync worker. Compares new contract regions/sectors against watchlist `lastSnapshot`. Creates `NEW_REGION` and `NEW_SECTOR` notifications. Updates snapshots after detection to prevent duplicate alerts. |
+| WATCH-06 | `apps/web/src/app/api/watchlist/digest/route.ts` — Cron-triggered email digest endpoint. Collects unsent notifications for users with `notifyEmail=true`, groups by supplier, sends via Resend API (or logs if no API key configured). `apps/web/src/lib/watchlist.ts` — `getDigestRecipients()` and `getDigestNotifications()` helpers. |
+
+Key files created:
+- `apps/web/src/models/watchlist.ts` — Watchlist schema with supplier snapshot for change detection
+- `apps/web/src/models/notification.ts` — Notification schema with type, read, and emailSent tracking
+- `apps/web/src/lib/watchlist.ts` — Watchlist logic: `getUserWatchlist()` with activity counts, `updateWatchlistSnapshot()`, digest helpers
+- `apps/web/src/app/api/watchlist/route.ts` — Full CRUD (GET/POST/DELETE/PATCH)
+- `apps/web/src/app/api/watchlist/digest/route.ts` — Email digest endpoint (cron-triggered)
+- `apps/web/src/app/api/notifications/route.ts` — Notification list + mark-as-read
+- `apps/web/src/components/competitors/watch-button.tsx` — Watch/unwatch toggle with email settings popover
+- `apps/web/src/components/competitors/watchlist-section.tsx` — Watchlist card on competitors page with remove/email toggle
+- `apps/web/src/components/layout/notification-bell.tsx` — Header notification bell with popover
+- `apps/web/src/components/dashboard/competitor-feed.tsx` — Dashboard activity feed card
+- `apps/workers/data-sync/src/db/watchlist.ts` — Post-sync detection logic
+
+Key files modified:
+- `apps/web/src/components/competitors/profile-header.tsx` — Added WatchButton next to Track Contracts button
+- `apps/web/src/components/layout/header.tsx` — Added NotificationBell to header
+- `apps/web/src/components/sculptor/sculptor-homepage.tsx` — Added CompetitorFeed card to dashboard
+- `apps/web/src/app/(dashboard)/competitors/page.tsx` — Added WatchlistSection below hint cards
+- `apps/workers/data-sync/src/sync-engine.ts` — Added checkWatchlistMatches() call after each batch upsert
 
 ## Notes
 
@@ -144,6 +166,10 @@ Key work areas:
 - Spend data uses `vendorNormalized` field matching — same normalization logic as contract supplier names
 - Contract-spend overlap detection compares buyer names (case-insensitive) between the two data sources
 - Sculptor AI can search competitors via `search_competitor` tool and link to profiles via `competitor:NAME` entity links
+- Watchlist detection runs as fire-and-forget after each sync batch — non-blocking to the sync pipeline
+- Notification bell polls every 60s for new notifications — no WebSocket needed for v1
+- Email digest is triggered via cron POST to `/api/watchlist/digest` — supports Resend API with fallback to console logging
+- Change detection (new regions/sectors) uses snapshot comparison — first sync after watch won't produce false positives because initial snapshot is captured at watch time
 
 ---
 *Created: 2026-02-14*
@@ -151,4 +177,4 @@ Key work areas:
 *Phase 2 completed: 2026-02-14*
 *Phase 3 completed: 2026-02-14*
 *Phase 4 completed: 2026-02-14*
-*Phase 5 planned: 2026-02-14*
+*Phase 5 completed: 2026-02-14*

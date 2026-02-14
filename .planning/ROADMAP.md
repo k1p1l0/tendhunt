@@ -12,7 +12,7 @@
 | 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Done |
 | 3 | Spend Intelligence | 4 (SPND-01..04) | Done |
 | 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Done |
-| 5 | Competitor Monitoring & Alerts | 6 (WATCH-01..06) | Planned |
+| 5 | Competitor Monitoring & Alerts | 6 (WATCH-01..06) | Done |
 
 ---
 
@@ -136,12 +136,12 @@
 **Goal:** Users can watch competitors and receive proactive alerts when those competitors win new contracts, expand into new regions or sectors, with an activity feed on the dashboard and optional email digests.
 
 **Requirements:**
-- [ ] WATCH-01 — User can save competitors to a watchlist from the profile page
-- [ ] WATCH-02 — Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
-- [ ] WATCH-03 — In-app notification when a watched competitor wins a new contract
-- [ ] WATCH-04 — Competitor activity feed on dashboard showing recent wins by watched competitors
-- [ ] WATCH-05 — Change detection — alert when competitor enters a new region or sector
-- [ ] WATCH-06 — Email digest (optional) summarizing watched competitor activity
+- [x] WATCH-01 — User can save competitors to a watchlist from the profile page
+- [x] WATCH-02 — Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
+- [x] WATCH-03 — In-app notification when a watched competitor wins a new contract
+- [x] WATCH-04 — Competitor activity feed on dashboard showing recent wins by watched competitors
+- [x] WATCH-05 — Change detection — alert when competitor enters a new region or sector
+- [x] WATCH-06 — Email digest (optional) summarizing watched competitor activity
 
 **Key deliverables:**
 1. `apps/web/src/models/watchlist.ts` — Mongoose schema for user watchlist entries (userId, supplierName, normalizedName, createdAt, notifyEmail flag)
@@ -253,4 +253,4 @@ All phases are sequential. Each builds on the previous.
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 — Phase 5 planned (Competitor Monitoring & Alerts)*
+*Last updated: 2026-02-14 — Phase 5 completed (Competitor Monitoring & Alerts)*
