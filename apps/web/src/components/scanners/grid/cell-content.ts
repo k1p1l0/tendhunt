@@ -93,7 +93,8 @@ export function createGetCellContent(
         if (entry?.isLoading) return createTextStatusCell("", "loading");
         if (entry?.error) return createTextStatusCell("", "error", entry.error);
         if (entry?.response) return createTextStatusCell(entry.response, "success");
-        return createTextStatusCell("", "empty");
+        // No entry — show queued shimmer when scoring is active, empty otherwise
+        return createTextStatusCell("", isScoringActive ? "queued" : "empty");
       }
 
       // Score mode: queued shows shimmer bar, active shows spinner
