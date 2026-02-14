@@ -17,12 +17,14 @@ const STRIP_PATTERNS = [
   /\bfoundation\s+trust\b/gi,
   /\bnhs\s+trust\b/gi,
   /\bnhs\b/gi,
+  /\blondon\s+borough\b/gi,
   /\bborough\b/gi,
   /\bcouncil\b/gi,
   /\bcity\b/gi,
   /\broyal\b/gi,
   /\bthe\b/gi,
   /\bof\b/gi,
+  /\blondon\b/gi,
   /\bmetropolitan\b/gi,
   /\bdistrict\b/gi,
   /\bcounty\b/gi,
@@ -66,6 +68,8 @@ const HEURISTIC_RULES: Array<{
   { test: (n) => /\b(scottish government|welsh government|northern ireland|stormont)\b/i.test(n), orgType: "devolved_government" },
   // Scottish/Welsh/NI councils (not in England-focused DataSource)
   { test: (n) => /\bcouncil\b/i.test(n), orgType: "local_council_other" },
+  // London boroughs that don't have "council" in the name
+  { test: (n) => /\bborough\b/i.test(n), orgType: "local_council_london" },
   // NHS bodies
   { test: (n) => /\bnhs\b/i.test(n), orgType: "nhs_other" },
   { test: (n, s) => s === "Health & Social" && /\b(trust|hospital|health)\b/i.test(n), orgType: "nhs_other" },
