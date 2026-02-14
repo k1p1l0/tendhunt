@@ -12,6 +12,7 @@ export interface ContractFilters {
   maxValue?: number;
   stage?: string;
   status?: string;
+  mechanism?: string;
   sort?: "date" | "score";
   page?: number;
   pageSize?: number;
@@ -64,6 +65,10 @@ export async function fetchContracts(filters: ContractFilters) {
 
   if (filters.status) {
     conditions.push({ status: filters.status });
+  }
+
+  if (filters.mechanism) {
+    conditions.push({ contractMechanism: filters.mechanism });
   }
 
   const query = conditions.length > 0 ? { $and: conditions } : {};

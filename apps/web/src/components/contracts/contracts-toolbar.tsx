@@ -51,6 +51,14 @@ const REGIONS: Record<string, string> = {
   UNSPECIFIED: "Nationwide / Unspecified",
 };
 
+const MECHANISMS = [
+  { value: "standard", label: "Standard Tender" },
+  { value: "dps", label: "DPS (Dynamic Purchasing)" },
+  { value: "framework", label: "Framework Agreement" },
+  { value: "call_off_dps", label: "DPS Call-off" },
+  { value: "call_off_framework", label: "Framework Call-off" },
+] as const;
+
 const VALUE_RANGES = [
   { label: "Under 100K", min: 0, max: 100000 },
   { label: "100K - 500K", min: 100000, max: 500000 },
@@ -206,6 +214,8 @@ export function ContractsToolbar({
       : `${currentMinValue}-`
     : null;
 
+  const currentMechanism = searchParams.get("mechanism");
+
   const currentValueLabel = currentValueRange
     ? VALUE_RANGES.find((r) => {
         const encoded = r.max != null ? `${r.min}-${r.max}` : `${r.min}-`;
@@ -267,6 +277,14 @@ export function ContractsToolbar({
                 value: r.max != null ? `${r.min}-${r.max}` : `${r.min}-`,
                 label: r.label,
               }))}
+            />
+            <FilterChip
+              label="Type"
+              value={currentMechanism}
+              displayValue={MECHANISMS.find((m) => m.value === currentMechanism)?.label}
+              onSelect={(v) => updateFilter("mechanism", v)}
+              onClear={() => updateFilter("mechanism", null)}
+              options={MECHANISMS.map((m) => ({ value: m.value, label: m.label }))}
             />
           </div>
         </div>

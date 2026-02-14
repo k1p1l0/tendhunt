@@ -12,6 +12,7 @@ async function ContractFeed({
   region,
   minValue,
   maxValue,
+  mechanism,
   sort,
   page,
 }: {
@@ -20,6 +21,7 @@ async function ContractFeed({
   region?: string;
   minValue?: number;
   maxValue?: number;
+  mechanism?: string;
   sort?: "date" | "score";
   page: number;
 }) {
@@ -30,6 +32,7 @@ async function ContractFeed({
     region,
     minValue,
     maxValue,
+    mechanism,
     sort,
     page,
     pageSize,
@@ -55,6 +58,8 @@ async function ContractFeed({
           source: contract.source,
           sector: contract.sector,
           status: contract.status,
+          contractMechanism: contract.contractMechanism,
+          contractEndDate: contract.contractEndDate,
         }))}
       />
 
@@ -85,6 +90,9 @@ export default async function ContractsPage({
     typeof params.page === "string" ? params.page : undefined;
   const page = pageStr ? Math.max(1, parseInt(pageStr, 10) || 1) : 1;
 
+  const mechanism =
+    typeof params.mechanism === "string" ? params.mechanism : undefined;
+
   const minValueStr =
     typeof params.minValue === "string" ? params.minValue : undefined;
   const maxValueStr =
@@ -96,6 +104,7 @@ export default async function ContractsPage({
     query,
     sector,
     region,
+    mechanism,
     minValue,
     maxValue,
     sort,
@@ -112,6 +121,7 @@ export default async function ContractsPage({
           region={region}
           minValue={minValue}
           maxValue={maxValue}
+          mechanism={mechanism}
           sort={sort}
           page={page}
         />
