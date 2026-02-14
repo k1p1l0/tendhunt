@@ -3,6 +3,7 @@ import { dbConnect } from "@/lib/mongodb";
 import Contract from "@/models/contract";
 import Buyer from "@/models/buyer";
 import Signal from "@/models/signal";
+import OfstedSchool from "@/models/ofsted-school";
 
 export interface ContractFilters {
   query?: string;
@@ -151,7 +152,54 @@ export async function fetchContractById(id: string) {
       .lean();
   }
 
-  return { ...contract, buyer };
+  // Fetch Ofsted context for education-sector contracts
+  let ofstedContext = null;
+  const isEducation =
+    contract.sector === "Education" ||
+    (contract.cpvCodes as string[] | undefined)?.some((c: string) => c.startsWith("80"));
+
+  const buyerOid = buyer?._id ?? contract.buyerId;
+  if (isEducation && buyerOid) {
+    const schools = await OfstedSchool.find({ buyerId: buyerOid })
+      .select("name overallEffectiveness qualityOfEducation behaviourAndAttitudes personalDevelopment leadershipAndManagement")
+      .lean();
+
+    if (schools.length > 0) {
+      const belowGood = schools.filter((s) => {
+        const ratings = [
+          s.overallEffectiveness,
+          s.qualityOfEducation,
+          s.behaviourAndAttitudes,
+          s.personalDevelopment,
+          s.leadershipAndManagement,
+        ].filter((r): r is number => r != null);
+        return ratings.some((r) => r >= 3);
+      });
+
+      ofstedContext = {
+        totalSchools: schools.length,
+        belowGoodCount: belowGood.length,
+        schools: belowGood
+          .map((s) => {
+            const ratings = [
+              s.overallEffectiveness,
+              s.qualityOfEducation,
+              s.behaviourAndAttitudes,
+              s.personalDevelopment,
+              s.leadershipAndManagement,
+            ].filter((r): r is number => r != null);
+            return {
+              name: s.name,
+              worstRating: Math.max(...ratings),
+            };
+          })
+          .sort((a, b) => b.worstRating - a.worstRating)
+          .slice(0, 10),
+      };
+    }
+  }
+
+  return { ...contract, buyer, ofstedContext };
 }
 
 export async function getContractStats() {
