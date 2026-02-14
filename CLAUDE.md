@@ -477,14 +477,19 @@ Sculptor is TendHunt's inline AI assistant panel. It lives as a 420px panel on t
 | Panel | `components/agent/agent-panel.tsx` | Inline panel (desktop) / Sheet overlay (mobile) |
 | Store | `stores/agent-store.ts` | Zustand + persist middleware — conversations survive refresh |
 | SSE Hook | `hooks/use-agent.ts` | Chat streaming, tool action handling, enrichment stream |
-| System Prompt | `lib/agent/system-prompt.ts` | Personality, tools, context, guidelines |
-| Tools Schema | `lib/agent/tools.ts` | Claude tool definitions |
+| System Prompt | `lib/agent/system-prompt.ts` | Personality, tools, context, guidelines, clarifying questions |
+| Tools Schema | `lib/agent/tools.ts` | Claude tool definitions (11 tools: 8 read, 3 write, 1 enrichment) |
 | Tool Handlers | `lib/agent/tool-handlers.ts` | Server-side tool execution |
-| Chat API | `app/api/agent/chat/route.ts` | SSE streaming endpoint |
+| Chat API | `app/api/agent/chat/route.ts` | SSE streaming endpoint (max 5 agentic loops) |
 | Messages | `components/agent/agent-message.tsx` | Markdown rendering, entity links, buyer logo hydration |
+| Quick Reply | `components/agent/quick-reply-chips.tsx` | `[[option: Label]]` token parser + pill buttons |
 | Tool Chain | `components/agent/tool-call-indicator.tsx` | Collapsible "Working" / "Completed N steps" UI |
 | Input | `components/agent/agent-input.tsx` | Textarea with context chips bar |
-| Enrichment | `components/agent/enrichment-progress.tsx` | Animated stage-by-stage enrichment progress |
+| Enrichment Confirm | `components/agent/enrichment-confirm.tsx` | Text-detection fallback for "Yes, enrich" / "Skip" buttons |
+| Enrichment Progress | `components/agent/enrichment-progress.tsx` | Animated stage-by-stage enrichment progress |
+| Suggested Actions | `components/agent/suggested-actions.tsx` | Context-aware prompt suggestions on empty state |
+| Context Provider | `components/agent/agent-provider.tsx` | React Context for page context (buyer/contract/scanner) |
+| Context Setter | `components/agent/agent-context-setter.tsx` | Client component to set context from server components |
 
 ### Sculptor Personality
 
@@ -521,6 +526,30 @@ Sculptor can trigger the full enrichment pipeline (9 stages + 4 spend stages) fo
 **Confirmation buttons** appear via two paths:
 1. **Tool-triggered:** AI calls `enrich_buyer` without `confirmed` → `enrich_confirm` action → store state
 2. **Text-detection fallback:** Regex patterns detect enrichment mentions in AI text → buttons auto-show
+
+### Quick Reply Chips (Clarifying Questions)
+
+Before ambiguous write actions (create scanner, apply filter, add column), Sculptor asks one clarifying question with clickable option chips instead of guessing.
+
+**How it works:**
+1. System prompt instructs Sculptor to include `[[option: Label]]` tokens in its response text
+2. `renderMarkdown()` in `agent-message.tsx` calls `stripChipTokens()` to remove tokens before rendering — they're never visible as raw text
+3. `QuickReplyChips` component in `agent-message-list.tsx` extracts tokens from last assistant message and renders pill buttons
+4. Clicking a chip sends the label as a regular user message via `onSend()`
+5. Chips auto-dismiss after click or when a new message is sent
+
+**Key design:** Zero protocol changes — tokens live in the raw message text (persisted in MongoDB as-is). The client handles extraction and rendering. If the AI forgets the syntax, it degrades gracefully to plain text.
+
+**System prompt rules:**
+- Only ask before write actions when ambiguous (not for reads, not when context fills gaps)
+- Max ONE question per response, 2-4 options
+- After user responds, act immediately — no follow-up questions
+
+### Page Context
+
+Server components inject page context via `<AgentContextSetter context={{...}} />`. The context flows through `AgentProvider` → `useAgentContext()` → system prompt builder. Pages set context in `useEffect` and clean up on unmount (`setBreadcrumb(null)` pattern).
+
+Context fields vary by page: `page` (always present), `buyerId/Name/Sector/Region/OrgType` (buyer detail), `contractId/Title/BuyerName/Sector/Value/Mechanism` (contract detail), `scannerId/Type/Name/Query/Filters` (scanner), `selectedRow` (scanner with row selection).
 
 ### Conversation Persistence
 
