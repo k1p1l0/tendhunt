@@ -132,14 +132,103 @@ function extractCsvLinksFromHtml(html: string, baseUrl: string): string[] {
   return [...new Set(links)];
 }
 
+// ---------------------------------------------------------------------------
+// Alternate domain fallback — try governance/ICB domains when main website fails
+// ---------------------------------------------------------------------------
+
+interface AltDomainResult {
+  url: string;
+  csvLinks: string[];
+}
+
+function getAlternateDomains(
+  buyerName: string,
+  orgType: string | undefined,
+  website: string | undefined
+): string[] {
+  const domains: string[] = [];
+  const nameLower = buyerName.toLowerCase();
+
+  if (orgType?.startsWith("nhs_icb") || nameLower.includes("icb")) {
+    const region = nameLower
+      .replace(/^nhs\s+/, "")
+      .replace(/\s+icb$/, "")
+      .replace(/\s+integrated care board$/, "")
+      .trim()
+      .replace(/\s+/g, "");
+    if (region.length > 2) {
+      domains.push(`https://www.${region}.icb.nhs.uk`);
+      const hyphenated = nameLower
+        .replace(/^nhs\s+/, "")
+        .replace(/\s+icb$/, "")
+        .replace(/\s+integrated care board$/, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      if (hyphenated !== region) {
+        domains.push(`https://www.${hyphenated}.icb.nhs.uk`);
+      }
+    }
+  }
+
+  if (orgType?.startsWith("nhs_trust") && website && !website.includes(".nhs.uk")) {
+    const slug = nameLower
+      .replace(/nhs\s+(foundation\s+)?trust/gi, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    if (slug.length > 3) {
+      domains.push(`https://www.${slug}.nhs.uk`);
+    }
+  }
+
+  return domains;
+}
+
+const ALT_SPEND_PATHS = [
+  "/documents/publication-scheme/what-we-spend-and-how-we-spend-it",
+  "/about-us/how-we-spend-public-money",
+  "/about-us/spending-over-25000",
+  "/about-us/spending-reports",
+  "/publications/expenditure-over-25000",
+  "/about-us/transparency/spending",
+  "/transparency/spending",
+];
+
+async function tryAlternateDomains(
+  buyer: { _id?: import("mongodb").ObjectId; name: string; orgType?: string; website?: string },
+  _env: Env
+): Promise<AltDomainResult | null> {
+  const altDomains = getAlternateDomains(buyer.name, buyer.orgType, buyer.website);
+  if (altDomains.length === 0) return null;
+
+  for (const domain of altDomains) {
+    for (const path of ALT_SPEND_PATHS) {
+      const url = `${domain}${path}`;
+      try {
+        const result = await validateTransparencyUrl(url);
+        if (result.valid && result.html && containsSpendKeywords(result.html)) {
+          console.log(`Alt domain match for "${buyer.name}": ${url}`);
+          const csvLinks = extractCsvLinksFromHtml(result.html, url);
+          return { url, csvLinks };
+        }
+      } catch {
+        // Skip unreachable alt domains silently
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Stage 1: Discover transparency pages on buyer websites.
  *
- * New flow per buyer:
+ * Flow per buyer:
  * 1. Look up patterns for buyer.orgType
  * 2. PATTERN PHASE: probe known URL paths, validate with spend keywords
  * 3. AI FALLBACK: if no pattern matched, fetch homepage + Claude Haiku
- * 4. Store result with discoveryMethod tag
+ * 4. ALTERNATE DOMAIN: try governance/ICB domains when AI fails
+ * 5. Store result with discoveryMethod tag
  */
 export async function discoverTransparencyPages(
   db: Db,
@@ -363,6 +452,22 @@ Return ONLY valid JSON (no markdown):
             const parsed = parseDiscoveryResponse(responseText);
 
             if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
+              // ---------------------------------------------------------------
+              // ALTERNATE DOMAIN FALLBACK: try common governance/ICB domains
+              // Many NHS ICBs, combined authorities, etc. host spending data
+              // on a different domain than their main website
+              // ---------------------------------------------------------------
+              const altResult = await tryAlternateDomains(buyer, env);
+              if (altResult) {
+                await updateBuyerTransparencyInfo(db, buyer._id!, {
+                  transparencyPageUrl: altResult.url,
+                  csvLinks: altResult.csvLinks,
+                  discoveryMethod: "alt_domain",
+                });
+                discovered++;
+                return { error: false, found: true };
+              }
+
               await updateBuyerTransparencyInfo(db, buyer._id!, {
                 transparencyPageUrl: "none",
                 discoveryMethod: "none",
