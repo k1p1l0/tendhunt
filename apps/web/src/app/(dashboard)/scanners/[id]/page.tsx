@@ -1112,19 +1112,63 @@ export default function ScannerDetailPage({
     return () => setAgentContext({ page: "dashboard" });
   }, [scanner?._id, scanner?.name, scanner?.type, scanner?.searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reload scanner when Sculptor adds a column via tool call
+  // Update scanner state directly when Sculptor adds a column via tool call
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
         scannerId: string;
         columnId: string;
+        name: string;
+        prompt: string;
+        useCase?: string;
+        model?: string;
       };
-      if (detail.scannerId !== id) return;
-      loadData();
+      if (detail.scannerId !== id || !scanner) return;
+
+      const aiCol = {
+        columnId: detail.columnId,
+        name: detail.name,
+        prompt: detail.prompt,
+        useCase: detail.useCase,
+        model: detail.model,
+      };
+      const updatedAiColumns = [...scanner.aiColumns, aiCol];
+      const updatedScanner = { ...scanner, aiColumns: updatedAiColumns };
+      setScanner(updatedScanner);
+      const newCols = getColumnsForType(
+        updatedScanner.type,
+        updatedAiColumns,
+        updatedScanner.customColumns,
+        updatedScanner.columnRenames
+      );
+      setColumns(reorderWithInsertPosition(newCols));
     };
     window.addEventListener("scanner-column-added", handler);
     return () => window.removeEventListener("scanner-column-added", handler);
-  }, [id, loadData]);
+  }, [id, scanner]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update scanner store when Sculptor test-scores a single entity
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        scannerId: string;
+        columnId: string;
+        entityId: string;
+        score: number | null;
+        value: string;
+        reasoning: string;
+      };
+      if (detail.scannerId !== id) return;
+
+      setScore(detail.columnId, detail.entityId, {
+        score: detail.score ?? undefined,
+        response: detail.value ?? "",
+        reasoning: detail.reasoning ?? "",
+      });
+    };
+    window.addEventListener("scanner-score-updated", handler);
+    return () => window.removeEventListener("scanner-score-updated", handler);
+  }, [id, setScore]);
 
   // Push breadcrumb into the global header
   const { setBreadcrumb } = useBreadcrumb();

@@ -336,5 +336,24 @@ export function getToolDefinitions(): Anthropic.Tool[] {
         required: ["scannerId", "name", "prompt"],
       },
     },
+    {
+      name: "test_score_column",
+      description:
+        "Test-score a single row for an AI column to preview the scoring prompt. Returns the score and reasoning inline. Use this after adding an AI column when the user wants to verify the prompt works before scoring all rows.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          scannerId: {
+            type: "string",
+            description: "MongoDB ObjectId of the scanner",
+          },
+          columnId: {
+            type: "string",
+            description: "The columnId of the AI column to test",
+          },
+        },
+        required: ["scannerId", "columnId"],
+      },
+    },
   ];
 }

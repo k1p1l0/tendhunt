@@ -4,12 +4,19 @@ import { dbConnect } from "@/lib/mongodb";
 import { fetchBuyerById } from "@/lib/buyers";
 import { fetchContracts, fetchContractById } from "@/lib/contracts";
 import Buyer from "@/models/buyer";
+import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import KeyPersonnel from "@/models/key-personnel";
 import SpendSummary from "@/models/spend-summary";
 import SpendTransaction from "@/models/spend-transaction";
 import BoardDocument from "@/models/board-document";
 import Scanner from "@/models/scanner";
+import CompanyProfile from "@/models/company-profile";
+import { generateScoringPrompt } from "@/lib/vibe-scanner";
+import { scoreOneEntity, buildScoringSystemPrompt } from "@/lib/scoring-engine";
+
+import type { AIModel } from "@/lib/ai-column-config";
+import type { ScannerType } from "@/models/scanner";
 
 interface ToolResult {
   summary: string;
@@ -50,6 +57,8 @@ export async function executeToolHandler(
         return await handleApplyScannerFilter(input, userId);
       case "add_scanner_column":
         return await handleAddScannerColumn(input, userId);
+      case "test_score_column":
+        return await handleTestScoreColumn(input, userId);
       case "enrich_buyer":
         return await handleEnrichBuyer(input);
       default:
@@ -430,7 +439,7 @@ async function handleAddScannerColumn(
 
   const scanner = await Scanner.findOneAndUpdate(
     { _id: scannerId, userId },
-    { $push: { aiColumns: { columnId, name, prompt } } },
+    { $push: { aiColumns: { columnId, name, prompt, useCase: "score", model: "haiku" } } },
     { new: true }
   );
 
@@ -440,8 +449,136 @@ async function handleAddScannerColumn(
 
   return {
     summary: `Added AI column "${name}" to scanner "${scanner.name}"`,
-    data: { columnId, name, prompt },
-    action: { type: "column_added", scannerId, columnId },
+    data: { columnId, name, prompt, useCase: "score", model: "haiku" },
+    action: { type: "column_added", scannerId, columnId, name, prompt, useCase: "score", model: "haiku" },
+  };
+}
+
+async function handleTestScoreColumn(
+  input: Record<string, unknown>,
+  userId: string
+): Promise<ToolResult> {
+  const scannerId = String(input.scannerId);
+  const columnId = String(input.columnId);
+
+  if (!mongoose.isValidObjectId(scannerId)) {
+    return { summary: "Invalid scanner ID", data: null };
+  }
+
+  const scanner = await Scanner.findOne({ _id: scannerId, userId });
+  if (!scanner) {
+    return { summary: "Scanner not found or access denied", data: null };
+  }
+
+  const column = (
+    scanner.aiColumns as Array<{
+      columnId: string;
+      name: string;
+      prompt: string;
+      model?: string;
+      useCase?: string;
+    }>
+  ).find((c) => c.columnId === columnId);
+
+  if (!column) {
+    return { summary: "Column not found in scanner", data: null };
+  }
+
+  const profile = await CompanyProfile.findOne({ userId });
+  if (!profile) {
+    return { summary: "No company profile found. Complete onboarding first.", data: null };
+  }
+
+  // Load first entity based on scanner type
+  const scannerType = scanner.type as ScannerType;
+  let entity: Record<string, unknown> | null = null;
+
+  switch (scannerType) {
+    case "rfps":
+      entity = await Contract.findOne()
+        .select("title description buyerName sector valueMin valueMax buyerRegion cpvCodes deadlineDate")
+        .lean() as unknown as Record<string, unknown> | null;
+      break;
+    case "meetings":
+      entity = await Signal.findOne()
+        .select("organizationName signalType title insight sector sourceDate")
+        .lean() as unknown as Record<string, unknown> | null;
+      break;
+    case "buyers":
+      entity = await Buyer.findOne()
+        .select("name sector region description contractCount website")
+        .lean() as unknown as Record<string, unknown> | null;
+      break;
+  }
+
+  if (!entity) {
+    return { summary: "No entities found to score", data: null };
+  }
+
+  const entityId = String(entity._id);
+  const entityTitle = String(
+    entity.title || entity.name || entity.organizationName || "Unknown"
+  );
+
+  const baseScoringPrompt = generateScoringPrompt(profile);
+  const systemPrompt = buildScoringSystemPrompt(
+    baseScoringPrompt,
+    column.prompt,
+    column.useCase
+  );
+
+  const result = await scoreOneEntity(
+    entity,
+    scannerType,
+    systemPrompt,
+    (scanner.searchQuery as string) || "",
+    (column.model as AIModel) || "haiku",
+    column.useCase
+  );
+
+  // Save the score to scanner.scores so it appears in the grid
+  await Scanner.updateOne(
+    { _id: scanner._id },
+    {
+      $pull: { scores: { columnId, entityId } },
+    }
+  );
+  await Scanner.updateOne(
+    { _id: scanner._id },
+    {
+      $push: {
+        scores: {
+          columnId,
+          entityId: new mongoose.Types.ObjectId(entityId),
+          score: result.score,
+          value: result.response,
+          reasoning: result.reasoning,
+        },
+      },
+    }
+  );
+
+  const scoreDisplay = result.score != null ? `${result.score}/10` : "N/A";
+
+  return {
+    summary: `Test score for "${entityTitle}": ${scoreDisplay} — ${result.reasoning}`,
+    data: {
+      entityId,
+      entityTitle,
+      columnName: column.name,
+      score: result.score,
+      reasoning: result.reasoning,
+      response: result.response,
+    },
+    action: {
+      type: "score_updated",
+      scannerId,
+      columnId,
+      entityId,
+      score: result.score,
+      value: result.response,
+      reasoning: result.reasoning,
+    },
   };
 }
 
