@@ -15,6 +15,7 @@ import { parseFlexibleDate } from "../normalization/date-parser";
 import { parseAmount } from "../normalization/amount-parser";
 import { normalizeVendor } from "../normalization/vendor-normalizer";
 import { normalizeCategory } from "../normalization/category-taxonomy";
+import { reportPipelineError } from "../db/pipeline-errors";
 import type { ColumnMapping } from "../normalization/known-schemas";
 
 // ---------------------------------------------------------------------------
@@ -347,11 +348,19 @@ export async function downloadAndParseCsvs(
                 parsedHeaders = parseResult.meta.fields ?? [];
               }
             } catch (err) {
-              console.warn(
-                `Download failed for ${csvUrl}: ${
-                  err instanceof Error ? err.message : String(err)
-                }`
-              );
+              const dlMsg = `Download failed for ${csvUrl}: ${
+                err instanceof Error ? err.message : String(err)
+              }`;
+              console.warn(dlMsg);
+              await reportPipelineError(db, {
+                worker: "spend-ingest",
+                stage: "download_parse",
+                buyerId: buyer._id!,
+                buyerName: buyer.name,
+                errorType: "unreachable",
+                message: dlMsg,
+                url: csvUrl,
+              });
               continue;
             }
 
@@ -375,6 +384,15 @@ export async function downloadAndParseCsvs(
                 console.warn(
                   `Could not map columns for "${buyer.name}" CSV: ${csvUrl}`
                 );
+                await reportPipelineError(db, {
+                  worker: "spend-ingest",
+                  stage: "download_parse",
+                  buyerId: buyer._id!,
+                  buyerName: buyer.name,
+                  errorType: "parse_error",
+                  message: `Could not map columns for CSV: ${csvUrl}`,
+                  url: csvUrl,
+                });
                 continue;
               }
             }

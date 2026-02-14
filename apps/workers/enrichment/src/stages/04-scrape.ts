@@ -3,6 +3,7 @@ import type { Env, EnrichmentJobDoc, BuyerDoc, BoardDocumentDoc } from "../types
 import { updateJobProgress } from "../db/enrichment-jobs";
 import { upsertBoardDocuments } from "../db/board-documents";
 import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
+import { reportPipelineError } from "../db/pipeline-errors";
 
 // ---------------------------------------------------------------------------
 // Stage 4: Scrape governance pages for non-ModernGov organisations
@@ -137,6 +138,17 @@ export async function scrapeGovernancePages(
               console.warn(
                 `HTTP ${response.status} for "${buyer.name}" at ${url}`
               );
+              if (response.status === 403 || response.status === 404) {
+                await reportPipelineError(db, {
+                  worker: "enrichment",
+                  stage: "scrape",
+                  buyerId: buyer._id!,
+                  buyerName: buyer.name,
+                  errorType: response.status === 403 ? "api_403" : "unreachable",
+                  message: `HTTP ${response.status} scraping governance page`,
+                  url,
+                });
+              }
               continue;
             }
 

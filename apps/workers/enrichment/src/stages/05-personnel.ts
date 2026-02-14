@@ -10,6 +10,7 @@ import type {
 } from "../types";
 import { updateJobProgress } from "../db/enrichment-jobs";
 import { upsertKeyPersonnel } from "../db/key-personnel";
+import { reportPipelineError } from "../db/pipeline-errors";
 
 // ---------------------------------------------------------------------------
 // Stage 5: Extract key personnel using Claude Haiku
@@ -182,6 +183,14 @@ async function processOneBuyer(
   if (combinedText.length === 0) {
     await markBuyerPersonnelProcessed(buyersCollection, buyer._id!);
     console.log(`No text for "${buyer.name}" -- skipping personnel extraction`);
+    await reportPipelineError(db, {
+      worker: "enrichment",
+      stage: "personnel",
+      buyerId: buyer._id!,
+      buyerName: buyer.name,
+      errorType: "no_data",
+      message: `No scraped text available for personnel extraction`,
+    });
     return { personnelCount: 0 };
   }
 

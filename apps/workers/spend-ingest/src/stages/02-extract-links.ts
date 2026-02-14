@@ -9,6 +9,7 @@ import { fetchWithDomainDelay } from "../api-clients/rate-limiter";
 import { scoreLink, FILE_EXT_PATTERN } from "../patterns/csv-patterns";
 import type { ScoredLink } from "../patterns/csv-patterns";
 import { decodeHtmlEntities } from "../patterns/html-extractor";
+import { reportPipelineError } from "../db/pipeline-errors";
 
 // ---------------------------------------------------------------------------
 // Stage 2: Extract CSV/Excel download links from transparency pages
@@ -384,12 +385,20 @@ export async function extractCsvLinks(
 
             html = await response.text();
           } catch (err) {
-            console.warn(
-              `Fetch failed for "${buyer.name}" transparency page (${transparencyUrl}): ${
-                err instanceof Error ? err.message : String(err)
-              }`
-            );
+            const fetchMsg = `Fetch failed for "${buyer.name}" transparency page (${transparencyUrl}): ${
+              err instanceof Error ? err.message : String(err)
+            }`;
+            console.warn(fetchMsg);
             await updateBuyerCsvLinks(db, buyer._id!, buyer.csvLinks ?? []);
+            await reportPipelineError(db, {
+              worker: "spend-ingest",
+              stage: "extract_links",
+              buyerId: buyer._id!,
+              buyerName: buyer.name,
+              errorType: "unreachable",
+              message: fetchMsg,
+              url: transparencyUrl,
+            });
             return { error: false, linksFound: 0 };
           }
 

@@ -11,6 +11,7 @@ import {
   Users,
   Shield,
   Settings2,
+  AlertTriangle,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import {
@@ -44,6 +45,11 @@ const navItems: NavItem[] = [
     title: "Workers",
     href: "/workers",
     icon: Activity,
+  },
+  {
+    title: "Pipeline Errors",
+    href: "/pipeline-errors",
+    icon: AlertTriangle,
   },
   {
     title: "Contracts",

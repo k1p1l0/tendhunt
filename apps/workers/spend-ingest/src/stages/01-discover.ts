@@ -11,6 +11,7 @@ import { validateTransparencyUrl } from "../patterns/url-validator";
 import { extractNavAndFooter, extractMainContent, containsSpendKeywords } from "../patterns/html-extractor";
 import { scoreLink } from "../patterns/csv-patterns";
 import { decodeHtmlEntities } from "../patterns/html-extractor";
+import { reportPipelineError } from "../db/pipeline-errors";
 
 // ---------------------------------------------------------------------------
 // Stage 1: Discover transparency pages — pattern-first, AI fallback
@@ -273,14 +274,22 @@ export async function discoverTransparencyPages(
 
             html = await response.text();
           } catch (err) {
-            console.warn(
-              `Fetch failed for "${buyer.name}" (${websiteUrl}): ${
-                err instanceof Error ? err.message : String(err)
-              }`
-            );
+            const fetchMsg = `Fetch failed for "${buyer.name}" (${websiteUrl}): ${
+              err instanceof Error ? err.message : String(err)
+            }`;
+            console.warn(fetchMsg);
             await updateBuyerTransparencyInfo(db, buyer._id!, {
               transparencyPageUrl: "none",
               discoveryMethod: "none",
+            });
+            await reportPipelineError(db, {
+              worker: "spend-ingest",
+              stage: "discover",
+              buyerId: buyer._id!,
+              buyerName: buyer.name,
+              errorType: "unreachable",
+              message: fetchMsg,
+              url: websiteUrl,
             });
             return { error: false, found: false };
           }
