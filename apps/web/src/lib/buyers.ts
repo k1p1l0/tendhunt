@@ -87,16 +87,31 @@ export async function fetchBuyerById(buyerId: string) {
     return null;
   }
 
-  // Contract query: match by buyerId OR exact buyer name
+  // For parent buyers, aggregate contracts from all children
+  const allBuyerIds = [buyer._id, ...(buyer.childBuyerIds ?? [])];
+
+  // Contract query: match by buyerId(s) OR exact buyer name
   const contractFilter = {
     $or: [
-      { buyerId: buyer._id },
+      { buyerId: { $in: allBuyerIds } },
       ...(buyer.name ? [{ buyerName: new RegExp(`^${buyer.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }] : []),
     ],
   };
 
-  // Parallel fetch: contracts, live count, signals, board documents, key personnel
-  const [contracts, contractCount, signals, boardDocuments, keyPersonnel] = await Promise.all([
+  // Fetch child summaries + parent name in parallel with main data
+  const childrenPromise = buyer.childBuyerIds?.length
+    ? Buyer.find({ _id: { $in: buyer.childBuyerIds } })
+        .select("name enrichmentScore logoUrl orgType contractCount")
+        .sort({ name: 1 })
+        .lean()
+    : Promise.resolve([]);
+
+  const parentBuyerPromise = buyer.parentBuyerId
+    ? Buyer.findById(buyer.parentBuyerId).select("name").lean()
+    : Promise.resolve(null);
+
+  // Parallel fetch: contracts, live count, signals, board documents, key personnel, children, parent
+  const [contracts, contractCount, signals, boardDocuments, keyPersonnel, children, parentBuyer] = await Promise.all([
     Contract.find(contractFilter)
       .sort({ publishedDate: -1 })
       .limit(20)
@@ -113,6 +128,8 @@ export async function fetchBuyerById(buyerId: string) {
     KeyPersonnel.find({ buyerId: buyer._id })
       .sort({ confidence: -1 })
       .lean(),
+    childrenPromise,
+    parentBuyerPromise,
   ]);
 
   return {
@@ -122,7 +139,8 @@ export async function fetchBuyerById(buyerId: string) {
     signals,
     boardDocuments,
     keyPersonnel,
-    // Enrichment fields (already on buyer document via spread, but explicitly named for clarity)
+    children,
+    parentBuyer,
     enrichmentScore: buyer.enrichmentScore,
     enrichmentSources: buyer.enrichmentSources,
     orgType: buyer.orgType,

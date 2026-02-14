@@ -17,6 +17,8 @@ import { SpendingTab } from "@/components/buyers/spending-tab";
 import type { BoardDocumentData } from "@/components/buyers/board-documents-tab";
 import type { KeyPersonnelData } from "@/components/buyers/key-personnel-tab";
 import type { LinkedinData } from "@/components/buyers/buyer-detail-client";
+import type { ChildBuyerData } from "@/components/buyers/buyer-detail-client";
+import { DepartmentsTab } from "@/components/buyers/departments-tab";
 
 interface ContractData {
   _id: string;
@@ -48,7 +50,7 @@ interface ContactData {
 }
 
 const VALID_TABS = [
-  "spending", "contracts", "contacts", "signals",
+  "spending", "contracts", "departments", "contacts", "signals",
   "board-documents", "key-personnel", "attributes",
 ] as const;
 
@@ -74,6 +76,7 @@ interface BuyerTabsProps {
   keyPersonnel: KeyPersonnelData[];
   hasSpendData?: boolean;
   spendTransactionCount?: number;
+  departments?: ChildBuyerData[];
   initialTab?: string;
 }
 
@@ -95,6 +98,11 @@ export function BuyerTabs(props: BuyerTabsProps) {
         <TabsTrigger value="contracts" className="text-sm">
           Contracts ({props.buyer.contractCount || props.contracts.length})
         </TabsTrigger>
+        {props.departments && props.departments.length > 0 && (
+          <TabsTrigger value="departments" className="text-sm">
+            Departments ({props.departments.length})
+          </TabsTrigger>
+        )}
         <TabsTrigger value="contacts" className="text-sm">
           Key Contacts ({contactCount})
         </TabsTrigger>
@@ -119,6 +127,12 @@ export function BuyerTabs(props: BuyerTabsProps) {
       <TabsContent value="contracts" className="mt-6">
         <ContractsTab contracts={props.contracts} />
       </TabsContent>
+
+      {props.departments && props.departments.length > 0 && (
+        <TabsContent value="departments" className="mt-6">
+          <DepartmentsTab departments={props.departments} />
+        </TabsContent>
+      )}
 
       <TabsContent value="contacts" className="mt-6">
         <ContactsTab contacts={props.contacts} />

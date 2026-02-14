@@ -71,6 +71,20 @@ export interface LinkedinData {
   lastFetchedAt?: string;
 }
 
+export interface ChildBuyerData {
+  _id: string;
+  name: string;
+  enrichmentScore?: number;
+  logoUrl?: string;
+  orgType?: string;
+  contractCount: number;
+}
+
+export interface ParentBuyerData {
+  _id: string;
+  name: string;
+}
+
 interface BuyerData {
   _id: string;
   name: string;
@@ -98,6 +112,9 @@ interface BuyerData {
   linkedin?: LinkedinData;
   hasSpendData?: boolean;
   spendTransactionCount?: number;
+  children?: ChildBuyerData[];
+  parentBuyer?: ParentBuyerData;
+  isParent?: boolean;
 }
 
 interface BuyerDetailClientProps {
@@ -125,6 +142,9 @@ export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps)
           description: buyer.description,
           address: buyer.address,
           industry: buyer.industry,
+          isParent: buyer.isParent,
+          childCount: buyer.children?.length ?? 0,
+          parentBuyer: buyer.parentBuyer,
         }}
       />
       <BuyerTabs
@@ -147,6 +167,7 @@ export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps)
         keyPersonnel={buyer.keyPersonnel}
         hasSpendData={buyer.hasSpendData}
         spendTransactionCount={buyer.spendTransactionCount}
+        departments={buyer.children}
         initialTab={initialTab}
       />
     </div>

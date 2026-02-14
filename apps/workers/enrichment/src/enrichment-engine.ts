@@ -6,6 +6,7 @@ import {
   markJobComplete,
   markJobError,
 } from "./db/enrichment-jobs";
+import { linkParentBuyers } from "./stages/00-parent-link";
 import { classifyBuyers } from "./stages/01-classify";
 import { discoverWebsites } from "./stages/01b-website-discovery";
 import { enrichLogoLinkedin } from "./stages/01c-logo-linkedin";
@@ -20,6 +21,7 @@ import { computeEnrichmentScores } from "./stages/06-score";
 // ---------------------------------------------------------------------------
 
 const STAGE_FUNCTIONS: Record<EnrichmentStage, StageFn> = {
+  parent_link: linkParentBuyers,
   classify: classifyBuyers,
   website_discovery: discoverWebsites,
   logo_linkedin: enrichLogoLinkedin,

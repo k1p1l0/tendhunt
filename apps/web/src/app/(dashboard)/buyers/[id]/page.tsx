@@ -88,6 +88,20 @@ export default async function BuyerDetailPage({
     extractionMethod: p.extractionMethod ?? undefined,
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children = (buyer.children ?? []).map((c: any) => ({
+    _id: String(c._id),
+    name: c.name ?? "",
+    enrichmentScore: c.enrichmentScore ?? undefined,
+    logoUrl: c.logoUrl ?? undefined,
+    orgType: c.orgType ?? undefined,
+    contractCount: c.contractCount ?? 0,
+  }));
+
+  const parentBuyer = buyer.parentBuyer
+    ? { _id: String(buyer.parentBuyer._id), name: buyer.parentBuyer.name ?? "" }
+    : undefined;
+
   let hasSpendData = false;
   let spendTransactionCount = 0;
   if (isValidObjectId(buyerId)) {
@@ -184,6 +198,9 @@ export default async function BuyerDetailPage({
               } : undefined,
               hasSpendData,
               spendTransactionCount,
+              children,
+              parentBuyer,
+              isParent: buyer.isParent ?? false,
             }}
           />
         </div>

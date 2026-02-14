@@ -4,6 +4,7 @@ import type { Env, EnrichmentStage, EnrichmentJobDoc, StageFn, DocEnrichmentStag
 import { STAGE_ORDER, DOC_STAGE_ORDER } from "./types";
 import { getDb, closeDb } from "./db/client";
 import { processEnrichmentPipeline } from "./enrichment-engine";
+import { linkParentBuyers } from "./stages/00-parent-link";
 import { classifyBuyers } from "./stages/01-classify";
 import { discoverWebsites } from "./stages/01b-website-discovery";
 import { enrichLogoLinkedin } from "./stages/01c-logo-linkedin";
@@ -309,6 +310,7 @@ export default {
 // ---------------------------------------------------------------------------
 
 const SINGLE_BUYER_STAGES: Record<EnrichmentStage, StageFn> = {
+  parent_link: linkParentBuyers,
   classify: classifyBuyers,
   website_discovery: discoverWebsites,
   logo_linkedin: enrichLogoLinkedin,
