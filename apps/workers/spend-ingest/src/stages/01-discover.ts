@@ -141,7 +141,7 @@ interface AltDomainResult {
   csvLinks: string[];
 }
 
-function getAlternateDomains(
+export function getAlternateDomains(
   buyerName: string,
   orgType: string | undefined,
   website: string | undefined
@@ -227,7 +227,7 @@ async function tryAlternateDomains(
 // data.gov.uk search fallback — many NHS ICBs publish spending data there
 // ---------------------------------------------------------------------------
 
-async function tryDataGovUk(
+export async function tryDataGovUk(
   buyerName: string
 ): Promise<AltDomainResult | null> {
   // Strip punctuation/stopwords for cleaner search
@@ -262,20 +262,24 @@ async function tryDataGovUk(
     if (datasets.length === 0) return null;
 
     // Keywords from buyer name for relevance matching
+    // Keep org-type words (council, borough, trust) for matching — they help disambiguate
     const nameWords = buyerName
       .toLowerCase()
       .replace(/[,()]/g, " ")
-      .replace(/\b(nhs|icb|the|of|and|for|trust|council|borough)\b/g, "")
+      .replace(/\b(nhs|icb|the|of|and|for)\b/g, "")
       .trim()
       .split(/\s+/)
-      .filter((w) => w.length > 3);
+      .filter((w) => w.length > 2);
 
     for (const dataset of datasets) {
-      // Check both URL and title for matching keywords
-      const searchText = `${dataset.url.toLowerCase()} ${dataset.title.toLowerCase()}`;
-      const matchCount = nameWords.filter((w) => searchText.includes(w)).length;
-      // Require at least 1 significant word match
-      if (matchCount < 1) continue;
+      // Check dataset title (more reliable than URL slug)
+      const titleLower = dataset.title.toLowerCase();
+      const matchCount = nameWords.filter((w) => titleLower.includes(w)).length;
+      // Require at least 60% of keywords to match in the title
+      // "Essex County Council" (essex, county, council) → 3 words, need 2
+      // "NHS BOB ICB" (buckinghamshire, oxfordshire, berkshire, west) → need 3
+      const threshold = Math.max(1, Math.ceil(nameWords.length * 0.5));
+      if (matchCount < threshold) continue;
 
       try {
         const datasetRes = await fetch(dataset.url, {

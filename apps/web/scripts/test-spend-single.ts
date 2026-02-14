@@ -423,17 +423,18 @@ async function tryDataGovUkSearch(
     const nameWords = buyerName
       .toLowerCase()
       .replace(/[,()]/g, " ")
-      .replace(/\b(nhs|icb|the|of|and|for|trust|council|borough)\b/g, "")
+      .replace(/\b(nhs|icb|the|of|and|for)\b/g, "")
       .trim()
       .split(/\s+/)
-      .filter((w) => w.length > 3);
-    console.log(`  Name keywords: ${nameWords.join(", ")}`);
+      .filter((w) => w.length > 2);
+    const threshold = Math.max(1, Math.ceil(nameWords.length * 0.5));
+    console.log(`  Name keywords: ${nameWords.join(", ")} (threshold: ${threshold})`);
 
     for (const dataset of datasets) {
-      const searchText = `${dataset.url.toLowerCase()} ${dataset.title.toLowerCase()}`;
-      const matchCount = nameWords.filter((w) => searchText.includes(w)).length;
-      console.log(`  Dataset: "${dataset.title}" — ${matchCount}/${nameWords.length} keywords match`);
-      if (matchCount < 1) continue;
+      const titleLower = dataset.title.toLowerCase();
+      const matchCount = nameWords.filter((w) => titleLower.includes(w)).length;
+      console.log(`  Dataset: "${dataset.title}" — ${matchCount}/${nameWords.length} keywords match (need ${threshold})`);
+      if (matchCount < threshold) continue;
 
       console.log(`  Checking dataset: ${dataset.url}`);
       try {
