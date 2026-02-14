@@ -329,6 +329,20 @@ export default function ScannerDetailPage({
   }
 
   /**
+   * Clear any remaining isQueued/isLoading flags from the store.
+   * Called after scoring completes or is cancelled to prevent stuck shimmers.
+   */
+  function clearStaleLoadingStates() {
+    const currentScores = useScannerStore.getState().scores;
+    for (const [key, entry] of Object.entries(currentScores)) {
+      if (entry.isLoading || entry.isQueued) {
+        const [colId, entId] = key.split(":");
+        setScore(colId, entId, { response: entry.response || "", reasoning: entry.reasoning || "" });
+      }
+    }
+  }
+
+  /**
    * Score All: full batch scoring of all AI columns.
    */
   async function handleScore() {
@@ -438,18 +452,21 @@ export default function ScannerDetailPage({
         }
         if (event.type === "complete") {
           clearColumnScoringProgress();
+          clearStaleLoadingStates();
           setIsScoring(false);
         }
       });
 
       // Ensure scoring ends even if complete event was missed
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Score All stream error:", err);
       setScoringError("Scoring connection lost. Please try again.");
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } finally {
       scoringAbortRef.current = null;
@@ -548,18 +565,8 @@ export default function ScannerDetailPage({
       scoringAbortRef.current = null;
     }
     clearColumnScoringProgress();
+    clearStaleLoadingStates();
     setIsScoring(false);
-
-    // Clear loading/queued states on any cells still showing spinners
-    const scores = useScannerStore.getState().scores;
-    for (const [key, entry] of Object.entries(scores)) {
-      if (entry.isLoading || entry.isQueued) {
-        const [colId, entityId] = key.split(":");
-        setScore(colId, entityId, { response: "", reasoning: "" });
-      }
-    }
-
-    // Reload to get whatever was scored before cancellation
     reloadScores();
   }
 
@@ -737,12 +744,14 @@ export default function ScannerDetailPage({
         }
         if (event.type === "complete") {
           clearColumnScoringProgress();
+          clearStaleLoadingStates();
           setIsScoring(false);
           reloadScores();
         }
       });
 
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } catch (err) {
       // AbortError is expected when user cancels — don't log as error
@@ -750,6 +759,7 @@ export default function ScannerDetailPage({
       console.error("Score column stream error:", err);
       setScoringError("Scoring connection lost. Please try again.");
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } finally {
       scoringAbortRef.current = null;
