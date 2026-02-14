@@ -32,6 +32,7 @@ export default async function ContractDetailPage({
           contractValue: contract.valueMax
             ? `GBP ${contract.valueMax.toLocaleString()}`
             : undefined,
+          contractMechanism: (contract.contractMechanism as string) ?? undefined,
         }}
       />
       <ContractBreadcrumb name={contract.title} />

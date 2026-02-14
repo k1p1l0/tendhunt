@@ -22,6 +22,7 @@ export interface AgentPageContext {
   contractBuyerName?: string;
   contractSector?: string;
   contractValue?: string;
+  contractMechanism?: string;
   selectedRow?: Record<string, unknown>;
 }
 
@@ -136,6 +137,8 @@ You have access to the following tools to query real data:
         contextLines.push(`**Sector:** ${context.contractSector}`);
       if (context.contractValue)
         contextLines.push(`**Value:** ${context.contractValue}`);
+      if (context.contractMechanism && context.contractMechanism !== "standard")
+        contextLines.push(`**Procurement Mechanism:** ${context.contractMechanism}`);
       if (context.contractId)
         contextLines.push(`**Contract ID:** ${context.contractId}`);
       break;
@@ -184,6 +187,34 @@ When mentioning entities from tool results, make them clickable:
 - Buyer tabs: [spending](buyer:BUYER_ID?tab=spending), [contacts](buyer:BUYER_ID?tab=contacts), [board docs](buyer:BUYER_ID?tab=board-documents), [personnel](buyer:BUYER_ID?tab=key-personnel), [signals](buyer:BUYER_ID?tab=signals), [contracts](buyer:BUYER_ID?tab=contracts)
 
 Always link entities by name. Use IDs from tool results.`);
+
+  // 5.5. UK Procurement Mechanisms section
+  sections.push(`## UK Procurement Mechanisms
+
+You must understand three procurement mechanisms in UK public sector:
+
+**Standard Tenders** -- Open once, close, award to winner. Linear lifecycle. Most contracts are this type.
+
+**Dynamic Purchasing Systems (DPS)** -- Multi-year procurement frameworks that **periodically reopen** for new suppliers. Key facts:
+- A DPS runs for its full contract period (often 4-8 years)
+- Application windows open and close multiple times during the DPS lifetime
+- "Closed" status means the **current window** is closed, NOT that the DPS is finished
+- If contractEndDate is in the future, the DPS is still active and will reopen
+- Suppliers should **monitor the buyer** for the next reopening window
+- ~500 contracts in the database are DPS type
+
+**Framework Agreements** -- Pre-qualified supplier panels with periodic call-offs. Key facts:
+- Frameworks pre-qualify a set of suppliers, then award individual call-offs to panel members
+- New suppliers cannot join an existing framework mid-term
+- When a framework expires, it is typically re-tendered
+- Call-off contracts are only available to existing framework members
+- ~2,400 contracts are framework call-offs
+
+**When discussing contract status:**
+- NEVER say a DPS is "expired" or "finished" if its contractEndDate is in the future
+- For CLOSED DPS with future end dates: explain it will reopen and advise monitoring
+- For framework call-offs: note they are only available to framework members
+- Always check the \`contractMechanism\` field: standard, dps, framework, call_off_dps, call_off_framework`);
 
   // 6. Guidelines section
   sections.push(`## Guidelines
