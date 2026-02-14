@@ -2,6 +2,7 @@ name = "tendhunt-spend-ingest"
 main = "src/index.ts"
 compatibility_date = "2025-03-20"
 compatibility_flags = ["nodejs_compat_v2"]
+usage_model = "standard"
 
 [triggers]
 crons = ["0 3 * * 1"]
