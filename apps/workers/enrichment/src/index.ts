@@ -354,6 +354,12 @@ async function runSingleBuyerEnrichment(
 
   for (const stage of STAGE_ORDER) {
     try {
+      // Re-assert priority 10 before each stage — classify overwrites it
+      await db.collection("buyers").updateOne(
+        { _id: _buyerId },
+        { $set: { enrichmentPriority: 10 } }
+      );
+
       const stageJob = { ...fakeJob, stage, cursor: null };
       const result = await SINGLE_BUYER_STAGES[stage](db, env, stageJob, 1);
       results[stage] = { processed: result.processed, errors: result.errors };
