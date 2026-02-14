@@ -87,18 +87,22 @@ export async function fetchBuyerById(buyerId: string) {
     return null;
   }
 
-  // Parallel fetch: contracts, signals, board documents, key personnel
-  const [contracts, signals, boardDocuments, keyPersonnel] = await Promise.all([
-    Contract.find({
-      $or: [
-        { buyerId: buyer._id },
-        ...(buyer.name ? [{ buyerName: new RegExp(`^${buyer.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }] : []),
-      ],
-    })
+  // Contract query: match by buyerId OR exact buyer name
+  const contractFilter = {
+    $or: [
+      { buyerId: buyer._id },
+      ...(buyer.name ? [{ buyerName: new RegExp(`^${buyer.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }] : []),
+    ],
+  };
+
+  // Parallel fetch: contracts, live count, signals, board documents, key personnel
+  const [contracts, contractCount, signals, boardDocuments, keyPersonnel] = await Promise.all([
+    Contract.find(contractFilter)
       .sort({ publishedDate: -1 })
       .limit(20)
       .select("-rawData")
       .lean(),
+    Contract.countDocuments(contractFilter),
     Signal.find({ $or: [{ buyerId: buyer._id }, { organizationName: buyer.name }] })
       .sort({ sourceDate: -1 })
       .lean(),
@@ -114,6 +118,7 @@ export async function fetchBuyerById(buyerId: string) {
   return {
     ...buyer,
     contracts,
+    contractCount,
     signals,
     boardDocuments,
     keyPersonnel,

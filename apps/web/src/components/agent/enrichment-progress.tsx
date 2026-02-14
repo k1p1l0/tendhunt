@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, X, Loader2, Zap } from "lucide-react";
+import { Check, X, Loader2, Zap, Globe, Linkedin, Image, Users, Building2 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useAgentStore } from "@/stores/agent-store";
 
-import type { EnrichmentStage } from "@/stores/agent-store";
+import type { EnrichmentStage, EnrichmentSummary } from "@/stores/agent-store";
 
 function StageIcon({ status }: { status: EnrichmentStage["status"] }) {
   const prefersReducedMotion = useReducedMotion();
@@ -62,6 +62,47 @@ function ElapsedTime({ startedAt, completedAt }: { startedAt: Date; completedAt?
     <span className="text-[10px] text-muted-foreground/60 tabular-nums">
       {minutes}:{seconds.toString().padStart(2, "0")}
     </span>
+  );
+}
+
+function SummaryBar({ summary }: { summary: EnrichmentSummary }) {
+  const prefersReducedMotion = useReducedMotion();
+  const items: Array<{ icon: React.ReactNode; label: string }> = [];
+
+  if (summary.orgType) {
+    items.push({ icon: <Building2 className="h-3 w-3" />, label: summary.orgType.replace(/_/g, " ") });
+  }
+  if (summary.website) {
+    items.push({ icon: <Globe className="h-3 w-3" />, label: "Website" });
+  }
+  if (summary.hasLogo) {
+    items.push({ icon: <Image className="h-3 w-3" />, label: "Logo" });
+  }
+  if (summary.hasLinkedIn) {
+    items.push({ icon: <Linkedin className="h-3 w-3" />, label: "LinkedIn" });
+  }
+  if (summary.staffCount) {
+    items.push({ icon: <Users className="h-3 w-3" />, label: `${summary.staffCount.toLocaleString()} staff` });
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={prefersReducedMotion ? {} : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="px-4 py-2.5 border-t bg-emerald-500/5 flex flex-wrap gap-2"
+    >
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-full px-2 py-0.5"
+        >
+          {item.icon}
+          {item.label}
+        </span>
+      ))}
+    </motion.div>
   );
 }
 
@@ -135,6 +176,11 @@ export function EnrichmentProgress() {
           ))}
         </AnimatePresence>
       </div>
+
+      {/* Summary after completion */}
+      {isComplete && enrichment.summary && (
+        <SummaryBar summary={enrichment.summary} />
+      )}
 
       {/* Progress bar */}
       <div className="h-1 bg-muted">

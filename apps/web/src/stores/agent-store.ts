@@ -37,6 +37,14 @@ export interface EnrichmentConfirmation {
   messageId: string;
 }
 
+export interface EnrichmentSummary {
+  orgType?: string;
+  website?: string;
+  hasLogo?: boolean;
+  hasLinkedIn?: boolean;
+  staffCount?: number;
+}
+
 export interface ActiveEnrichment {
   buyerId: string;
   buyerName: string;
@@ -45,6 +53,7 @@ export interface ActiveEnrichment {
   startedAt: Date;
   completedAt?: Date;
   enrichmentScore?: number;
+  summary?: EnrichmentSummary;
 }
 
 interface AgentStore {
@@ -70,7 +79,7 @@ interface AgentStore {
   setEnrichmentConfirmation: (confirmation: EnrichmentConfirmation | null) => void;
   setActiveEnrichment: (enrichment: ActiveEnrichment | null) => void;
   updateEnrichmentStage: (name: string, status: EnrichmentStage["status"], detail?: string) => void;
-  completeEnrichment: (score?: number) => void;
+  completeEnrichment: (score?: number, summary?: EnrichmentSummary) => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -170,7 +179,7 @@ export const useAgentStore = create<AgentStore>()(
       };
     }),
 
-  completeEnrichment: (score) =>
+  completeEnrichment: (score, summary) =>
     set((state) => {
       if (!state.activeEnrichment) return state;
       return {
@@ -178,6 +187,7 @@ export const useAgentStore = create<AgentStore>()(
           ...state.activeEnrichment,
           completedAt: new Date(),
           enrichmentScore: score,
+          summary,
         },
       };
     }),

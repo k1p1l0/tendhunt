@@ -92,30 +92,17 @@ async function startEnrichmentDirect(buyerId: string, buyerName: string) {
               break;
             case "done": {
               console.log("[Enrichment] done event, score:", data.enrichmentScore, "buyerId:", buyerId);
-              s.completeEnrichment(data.enrichmentScore as number);
+              const summary = data.summary as Record<string, unknown> | undefined;
+              s.completeEnrichment(data.enrichmentScore as number, summary ? {
+                orgType: summary.orgType as string | undefined,
+                website: summary.website as string | undefined,
+                hasLogo: summary.hasLogo as boolean | undefined,
+                hasLinkedIn: summary.hasLinkedIn as boolean | undefined,
+                staffCount: summary.staffCount as number | undefined,
+              } : undefined);
               window.dispatchEvent(
                 new CustomEvent("enrichment-complete", { detail: { buyerId } })
               );
-              const convId = useAgentStore.getState().activeConversationId;
-              if (convId) {
-                const score = (data.enrichmentScore as number) ?? 0;
-                const summary = data.summary as Record<string, unknown> | undefined;
-                const parts = [`Enrichment complete for **${buyerName}** — score **${score}/100**.`];
-                const details: string[] = [];
-                if (summary?.orgType) details.push(`Type: ${summary.orgType}`);
-                if (summary?.website) details.push(`Website found`);
-                if (summary?.hasLogo) details.push(`Logo found`);
-                if (summary?.hasLinkedIn) details.push(`LinkedIn found`);
-                if (summary?.staffCount) details.push(`${summary.staffCount} staff`);
-                if (details.length > 0) parts.push(details.join(" · "));
-                parts.push("Refresh the page to see updated data.");
-                useAgentStore.getState().addMessage(convId, {
-                  id: `enrich-done-${Date.now()}`,
-                  role: "assistant",
-                  content: parts.join("\n\n"),
-                  timestamp: new Date(),
-                });
-              }
               break;
             }
           }
