@@ -342,10 +342,53 @@ function extractLinksEnhanced(html: string, baseUrl: string): ScoredLink[] {
 }
 
 function isValidDownloadLink(url: string): boolean {
+  if (url.includes("docs.google.com") || url.includes("drive.google.com")) return true;
   try {
     const full = new URL(url).href.toLowerCase();
     return scoreLink(full) !== null;
   } catch { return false; }
+}
+
+function transformGoogleUrls(urls: string[]): string[] {
+  const transformed: string[] = [];
+  for (const url of urls) {
+    const sheetsMatch = url.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (sheetsMatch) {
+      transformed.push(`https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/export?format=csv`);
+      continue;
+    }
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveMatch) {
+      transformed.push(`https://drive.google.com/uc?export=download&id=${driveMatch[1]}`);
+      continue;
+    }
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (driveOpenMatch) {
+      transformed.push(`https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`);
+      continue;
+    }
+    transformed.push(url);
+  }
+  return transformed;
+}
+
+function extractGoogleLinks(html: string): string[] {
+  const links: string[] = [];
+  const seen = new Set<string>();
+  const sheetsRegex = /href\s*=\s*["'](https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = sheetsRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); links.push(m[1]); }
+  }
+  const driveRegex = /href\s*=\s*["'](https?:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  while ((m = driveRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); links.push(m[1]); }
+  }
+  const driveOpenRegex = /href\s*=\s*["'](https?:\/\/drive\.google\.com\/open\?id=[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  while ((m = driveOpenRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); links.push(m[1]); }
+  }
+  return links;
 }
 
 // GOV.UK buyer filtering
@@ -1018,11 +1061,22 @@ Return ONLY valid JSON:
         console.log(`AI found ${aiLinks.length} additional links`);
       }
 
+      // Extract Google Sheets/Drive links
+      const googleLinks = extractGoogleLinks(html!);
+      if (googleLinks.length > 0) {
+        console.log(`\nGoogle Sheets/Drive links found: ${googleLinks.length}`);
+        googleLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+      }
+      const transformedGoogle = transformGoogleUrls(googleLinks);
+
       // Merge all links
-      const allLinks = Array.from(new Set([...csvLinks, ...regexLinks, ...aiLinks]));
+      const allLinks = Array.from(new Set([...csvLinks, ...regexLinks, ...aiLinks, ...transformedGoogle]));
+
+      // Transform any remaining Google URLs
+      const transformedAll = transformGoogleUrls(allLinks);
 
       // Filter: keep only valid download links (enhanced check)
-      csvLinks = allLinks.filter(isValidDownloadLink);
+      csvLinks = transformedAll.filter(isValidDownloadLink);
 
       console.log(`\nTotal CSV links after merge + filter: ${csvLinks.length}`);
       csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));

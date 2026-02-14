@@ -209,6 +209,88 @@ function parseLinkExtractionResponse(text: string): string[] {
 }
 
 /**
+ * Transform Google Sheets/Drive URLs into direct CSV download URLs.
+ * Google Sheets: append /export?format=csv
+ * Google Drive files: use /uc?export=download&id=FILE_ID
+ */
+function transformGoogleUrls(urls: string[]): string[] {
+  const transformed: string[] = [];
+
+  for (const url of urls) {
+    // Google Sheets: docs.google.com/spreadsheets/d/SHEET_ID/...
+    const sheetsMatch = url.match(
+      /docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/
+    );
+    if (sheetsMatch) {
+      transformed.push(
+        `https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/export?format=csv`
+      );
+      continue;
+    }
+
+    // Google Drive: drive.google.com/file/d/FILE_ID/...
+    const driveMatch = url.match(
+      /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/
+    );
+    if (driveMatch) {
+      transformed.push(
+        `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`
+      );
+      continue;
+    }
+
+    // Google Drive open: drive.google.com/open?id=FILE_ID
+    const driveOpenMatch = url.match(
+      /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/
+    );
+    if (driveOpenMatch) {
+      transformed.push(
+        `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`
+      );
+      continue;
+    }
+
+    // Not a Google URL — keep as-is
+    transformed.push(url);
+  }
+
+  return transformed;
+}
+
+/**
+ * Extract Google Sheets/Drive links from HTML that the regex patterns miss.
+ * These links don't match standard CSV patterns but are valid data sources.
+ */
+function extractGoogleLinks(html: string): string[] {
+  const links: string[] = [];
+  const seen = new Set<string>();
+
+  // Match Google Sheets links
+  const sheetsRegex = /href\s*=\s*["'](https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = sheetsRegex.exec(html)) !== null) {
+    const url = match[1];
+    if (!seen.has(url)) { seen.add(url); links.push(url); }
+  }
+
+  // Match Google Drive file links
+  const driveRegex = /href\s*=\s*["'](https?:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  while ((match = driveRegex.exec(html)) !== null) {
+    const url = match[1];
+    if (!seen.has(url)) { seen.add(url); links.push(url); }
+  }
+
+  // Match Google Drive open links
+  const driveOpenRegex = /href\s*=\s*["'](https?:\/\/drive\.google\.com\/open\?id=[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  while ((match = driveOpenRegex.exec(html)) !== null) {
+    const url = match[1];
+    if (!seen.has(url)) { seen.add(url); links.push(url); }
+  }
+
+  return links;
+}
+
+/**
  * Check if a URL looks like a valid download/data link.
  * Enhanced to accept any pattern-matched URL, not just file extensions.
  */
@@ -368,14 +450,27 @@ Return ONLY valid JSON:
             }
           }
 
+          // Extract Google Sheets/Drive links (not caught by standard patterns)
+          const googleLinks = extractGoogleLinks(html);
+          if (googleLinks.length > 0) {
+            const transformedGoogle = transformGoogleUrls(googleLinks);
+            csvLinks = [...csvLinks, ...transformedGoogle];
+          }
+
           // Merge with existing csvLinks from Stage 1
           const existingLinks = buyer.csvLinks ?? [];
           const mergedLinks = Array.from(
             new Set([...existingLinks, ...csvLinks])
           );
 
+          // Transform any Google URLs in the merged set
+          const transformedLinks = transformGoogleUrls(mergedLinks);
+
           // Filter: keep only valid download links (enhanced check)
-          const filteredLinks = mergedLinks.filter(isValidDownloadLink);
+          // Google download URLs always pass through
+          const filteredLinks = transformedLinks.filter(
+            (url) => isValidDownloadLink(url) || url.includes("docs.google.com") || url.includes("drive.google.com")
+          );
 
           await updateBuyerCsvLinks(db, buyer._id!, filteredLinks);
           totalLinksFound += filteredLinks.length;
