@@ -102,6 +102,17 @@ export function useAgent(): UseAgentReturn {
             }
           }
 
+          if (event.action?.type === "column_added") {
+            window.dispatchEvent(
+              new CustomEvent("scanner-column-added", {
+                detail: {
+                  scannerId: event.action.scannerId as string,
+                  columnId: event.action.columnId as string,
+                },
+              })
+            );
+          }
+
           if (event.action?.type === "enrich_confirm") {
             useAgentStore.getState().setEnrichmentConfirmation({
               buyerId: event.action.buyerId as string,

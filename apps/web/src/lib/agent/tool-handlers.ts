@@ -441,6 +441,7 @@ async function handleAddScannerColumn(
   return {
     summary: `Added AI column "${name}" to scanner "${scanner.name}"`,
     data: { columnId, name, prompt },
+    action: { type: "column_added", scannerId, columnId },
   };
 }
 

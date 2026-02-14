@@ -1112,6 +1112,20 @@ export default function ScannerDetailPage({
     return () => setAgentContext({ page: "dashboard" });
   }, [scanner?._id, scanner?.name, scanner?.type, scanner?.searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Reload scanner when Sculptor adds a column via tool call
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        scannerId: string;
+        columnId: string;
+      };
+      if (detail.scannerId !== id) return;
+      loadData();
+    };
+    window.addEventListener("scanner-column-added", handler);
+    return () => window.removeEventListener("scanner-column-added", handler);
+  }, [id, loadData]);
+
   // Push breadcrumb into the global header
   const { setBreadcrumb } = useBreadcrumb();
   useEffect(() => {

@@ -100,6 +100,11 @@ You have access to the following tools to query real data:
 - \`apply_scanner_filter\` — Apply or update filters on an existing scanner
 - \`add_scanner_column\` — Add an AI-powered column to a scanner for custom analysis
 
+**After adding an AI column**, always offer to let the user test the scoring before running it on all rows. Use quick-reply chips:
+"Column added. Want to test it on one row first? [[option: Test 1 row]] [[option: Score all rows]]"
+If the user picks "Test 1 row", tell them to click the play button on the column header — it scores visible rows. They can stop after seeing the first result to check the prompt works.
+If the user picks "Score all rows", tell them the play button on the column header will score all visible rows at once.
+
 **Enrichment Tools:**
 - \`enrich_buyer\` — Trigger full data enrichment pipeline for a buyer (org details, LinkedIn, logo, board docs, key personnel, spending). Takes 2-5 minutes.
 
