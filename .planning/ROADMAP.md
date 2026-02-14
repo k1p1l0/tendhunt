@@ -11,7 +11,7 @@
 | 1 | Search & Data Foundation | 7 (SRCH-01..04, DATA-01..03) | Done |
 | 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Done |
 | 3 | Spend Intelligence | 4 (SPND-01..04) | Done |
-| 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Pending |
+| 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Done |
 
 ---
 
@@ -107,12 +107,12 @@
 **Goal:** Competitor analysis is discoverable in the app navigation and accessible through the Sculptor AI agent.
 
 **Requirements:**
-- [ ] NAV-01 — "Competitors" sidebar entry with icon
-- [ ] NAV-02 — Breadcrumb integration (list + detail)
-- [ ] NAV-03 — Page animations (enter/exit, tab switches)
-- [ ] AI-01 — `search_competitor` Sculptor tool
-- [ ] AI-02 — AI answers "show me contracts for [company]"
-- [ ] AI-03 — AI links to competitor profile pages
+- [x] NAV-01 — "Competitors" sidebar entry with icon
+- [x] NAV-02 — Breadcrumb integration (list + detail)
+- [x] NAV-03 — Page animations (enter/exit, tab switches)
+- [x] AI-01 — `search_competitor` Sculptor tool
+- [x] AI-02 — AI answers "show me contracts for [company]"
+- [x] AI-03 — AI links to competitor profile pages
 
 **Key deliverables:**
 1. Sidebar entry in `app-sidebar.tsx` — "Competitors" with `Swords` or `Users` icon
@@ -200,4 +200,4 @@ All phases are sequential. Each builds on the previous.
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 — Phase 3 completed*
+*Last updated: 2026-02-14 — Phase 4 completed (all phases done)*

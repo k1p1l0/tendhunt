@@ -11,7 +11,9 @@ export interface AgentPageContext {
     | "contract_detail"
     | "contracts"
     | "buyers"
-    | "inbox";
+    | "inbox"
+    | "competitors"
+    | "competitor_detail";
   scannerId?: string;
   scannerType?: string;
   scannerName?: string;
@@ -33,6 +35,11 @@ export interface AgentPageContext {
   buyerSignalCount?: number;
   buyerBoardDocCount?: number;
   buyerKeyPersonnelNames?: string;
+  competitorName?: string;
+  competitorContractCount?: number;
+  competitorTotalValue?: number;
+  competitorBuyerCount?: number;
+  competitorSectors?: string[];
 }
 
 interface AgentContextValue {

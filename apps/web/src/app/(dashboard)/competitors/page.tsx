@@ -1,16 +1,23 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, TrendingUp, Building2, FileText } from "lucide-react";
 import { motion } from "motion/react";
 import { CompetitorsListBreadcrumb } from "./breadcrumb";
 import { CompetitorSearchBar } from "@/components/competitors/search-bar";
+import { useAgentContext } from "@/components/agent/agent-provider";
 
 import type { SupplierSearchResult } from "@/lib/competitors";
 
 export default function CompetitorsPage() {
   const router = useRouter();
+  const { setContext } = useAgentContext();
+
+  useEffect(() => {
+    setContext({ page: "competitors" });
+    return () => setContext({ page: "dashboard" });
+  }, [setContext]);
 
   const handleSelect = useCallback(
     (result: SupplierSearchResult) => {

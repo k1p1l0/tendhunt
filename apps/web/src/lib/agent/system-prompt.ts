@@ -8,7 +8,9 @@ export interface AgentPageContext {
     | "contract_detail"
     | "contracts"
     | "buyers"
-    | "inbox";
+    | "inbox"
+    | "competitors"
+    | "competitor_detail";
   scannerId?: string;
   scannerType?: string;
   scannerName?: string;
@@ -31,6 +33,11 @@ export interface AgentPageContext {
   buyerSignalCount?: number;
   buyerBoardDocCount?: number;
   buyerKeyPersonnelNames?: string;
+  competitorName?: string;
+  competitorContractCount?: number;
+  competitorTotalValue?: number;
+  competitorBuyerCount?: number;
+  competitorSectors?: string[];
 }
 
 interface CompanyProfileData {
@@ -96,6 +103,7 @@ You have access to the following tools to query real data:
 - \`query_key_personnel\` — Find decision-makers by buyer or role type
 - \`query_spend_data\` — Get buyer spending analytics: top vendors, categories, monthly totals
 - \`query_board_documents\` — Find board meeting documents by buyer, committee, date range
+- \`search_competitor\` — Search for a supplier/competitor by company name. Returns contract count, total value, buyers, sectors, and profile page link. Handles name variations (Ltd vs Limited).
 - \`web_search\` — Search the web for information not available in internal data
 
 **Write Tools:**
@@ -188,6 +196,19 @@ Default to \`"score"\` unless the user's request clearly fits another type.
       if (context.contractId)
         contextLines.push(`_Internal contract ID for links: ${context.contractId} — never display this to the user._`);
       break;
+
+    case "competitor_detail":
+      if (context.competitorName)
+        contextLines.push(`**Competitor/Supplier:** ${context.competitorName}`);
+      if (context.competitorContractCount != null)
+        contextLines.push(`**Contracts:** ${context.competitorContractCount}`);
+      if (context.competitorTotalValue != null)
+        contextLines.push(`**Total Value:** GBP ${context.competitorTotalValue.toLocaleString()}`);
+      if (context.competitorBuyerCount != null)
+        contextLines.push(`**Buyers:** ${context.competitorBuyerCount}`);
+      if (context.competitorSectors && context.competitorSectors.length > 0)
+        contextLines.push(`**Sectors:** ${context.competitorSectors.join(", ")}`);
+      break;
   }
 
   if (context.selectedRow && Object.keys(context.selectedRow).length > 0) {
@@ -230,6 +251,7 @@ When mentioning entities from tool results, make them clickable:
 - Buyers: [Buyer Name](buyer:BUYER_ID)
 - Contracts: [Contract Title](contract:CONTRACT_ID)
 - Scanners: [Scanner Name](scanner:SCANNER_ID)
+- Competitors/Suppliers: [Company Name](competitor:COMPANY_NAME) — use the exact company name from tool results, URL-encoded
 - Buyer tabs: [spending](buyer:BUYER_ID?tab=spending), [contacts](buyer:BUYER_ID?tab=contacts), [board docs](buyer:BUYER_ID?tab=board-documents), [personnel](buyer:BUYER_ID?tab=key-personnel), [signals](buyer:BUYER_ID?tab=signals), [contracts](buyer:BUYER_ID?tab=contracts)
 
 Always link entities by name. Use IDs from tool results.
@@ -365,6 +387,8 @@ function formatPageName(page: AgentPageContext["page"]): string {
     contracts: "Contracts List",
     buyers: "Buyers List",
     inbox: "Inbox",
+    competitors: "Competitor Search",
+    competitor_detail: "Competitor Profile",
   };
   return names[page] ?? page;
 }

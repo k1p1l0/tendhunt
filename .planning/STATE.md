@@ -6,7 +6,9 @@
 
 ## Current Phase
 
-**Phase 3: Spend Intelligence** — Done
+**Phase 4: Navigation & AI Integration** — Done
+
+**All 4 phases complete. Feature ready for PR.**
 
 ## Phase Progress
 
@@ -15,7 +17,7 @@
 | 1 | Done | 7 | 7 |
 | 2 | Done | 12 | 12 |
 | 3 | Done | 4 | 4 |
-| 4 | Not started | 6 | 0 |
+| 4 | Done | 6 | 6 |
 
 ## Planning Artifacts
 
@@ -94,9 +96,33 @@ Cross-reference features:
 - "Also in Contracts" stat card shows overlap count (N of M buyers appear in both spend and contract data)
 - Normalized vendor name matching via `vendorNormalized` field in SpendTransaction collection
 
+## Phase 4 Deliverables
+
+All 6 requirements completed:
+
+| Requirement | Deliverable |
+|-------------|-------------|
+| NAV-01 | Sidebar "Competitors" entry with `Swords` icon in Data group of `app-sidebar.tsx` (done in Phase 1, verified) |
+| NAV-02 | Breadcrumb components: `CompetitorsListBreadcrumb` (list page) + `CompetitorProfileBreadcrumb` (detail page with "Competitors > [Name]" pattern) |
+| NAV-03 | Enhanced tab switch animations via `AnimatePresence mode="wait"` with keyed `motion.div` in `profile-tabs.tsx`. All components use motion/react for enter/exit transitions. |
+| AI-01 | `search_competitor` tool definition in `lib/agent/tools.ts` — accepts `companyName` and `limit`, handles name variations |
+| AI-02 | `handleSearchCompetitor` handler in `lib/agent/tool-handlers.ts` — calls `searchSuppliers()`, returns formatted results with profile URLs. Auto-navigates on single match. |
+| AI-03 | `competitor:COMPANY_NAME` entity link protocol in `agent-message.tsx`, competitor context in system prompt (`competitor_detail` page type), suggested actions for competitor pages |
+
+Key files modified:
+- `apps/web/src/lib/agent/tools.ts` — added `search_competitor` tool definition
+- `apps/web/src/lib/agent/tool-handlers.ts` — added `handleSearchCompetitor` handler with `searchSuppliers` import
+- `apps/web/src/lib/agent/system-prompt.ts` — added `competitors`/`competitor_detail` page types, competitor context fields, competitor entity link docs
+- `apps/web/src/components/agent/agent-provider.tsx` — added `competitors`/`competitor_detail` page types and competitor context fields
+- `apps/web/src/components/agent/agent-message.tsx` — added `competitor:` entity link protocol for clickable supplier links
+- `apps/web/src/components/agent/suggested-actions.tsx` — added competitor-specific suggested prompts
+- `apps/web/src/components/competitors/profile-tabs.tsx` — enhanced with `AnimatePresence` tab switch transitions
+- `apps/web/src/app/(dashboard)/competitors/page.tsx` — added agent context setter for competitor list page
+- `apps/web/src/app/(dashboard)/competitors/[name]/page.tsx` — added `AgentContextSetter` with full competitor profile context
+
 ## What's Next
 
-Phase 4: Navigation & AI Integration — Sidebar nav, breadcrumbs, animations, and Sculptor AI tool for competitor search.
+All 4 phases complete. The feature is ready for a PR to merge into main.
 
 ## Notes
 
@@ -109,9 +135,11 @@ Phase 4: Navigation & AI Integration — Sidebar nav, breadcrumbs, animations, a
 - Buyer list enriches regions/sectors from the Buyer collection when contract data lacks them
 - Spend data uses `vendorNormalized` field matching — same normalization logic as contract supplier names
 - Contract-spend overlap detection compares buyer names (case-insensitive) between the two data sources
+- Sculptor AI can search competitors via `search_competitor` tool and link to profiles via `competitor:NAME` entity links
 
 ---
 *Created: 2026-02-14*
 *Phase 1 completed: 2026-02-14*
 *Phase 2 completed: 2026-02-14*
 *Phase 3 completed: 2026-02-14*
+*Phase 4 completed: 2026-02-14*

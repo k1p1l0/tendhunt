@@ -51,15 +51,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Navigation
 
-- [ ] **NAV-01**: "Competitors" entry in the sidebar navigation with appropriate icon
-- [ ] **NAV-02**: Breadcrumb integration following existing TendHunt patterns (list page: "Competitors", detail: "Competitors > [Name]")
-- [ ] **NAV-03**: Page animations following TendHunt's motion patterns (enter/exit transitions, tab switches)
+- [x] **NAV-01**: "Competitors" entry in the sidebar navigation with appropriate icon
+- [x] **NAV-02**: Breadcrumb integration following existing TendHunt patterns (list page: "Competitors", detail: "Competitors > [Name]")
+- [x] **NAV-03**: Page animations following TendHunt's motion patterns (enter/exit transitions, tab switches)
 
 ### AI Integration
 
-- [ ] **AI-01**: Sculptor agent has a `search_competitor` tool that searches for supplier contracts
-- [ ] **AI-02**: AI can answer questions like "show me contracts for [company name]" with formatted results
-- [ ] **AI-03**: AI responses include entity links to competitor profile pages
+- [x] **AI-01**: Sculptor agent has a `search_competitor` tool that searches for supplier contracts
+- [x] **AI-02**: AI can answer questions like "show me contracts for [company name]" with formatted results
+- [x] **AI-03**: AI responses include entity links to competitor profile pages
 
 ## v2 Requirements
 
@@ -120,12 +120,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPND-02 | Phase 3 | Done |
 | SPND-03 | Phase 3 | Done |
 | SPND-04 | Phase 3 | Done |
-| NAV-01 | Phase 4 | Pending |
-| NAV-02 | Phase 4 | Pending |
-| NAV-03 | Phase 4 | Pending |
-| AI-01 | Phase 4 | Pending |
-| AI-02 | Phase 4 | Pending |
-| AI-03 | Phase 4 | Pending |
+| NAV-01 | Phase 4 | Done |
+| NAV-02 | Phase 4 | Done |
+| NAV-03 | Phase 4 | Done |
+| AI-01 | Phase 4 | Done |
+| AI-02 | Phase 4 | Done |
+| AI-03 | Phase 4 | Done |
 
 **Coverage:**
 - v1 requirements: 30 total
@@ -134,4 +134,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after Phase 2 completion*
+*Last updated: 2026-02-14 after Phase 4 completion*

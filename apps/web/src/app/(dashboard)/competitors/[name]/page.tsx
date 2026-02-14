@@ -6,6 +6,7 @@ import { getCompetitorProfile } from "@/lib/competitors";
 import { CompetitorProfileBreadcrumb } from "./breadcrumb";
 import { ProfileHeader } from "@/components/competitors/profile-header";
 import { ProfileTabs } from "@/components/competitors/profile-tabs";
+import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 
 export default async function CompetitorProfilePage({
   params,
@@ -23,6 +24,7 @@ export default async function CompetitorProfilePage({
     return (
       <div className="space-y-4">
         <CompetitorProfileBreadcrumb name={supplierName} />
+        <AgentContextSetter context={{ page: "competitors" }} />
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-muted-foreground mb-4">
             No contract data found for &ldquo;{supplierName}&rdquo;
@@ -44,6 +46,16 @@ export default async function CompetitorProfilePage({
   return (
     <div className="space-y-6 p-6">
       <CompetitorProfileBreadcrumb name={profile.name} />
+      <AgentContextSetter
+        context={{
+          page: "competitor_detail",
+          competitorName: profile.name,
+          competitorContractCount: profile.contractCount,
+          competitorTotalValue: profile.totalValue,
+          competitorBuyerCount: profile.buyerCount,
+          competitorSectors: sectorNames.slice(0, 5),
+        }}
+      />
       <ProfileHeader name={profile.name} sectors={sectorNames} />
       <ProfileTabs profile={profile} supplierName={supplierName} />
     </div>

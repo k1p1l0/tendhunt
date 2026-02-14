@@ -15,7 +15,7 @@ marked.setOptions({
   gfm: true,
 });
 
-const ENTITY_LINK_RE = /^(buyer|contract|scanner):(.+)$/;
+const ENTITY_LINK_RE = /^(buyer|contract|scanner|competitor):(.+)$/;
 
 const ARROW_ICON = `<svg class="entity-link-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3.5 2.5H9.5V8.5M9.5 2.5L2.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
@@ -56,6 +56,7 @@ renderer.link = ({ href, text }) => {
       buyer: `/buyers/${id}`,
       contract: `/contracts/${id}`,
       scanner: `/scanners/${id}`,
+      competitor: `/competitors/${encodeURIComponent(id)}`,
     };
     const path = pathMap[entityType] ?? `/${entityType}s/${id}`;
     const fullPath = query ? `${path}?${query}` : path;
