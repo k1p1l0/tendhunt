@@ -11,6 +11,8 @@ import { SpendVendorsTable } from "@/components/buyers/spend-vendors-table";
 import { SpendBreakdownTable } from "@/components/buyers/spend-breakdown-table";
 import { SpendVendorMix } from "@/components/buyers/spend-vendor-mix";
 import { SpendVendorChurn } from "@/components/buyers/spend-vendor-churn";
+import { SpendOpportunities } from "@/components/buyers/spend-opportunities";
+import { SmeOpennessCard } from "@/components/buyers/sme-openness-card";
 import type { SpendMetrics, ProfileMatch, SpendOpportunities as SpendOpportunitiesType } from "@/lib/spend-analytics";
 import { Info } from "lucide-react";
 
@@ -129,6 +131,22 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
     <div className="space-y-6">
       <SpendingHero metrics={data.metrics} profileMatch={profileMatch} />
 
+      {/* Vendor Intelligence — SME donut + openness score side by side */}
+      {opportunities.smeOpenness && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SpendVendorMix data={opportunities.smeOpenness} buyerId={buyerId} />
+          <SmeOpennessCard data={opportunities.smeOpenness} />
+        </div>
+      )}
+
+      {/* Vendor Churn */}
+      {opportunities.vendorStability && (
+        <SpendVendorChurn data={opportunities.vendorStability} />
+      )}
+
+      {/* Opportunity Cards (excluding recurring — shown in chart row below) */}
+      <SpendOpportunities opportunities={opportunities} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <SpendCategoriesChart
           data={data.summary.categoryBreakdown}
@@ -153,17 +171,6 @@ export function SpendingTab({ buyerId, buyerName }: SpendingTabProps) {
           vendors={vendors}
         />
       </div>
-
-      {(opportunities.smeOpenness || opportunities.vendorStability) && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {opportunities.smeOpenness && (
-            <SpendVendorMix data={opportunities.smeOpenness} />
-          )}
-          {opportunities.vendorStability && (
-            <SpendVendorChurn data={opportunities.vendorStability} />
-          )}
-        </div>
-      )}
     </div>
   );
 }

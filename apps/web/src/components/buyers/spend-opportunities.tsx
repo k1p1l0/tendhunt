@@ -9,7 +9,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
-  RefreshCw,
   AlertTriangle,
   Target,
   Users,
@@ -77,7 +76,6 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
 
   const hasAnyOpportunities =
     profileMatch ||
-    recurringPatterns.length > 0 ||
     vendorConcentration.length > 0 ||
     spendGrowthSignals.length > 0 ||
     smeOpenness ||
@@ -128,45 +126,6 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
                     +{profileMatch.matchedCategories.length - 3} more
                   </Badge>
                 )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recurring Patterns */}
-      {recurringPatterns.length > 0 && (
-        <Card className="border-l-4 border-l-green-500 transition-all hover:shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-lg">Recurring Spend</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-3xl font-bold text-green-500">
-                {recurringPatterns.length}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Recurring spend patterns detected
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Top patterns:</p>
-              <div className="space-y-2">
-                {recurringPatterns.slice(0, 3).map((pattern, index) => (
-                  <div
-                    key={index}
-                    className="text-sm border-l-2 border-green-200 pl-2 py-1"
-                  >
-                    <p className="font-medium">{pattern.vendor}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {pattern.frequency === "monthly" ? "Monthly" : "Quarterly"} •
-                      Avg £{pattern.averageAmount.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
               </div>
             </div>
           </CardContent>
@@ -247,37 +206,6 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* SME Openness */}
-      {smeOpenness && (
-        <Card className="border-l-4 border-l-teal-500 transition-all hover:shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-teal-500" />
-              <CardTitle className="text-lg">SME Openness</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-3xl font-bold text-teal-500">
-                {smeOpenness.smeOpennessScore}/100
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {smeOpenness.sme.percentage}% of spend goes to SMEs ({smeOpenness.sme.count} vendors)
-              </p>
-            </div>
-            <Badge variant="outline" className={
-              smeOpenness.signal === "SME-friendly"
-                ? "bg-green-500/15 text-green-600 border-green-500/30"
-                : smeOpenness.signal === "Large-org dominated"
-                  ? "bg-red-500/15 text-red-600 border-red-500/30"
-                  : "bg-yellow-500/15 text-yellow-600 border-yellow-500/30"
-            }>
-              {smeOpenness.signal}
-            </Badge>
           </CardContent>
         </Card>
       )}
