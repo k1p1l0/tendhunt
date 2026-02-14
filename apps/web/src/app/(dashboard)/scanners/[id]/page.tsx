@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef, use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Loader2, ChevronRight, AlertTriangle, X } from "lucide-react";
 import { ScannerHeader } from "@/components/scanners/scanner-header";
 import { ScannerDataGrid } from "@/components/scanners/grid/scanner-data-grid";
@@ -115,7 +114,6 @@ export default function ScannerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const router = useRouter();
   const [scanner, setScanner] = useState<ScannerData | null>(null);
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [columns, setColumns] = useState<ColumnDef[]>([]);
@@ -903,22 +901,8 @@ export default function ScannerDetailPage({
       return;
     }
 
-    // Data column double-click → navigate based on scanner type
-    const entityId = String(row._id);
-    switch (scanner?.type) {
-      case "rfps":
-        router.push(`/contracts/${entityId}`);
-        break;
-      case "buyers":
-        router.push(`/buyers/${entityId}`);
-        break;
-      case "meetings":
-        // No dedicated meetings page — open the EntityDetailSheet
-        setDetailRow(row);
-        break;
-      default:
-        setDetailRow(row);
-    }
+    // Data column double-click → open entity detail sheet inline
+    setDetailRow(row);
   }
 
   function handleEditColumn(columnId: string) {

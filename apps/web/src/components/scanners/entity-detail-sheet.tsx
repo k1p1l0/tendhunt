@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ScannerType } from "@/models/scanner";
+import Link from "next/link";
 import {
   ExternalLink,
   Calendar,
@@ -20,6 +21,7 @@ import {
   Globe,
   Users,
   TrendingUp,
+  ArrowUpRight,
 } from "lucide-react";
 import { isTextUseCase } from "@/lib/ai-column-config";
 import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
@@ -332,6 +334,20 @@ export function EntityDetailSheet({
                   );
                 })}
               </div>
+            </>
+          )}
+
+          {/* View full profile link */}
+          {(scannerType === "rfps" || scannerType === "buyers") && (
+            <>
+              <Separator />
+              <Link
+                href={scannerType === "rfps" ? `/contracts/${entityId}` : `/buyers/${entityId}`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
+              >
+                {scannerType === "rfps" ? "View full contract" : "View full buyer profile"}
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
             </>
           )}
         </div>
