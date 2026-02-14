@@ -10,20 +10,20 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Phase
 
 **Phase 1: Inspection History Data Foundation**
-- Status: Not Started
+- Status: Complete
 - Goal: Ingest full historical Ofsted inspection data so every school has a complete inspection timeline in MongoDB
 - Requirements: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05
 
 ## Progress
 
 ### Phase 1: Inspection History Data Foundation
-- [ ] Extend OfstedSchool model with inspectionHistory[] and computed fields
-- [ ] Create ingest-ofsted-history.ts script
-- [ ] Download and parse historical CSVs (2005-2015, 2015-2019, yearly)
-- [ ] Map CSV column names across eras
-- [ ] Deduplicate inspections by inspectionNumber
-- [ ] Compute downgrade detection (lastDowngradeDate, ratingDirection)
-- [ ] Index lastDowngradeDate
+- [x] Extend OfstedSchool model with inspectionHistory[] and computed fields
+- [x] Create ingest-ofsted-history.ts script
+- [x] Download and parse historical CSVs (2015-2019, 2019-Sep2024, post-Sep2024)
+- [x] Map CSV column names across eras (pre2019, 2019-2024, post2024)
+- [x] Deduplicate inspections by inspectionNumber
+- [x] Compute downgrade detection (lastDowngradeDate, ratingDirection, downgradeType)
+- [x] Index lastDowngradeDate (descending) + ratingDirection + inspectionHistory.inspectionDate
 
 ### Phase 2: Schools Scanner Type
 - [ ] Not started
@@ -41,10 +41,12 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 
 - Branch: `feat/ofsted-timeline`
 - Worktree: `/Users/kirillkozak/Projects/tendhunt-ofsted-timeline`
-- Existing OfstedSchool model has current + one previous rating only
+- OfstedSchool model now has `inspectionHistory[]` subdocument array, `lastDowngradeDate`, `ratingDirection`, `downgradeType`
+- Three CSV eras: pre2019 (2015-2019 consolidated), 2019-2024 (Sep 2024 YTD), post2024 (Aug 2025 YTD)
+- Pre-2019 CSVs use different column names (e.g. "Quality of teaching, learning and assessment" vs "Quality of education")
+- Post-Sep-2024 CSVs lack "Overall effectiveness" column — downgrade detection uses sub-judgement grades
+- Grade 9 in CSVs = "not applicable" (monitoring visits, S8 non-conversions), filtered out during ingestion
 - ~22,000 schools already ingested from monthly management info CSV
-- Historical "all inspections" CSVs available on GOV.UK with multiple rows per school
-- Post-Sep-2024: Ofsted removed overall effectiveness grade; must use sub-judgements
 - Do NOT run `bun run lint` -- memory exhaustion on this machine
 
 ## Blockers
@@ -52,4 +54,4 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 None currently.
 
 ---
-*Last updated: 2026-02-14 after project initialization*
+*Last updated: 2026-02-14 after Phase 1 completion*

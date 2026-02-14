@@ -7,11 +7,11 @@
 
 ### Data Ingestion
 
-- [ ] **DATA-01**: System ingests historical "all inspections" CSVs from GOV.UK covering 2005-present, building a per-school inspection timeline
-- [ ] **DATA-02**: Each school record stores an inspectionHistory array with date, grades, inspection type, and report URL for every past inspection
-- [ ] **DATA-03**: System pre-computes lastDowngradeDate, ratingDirection (improved/downgraded/unchanged), and downgradeType for each school during ingestion
-- [ ] **DATA-04**: Ingestion handles CSV column name differences across eras (pre-2019, 2019-2024, post-2024)
-- [ ] **DATA-05**: Ingestion deduplicates inspections by inspectionNumber to prevent duplicate timeline entries from overlapping CSV files
+- [x] **DATA-01**: System ingests historical "all inspections" CSVs from GOV.UK covering 2015-present, building a per-school inspection timeline
+- [x] **DATA-02**: Each school record stores an inspectionHistory array with date, grades, inspection type, and report URL for every past inspection
+- [x] **DATA-03**: System pre-computes lastDowngradeDate, ratingDirection (improved/downgraded/unchanged), and downgradeType for each school during ingestion
+- [x] **DATA-04**: Ingestion handles CSV column name differences across eras (pre-2019, 2019-2024, post-2024)
+- [x] **DATA-05**: Ingestion deduplicates inspections by inspectionNumber to prevent duplicate timeline entries from overlapping CSV files
 
 ### Scanner
 
@@ -67,11 +67,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| DATA-04 | Phase 1 | Pending |
-| DATA-05 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Done |
+| DATA-02 | Phase 1 | Done |
+| DATA-03 | Phase 1 | Done |
+| DATA-04 | Phase 1 | Done |
+| DATA-05 | Phase 1 | Done |
 | SCAN-01 | Phase 2 | Pending |
 | SCAN-02 | Phase 2 | Pending |
 | SCAN-03 | Phase 2 | Pending |

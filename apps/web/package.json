@@ -12,7 +12,8 @@
     "ingest:fat": "tsx --env-file=.env.local scripts/ingest-fat.ts",
     "ingest:cf": "tsx --env-file=.env.local scripts/ingest-cf.ts",
     "seed:signals": "tsx --env-file=.env.local scripts/seed-signals.ts",
-    "seed:buyers": "tsx --env-file=.env.local scripts/seed-buyers.ts"
+    "seed:buyers": "tsx --env-file=.env.local scripts/seed-buyers.ts",
+    "ingest:ofsted-history": "tsx --env-file=.env.local scripts/ingest-ofsted-history.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",

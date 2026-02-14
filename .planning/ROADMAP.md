@@ -25,11 +25,11 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 - `apps/web/scripts/ingest-ofsted-history.ts` -- new script for historical CSV ingestion
 
 **Success criteria:**
-- [ ] Running `ingest-ofsted-history.ts` populates inspectionHistory for schools with historical data
-- [ ] Each school's inspectionHistory is sorted by date, deduplicated by inspectionNumber
-- [ ] `lastDowngradeDate` is computed and indexed for schools that have experienced a downgrade
-- [ ] Schools with post-Sep-2024 inspections have downgrade detection using sub-judgement grades (not overall effectiveness)
-- [ ] Database query `{ lastDowngradeDate: { $gte: 3_months_ago } }` returns results in <100ms
+- [x] Running `ingest-ofsted-history.ts` populates inspectionHistory for schools with historical data
+- [x] Each school's inspectionHistory is sorted by date, deduplicated by inspectionNumber
+- [x] `lastDowngradeDate` is computed and indexed for schools that have experienced a downgrade
+- [x] Schools with post-Sep-2024 inspections have downgrade detection using sub-judgement grades (not overall effectiveness)
+- [x] Database query `{ lastDowngradeDate: { $gte: 3_months_ago } }` returns results in <100ms
 
 ---
 
