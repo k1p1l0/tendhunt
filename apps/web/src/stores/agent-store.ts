@@ -237,6 +237,10 @@ export const useAgentStore = create<AgentStore>()(
               }
             }
           }
+          // Backfill conversationSettings for existing users
+          if (!parsed.state.conversationSettings) {
+            parsed.state.conversationSettings = DEFAULT_CONVERSATION_SETTINGS;
+          }
           return parsed;
         },
         setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
