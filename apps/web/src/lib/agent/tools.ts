@@ -6,7 +6,7 @@ export function getToolDefinitions(): Anthropic.Tool[] {
     {
       name: "query_buyers",
       description:
-        "Search and filter UK public sector buyers. Returns buyer name, sector, region, org type, enrichment score, and contract count.",
+        "Search and filter UK public sector buyers. Returns buyer name, sector, region, org type, enrichment score, contract count, parent/child hierarchy, and Ofsted school stats (worst rating, schools below Good) for education buyers.",
       input_schema: {
         type: "object" as const,
         properties: {
@@ -33,6 +33,11 @@ export function getToolDefinitions(): Anthropic.Tool[] {
             type: "number",
             description: "Minimum enrichment score (0-100)",
           },
+          hasSchoolsBelowGood: {
+            type: "boolean",
+            description:
+              "Only return buyers that have Ofsted-rated schools below Good (rating 3=Requires Improvement or 4=Inadequate). Useful for finding education buyers with underperforming schools.",
+          },
           limit: {
             type: "number",
             description: "Maximum results to return (default 10, max 20)",
@@ -44,7 +49,7 @@ export function getToolDefinitions(): Anthropic.Tool[] {
     {
       name: "query_contracts",
       description:
-        "Search and filter procurement contracts. Returns title, buyer name, sector, value range, status, and deadline.",
+        "Search and filter procurement contracts. Returns title, buyer name, sector, value range, status, deadline, contract type (goods/services/works), and SME/VCO suitability.",
       input_schema: {
         type: "object" as const,
         properties: {
@@ -71,6 +76,19 @@ export function getToolDefinitions(): Anthropic.Tool[] {
           status: {
             type: "string",
             description: "Filter by contract status (e.g. 'open', 'closed', 'awarded')",
+          },
+          contractType: {
+            type: "string",
+            enum: ["goods", "services", "works"],
+            description: "Filter by contract type: goods, services, or works",
+          },
+          smeOnly: {
+            type: "boolean",
+            description: "Only show contracts suitable for SMEs (Small and Medium Enterprises)",
+          },
+          vcoOnly: {
+            type: "boolean",
+            description: "Only show contracts suitable for VCOs (Voluntary Community Organisations)",
           },
           limit: {
             type: "number",
@@ -119,7 +137,7 @@ export function getToolDefinitions(): Anthropic.Tool[] {
     {
       name: "get_buyer_detail",
       description:
-        "Get full details for a specific buyer including contacts, key personnel, board documents, signals, enrichment data, and spending info. Pass buyerId if known, or buyerName as fallback when buyerId is unavailable.",
+        "Get full details for a specific buyer including contacts, key personnel, board documents, signals, enrichment data, spending info, parent/child hierarchy, and Ofsted school summary (total schools, below-Good count, top underperforming schools). Pass buyerId if known, or buyerName as fallback when buyerId is unavailable.",
       input_schema: {
         type: "object" as const,
         properties: {
@@ -214,6 +232,42 @@ export function getToolDefinitions(): Anthropic.Tool[] {
           limit: {
             type: "number",
             description: "Maximum results to return (default 10, max 20)",
+          },
+        },
+        required: [],
+      },
+    },
+    {
+      name: "query_ofsted_schools",
+      description:
+        "Search UK school Ofsted inspection data. Find schools by rating, local authority, buyer, or name. Returns school name, phase, overall rating, quality of education rating, inspection date, pupil count, and linked buyer.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          buyerId: {
+            type: "string",
+            description: "Filter by buyer org ID (MongoDB ObjectId)",
+          },
+          localAuthority: {
+            type: "string",
+            description: "Filter by local authority name (partial match)",
+          },
+          name: {
+            type: "string",
+            description: "Search by school name (partial match)",
+          },
+          maxRating: {
+            type: "number",
+            description:
+              "Max overall effectiveness rating to include. 1=Outstanding, 2=Good, 3=Requires Improvement, 4=Inadequate. Use 3 to find RI schools, 4 for Inadequate only.",
+          },
+          phase: {
+            type: "string",
+            description: "School phase: Primary, Secondary, Special, Nursery",
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 10, max 30)",
           },
         },
         required: [],

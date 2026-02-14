@@ -10,6 +10,7 @@ import SpendSummary from "@/models/spend-summary";
 import SpendTransaction from "@/models/spend-transaction";
 import BoardDocument from "@/models/board-document";
 import Scanner from "@/models/scanner";
+import OfstedSchool from "@/models/ofsted-school";
 
 interface ToolResult {
   summary: string;
@@ -42,6 +43,8 @@ export async function executeToolHandler(
         return await handleQuerySpendData(input);
       case "query_board_documents":
         return await handleQueryBoardDocuments(input);
+      case "query_ofsted_schools":
+        return await handleQueryOfstedSchools(input);
       case "web_search":
         return handleWebSearch();
       case "create_scanner":
@@ -94,14 +97,66 @@ async function handleQueryBuyers(
     Buyer.find(query)
       .sort({ enrichmentScore: -1 })
       .limit(limit)
-      .select("name sector region orgType enrichmentScore contractCount")
+      .select("name sector region orgType enrichmentScore contractCount isParent childBuyerIds")
       .lean(),
     Buyer.countDocuments(query),
   ]);
 
+  // Batch-aggregate Ofsted stats for returned buyers
+  const buyerIds = buyers.map((b) => b._id);
+  const ofstedStats = await OfstedSchool.aggregate([
+    { $match: { buyerId: { $in: buyerIds } } },
+    {
+      $addFields: {
+        worstRating: {
+          $max: [
+            "$overallEffectiveness",
+            "$qualityOfEducation",
+            "$behaviourAndAttitudes",
+            "$personalDevelopment",
+            "$leadershipAndManagement",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$buyerId",
+        worstRating: { $max: "$worstRating" },
+        belowGoodCount: {
+          $sum: { $cond: [{ $gte: ["$worstRating", 3] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const ofstedMap = new Map<string, { worstRating: number | null; belowGoodCount: number }>();
+  for (const stat of ofstedStats) {
+    ofstedMap.set(String(stat._id), {
+      worstRating: stat.worstRating ?? null,
+      belowGoodCount: stat.belowGoodCount ?? 0,
+    });
+  }
+
+  let results = buyers.map((b) => {
+    const ofsted = ofstedMap.get(String(b._id));
+    return {
+      ...b,
+      childBuyerCount: b.childBuyerIds?.length ?? 0,
+      childBuyerIds: undefined,
+      ofstedWorstRating: ofsted?.worstRating ?? null,
+      schoolsBelowGood: ofsted?.belowGoodCount ?? null,
+    };
+  });
+
+  // Post-filter for hasSchoolsBelowGood (requires aggregation results)
+  if (input.hasSchoolsBelowGood === true) {
+    results = results.filter((b) => (b.schoolsBelowGood ?? 0) > 0);
+  }
+
   return {
-    summary: `Found ${filteredCount} buyers matching criteria (showing ${buyers.length})`,
-    data: buyers,
+    summary: `Found ${filteredCount} buyers matching criteria (showing ${results.length})`,
+    data: results,
   };
 }
 
@@ -116,6 +171,9 @@ async function handleQueryContracts(
     region: input.region as string | undefined,
     minValue: input.minValue as number | undefined,
     maxValue: input.maxValue as number | undefined,
+    contractType: input.contractType as string | undefined,
+    smeOnly: input.smeOnly === true ? true : undefined,
+    vcoOnly: input.vcoOnly === true ? true : undefined,
     page: 1,
     pageSize: limit,
   });
@@ -131,6 +189,11 @@ async function handleQueryContracts(
     status: c.status,
     deadlineDate: c.deadlineDate,
     buyerRegion: c.buyerRegion,
+    contractType: c.contractType ?? null,
+    suitableForSme: c.suitableForSme ?? null,
+    suitableForVco: c.suitableForVco ?? null,
+    canRenew: c.canRenew ?? null,
+    awardedSuppliers: c.awardedSuppliers ?? [],
   }));
 
   return {
@@ -189,7 +252,7 @@ async function handleGetBuyerDetail(
     if (buyer) {
       return {
         summary: `Retrieved details for ${buyer.name}`,
-        data: buyer,
+        data: buildBuyerDetailResponse(buyer),
       };
     }
   }
@@ -205,13 +268,50 @@ async function handleGetBuyerDetail(
       if (buyer) {
         return {
           summary: `Retrieved details for ${buyer.name}`,
-          data: buyer,
+          data: buildBuyerDetailResponse(buyer),
         };
       }
     }
   }
 
   return { summary: "Buyer not found", data: null };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildBuyerDetailResponse(buyer: Record<string, any>) {
+  const schools = Array.isArray(buyer.ofstedSchools) ? buyer.ofstedSchools : [];
+
+  if (schools.length === 0) {
+    return buyer;
+  }
+
+  const belowGood = schools.filter((s: Record<string, unknown>) => {
+    const ratings = [
+      s.overallEffectiveness,
+      s.qualityOfEducation,
+      s.behaviourAndAttitudes,
+      s.personalDevelopment,
+      s.leadershipAndManagement,
+    ].filter((r): r is number => typeof r === "number");
+    return ratings.some((r) => r >= 3);
+  });
+
+  return {
+    ...buyer,
+    ofstedSummary: {
+      totalSchools: schools.length,
+      belowGoodCount: belowGood.length,
+      schools: belowGood
+        .map((s: Record<string, unknown>) => ({
+          name: s.name,
+          overallEffectiveness: s.overallEffectiveness,
+          qualityOfEducation: s.qualityOfEducation,
+          phase: s.phase,
+          totalPupils: s.totalPupils,
+        }))
+        .slice(0, 10),
+    },
+  };
 }
 
 async function handleGetContractDetail(
@@ -346,6 +446,72 @@ async function handleQueryBoardDocuments(
   return {
     summary: `Found ${docs.length} board documents`,
     data: docs,
+  };
+}
+
+async function handleQueryOfstedSchools(
+  input: Record<string, unknown>
+): Promise<ToolResult> {
+  const limit = Math.min(Number(input.limit) || 10, 30);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Record<string, any> = {};
+
+  if (input.buyerId) {
+    if (!mongoose.isValidObjectId(String(input.buyerId))) {
+      return { summary: "Invalid buyer ID", data: null };
+    }
+    query.buyerId = new mongoose.Types.ObjectId(String(input.buyerId));
+  }
+  if (input.localAuthority) {
+    query.localAuthority = {
+      $regex: String(input.localAuthority),
+      $options: "i",
+    };
+  }
+  if (input.name) {
+    query.name = { $regex: String(input.name), $options: "i" };
+  }
+  if (input.maxRating) {
+    query.overallEffectiveness = { $gte: Number(input.maxRating) };
+  }
+  if (input.phase) {
+    query.phase = { $regex: String(input.phase), $options: "i" };
+  }
+
+  const schools = await OfstedSchool.find(query)
+    .sort({ overallEffectiveness: -1 })
+    .limit(limit)
+    .select(
+      "name phase overallEffectiveness qualityOfEducation behaviourAndAttitudes personalDevelopment leadershipAndManagement inspectionDate totalPupils localAuthority buyerId"
+    )
+    .lean();
+
+  const ratingLabel = (r: number | null | undefined) => {
+    if (r == null) return null;
+    return (
+      { 1: "Outstanding", 2: "Good", 3: "Requires Improvement", 4: "Inadequate" }[r] ?? String(r)
+    );
+  };
+
+  const formatted = schools.map((s) => ({
+    _id: s._id,
+    name: s.name,
+    phase: s.phase,
+    localAuthority: s.localAuthority,
+    overallEffectiveness: ratingLabel(s.overallEffectiveness as number | null),
+    qualityOfEducation: ratingLabel(s.qualityOfEducation as number | null),
+    behaviourAndAttitudes: ratingLabel(s.behaviourAndAttitudes as number | null),
+    personalDevelopment: ratingLabel(s.personalDevelopment as number | null),
+    leadershipAndManagement: ratingLabel(s.leadershipAndManagement as number | null),
+    inspectionDate: s.inspectionDate,
+    totalPupils: s.totalPupils,
+    buyerId: s.buyerId ?? null,
+  }));
+
+  return {
+    summary: `Found ${formatted.length} Ofsted school records`,
+    data: formatted,
   };
 }
 
