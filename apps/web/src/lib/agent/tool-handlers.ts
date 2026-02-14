@@ -15,6 +15,8 @@ import CompanyProfile from "@/models/company-profile";
 import { generateScoringPrompt } from "@/lib/vibe-scanner";
 import { scoreOneEntity, buildScoringSystemPrompt } from "@/lib/scoring-engine";
 
+import { VALID_USE_CASES, VALID_MODELS, isTextUseCase } from "@/lib/ai-column-config";
+
 import type { AIModel } from "@/lib/ai-column-config";
 import type { ScannerType } from "@/models/scanner";
 
@@ -430,6 +432,12 @@ async function handleAddScannerColumn(
   const scannerId = String(input.scannerId);
   const name = String(input.name);
   const prompt = String(input.prompt);
+  const useCase = input.useCase && VALID_USE_CASES.has(String(input.useCase))
+    ? String(input.useCase)
+    : "score";
+  const model = input.model && VALID_MODELS.has(String(input.model))
+    ? String(input.model)
+    : "haiku";
 
   if (!mongoose.isValidObjectId(scannerId)) {
     return { summary: "Invalid scanner ID", data: null };
@@ -439,7 +447,7 @@ async function handleAddScannerColumn(
 
   const scanner = await Scanner.findOneAndUpdate(
     { _id: scannerId, userId },
-    { $push: { aiColumns: { columnId, name, prompt, useCase: "score", model: "haiku" } } },
+    { $push: { aiColumns: { columnId, name, prompt, useCase, model } } },
     { new: true }
   );
 
@@ -448,9 +456,9 @@ async function handleAddScannerColumn(
   }
 
   return {
-    summary: `Added AI column "${name}" to scanner "${scanner.name}"`,
-    data: { columnId, name, prompt, useCase: "score", model: "haiku" },
-    action: { type: "column_added", scannerId, columnId, name, prompt, useCase: "score", model: "haiku" },
+    summary: `Added AI column "${name}" (${useCase}) to scanner "${scanner.name}"`,
+    data: { columnId, name, prompt, useCase, model },
+    action: { type: "column_added", scannerId, columnId, name, prompt, useCase, model },
   };
 }
 
@@ -558,14 +566,18 @@ async function handleTestScoreColumn(
     }
   );
 
-  const scoreDisplay = result.score != null ? `${result.score}/10` : "N/A";
+  const textMode = isTextUseCase(column.useCase);
+  const summaryText = textMode
+    ? `Test result for "${entityTitle}" (${column.name}): ${result.response.slice(0, 200)}`
+    : `Test score for "${entityTitle}" (${column.name}): ${result.score != null ? `${result.score}/10` : "N/A"} — ${result.reasoning}`;
 
   return {
-    summary: `Test score for "${entityTitle}": ${scoreDisplay} — ${result.reasoning}`,
+    summary: summaryText,
     data: {
       entityId,
       entityTitle,
       columnName: column.name,
+      useCase: column.useCase,
       score: result.score,
       reasoning: result.reasoning,
       response: result.response,

@@ -332,6 +332,12 @@ export function getToolDefinitions(): Anthropic.Tool[] {
             description:
               "AI prompt to evaluate each entity (e.g. 'Rate how well this contract matches our capabilities')",
           },
+          useCase: {
+            type: "string",
+            enum: ["score", "research", "decision-makers", "bid-recommendation", "find-contacts"],
+            description:
+              "Analysis type. 'score' = numeric 1-10 score (default). All others = free-text analysis. Choose based on user intent.",
+          },
         },
         required: ["scannerId", "name", "prompt"],
       },
