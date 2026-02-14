@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Radar } from "lucide-react";
 import { motion } from "motion/react";
+import { Button } from "@/components/ui/button";
 
 interface ProfileHeaderProps {
   name: string;
@@ -10,6 +13,36 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ name, sectors }: ProfileHeaderProps) {
+  const router = useRouter();
+  const [isCreating, setIsCreating] = useState(false);
+
+  async function handleCreateScanner() {
+    setIsCreating(true);
+    try {
+      const res = await fetch("/api/scanners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "rfps",
+          name: `Contracts: ${name}`,
+          description: `Track all contracts awarded to ${name}`,
+          searchQuery: name,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create scanner");
+      }
+
+      const data = await res.json();
+      router.push(`/scanners/${data.scanner._id}`);
+    } catch (err) {
+      console.error("Failed to create scanner:", err);
+      setIsCreating(false);
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -24,8 +57,28 @@ export function ProfileHeader({ name, sectors }: ProfileHeaderProps) {
       >
         <ArrowLeft className="h-4 w-4" />
       </Link>
-      <div className="min-w-0">
-        <h1 className="text-xl font-semibold truncate">{name}</h1>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-xl font-semibold truncate">{name}</h1>
+          <Button
+            size="sm"
+            onClick={handleCreateScanner}
+            disabled={isCreating}
+            className="shrink-0"
+          >
+            {isCreating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Radar className="h-3.5 w-3.5" />
+                Track Contracts
+              </>
+            )}
+          </Button>
+        </div>
         {sectors.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             {sectors.slice(0, 4).map((sector) => (
