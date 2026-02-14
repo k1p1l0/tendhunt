@@ -43,6 +43,8 @@ export default async function BuyerDetailPage({
     status: c.status ?? undefined,
     sector: c.sector ?? null,
     source: c.source ?? undefined,
+    contractMechanism: c.contractMechanism ?? null,
+    contractEndDate: c.contractEndDate ? String(c.contractEndDate) : null,
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

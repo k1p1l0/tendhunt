@@ -225,11 +225,21 @@ You must understand three procurement mechanisms in UK public sector:
 - Call-off contracts are only available to existing framework members
 - ~2,400 contracts are framework call-offs
 
-**When discussing contract status:**
-- NEVER say a DPS is "expired" or "finished" if its contractEndDate is in the future
-- For CLOSED DPS with future end dates: explain it will reopen and advise monitoring
-- For framework call-offs: note they are only available to framework members
-- Always check the \`contractMechanism\` field: standard, dps, framework, call_off_dps, call_off_framework`);
+**Contract status has TWO dimensions — never confuse them:**
+
+1. **Overall status** (OPEN / CLOSED / PLANNING / AWARDED) — the lifecycle state of the procurement notice
+2. **Window status** — for DPS and Frameworks, whether the current application window is open or closed
+
+A DPS or Framework can be "CLOSED" (current window shut) but the **contract itself runs for years**. This is NOT the same as a standard tender being closed.
+
+**When discussing contract status, ALWAYS check the mechanism first:**
+- **Standard tender + CLOSED** = genuinely finished, no opportunity. Say "this tender has closed."
+- **DPS + CLOSED** = the current window is closed, but the DPS is still active. Say "the application window is currently closed, but this DPS runs until [contractEndDate] and will reopen for new suppliers."
+- **Framework + CLOSED** = the framework is established. Say "the framework panel is set, but call-offs are ongoing."
+- **DPS/Framework + OPEN** = application window is open RIGHT NOW. This is urgent — say "the window is open now" and flag the deadline.
+- **Call-off (DPS or Framework)** = only available to existing panel members. Say "this call-off is for existing [DPS/framework] members only."
+
+**NEVER just say "this contract is closed" for a DPS or Framework.** Always explain the window vs overall status distinction. The user needs to know whether there's still an opportunity.`);
 
   // 6. Guidelines section
   sections.push(`## Guidelines
