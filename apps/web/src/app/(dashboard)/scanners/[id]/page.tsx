@@ -616,8 +616,8 @@ export default function ScannerDetailPage({
       // Skip rows not in the target set (when scoped to filtered rows)
       if (targetIds && !targetIds.has(entityId)) continue;
       const existing = scores[`${columnId}:${entityId}`];
-      const hasScore = existing && existing.score != null;
-      if (options?.force || !hasScore) {
+      const hasResult = existing && (existing.score != null || !!existing.response);
+      if (options?.force || !hasResult) {
         setScore(columnId, entityId, {
           isLoading: true,
           isQueued: true,

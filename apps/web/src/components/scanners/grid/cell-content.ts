@@ -65,7 +65,7 @@ export function createGetCellContent(
     columnId: string,
     entityId: string
   ) => ScoreEntry | undefined,
-  isScoringActive?: boolean
+  scoringColumnIds?: Set<string>
 ) {
   return function getCellContent([col, row]: readonly [
     number,
@@ -93,8 +93,9 @@ export function createGetCellContent(
         if (entry?.isLoading) return createTextStatusCell("", "loading");
         if (entry?.error) return createTextStatusCell("", "error", entry.error);
         if (entry?.response) return createTextStatusCell(entry.response, "success");
-        // No entry — show queued shimmer when scoring is active, empty otherwise
-        return createTextStatusCell("", isScoringActive ? "queued" : "empty");
+        // No entry — show queued shimmer when THIS column is scoring, empty otherwise
+        const isThisColScoring = !!meta.aiColumnId && !!scoringColumnIds?.has(meta.aiColumnId);
+        return createTextStatusCell("", isThisColScoring ? "queued" : "empty");
       }
 
       // Score mode: queued shows shimmer bar, active shows spinner
@@ -107,8 +108,9 @@ export function createGetCellContent(
       if (entry?.score != null) {
         return createScoreBadgeCell(entry.score, false, false, `${meta.aiColumnId}:${entityId}`);
       }
-      // No score — show queued shimmer when scoring is active, dashed circle otherwise
-      return createScoreBadgeCell(null, false, isScoringActive);
+      // No score — show queued shimmer when THIS column is scoring, dashed circle otherwise
+      const isThisColScoring = !!meta.aiColumnId && !!scoringColumnIds?.has(meta.aiColumnId);
+      return createScoreBadgeCell(null, false, isThisColScoring);
     }
 
     // Entity name with logo

@@ -181,10 +181,16 @@ export function ScannerDataGrid({
   // Display rows = filtered rows (no threshold splitting)
   const displayRows = filteredRows;
 
+  // Build set of actively scoring column IDs for per-column queued state
+  const scoringColumnIds = useMemo(
+    () => new Set(Object.keys(columnScoringProgress)),
+    [columnScoringProgress]
+  );
+
   // getCellContent callback
   const getCellContent = useMemo(
-    () => createGetCellContent(columnMeta, displayRows, scores, getScore, isScoring),
-    [columnMeta, displayRows, scores, isScoring]
+    () => createGetCellContent(columnMeta, displayRows, scores, getScore, scoringColumnIds),
+    [columnMeta, displayRows, scores, scoringColumnIds]
   );
 
   // Store columnMeta + columnFilters in refs so drawHeader can access without re-creating
