@@ -516,6 +516,16 @@ const KNOWN_SCHEMAS: KnownSchema[] = [
     map: { date: "Payment Date", amount: "Total", vendor: "Supplier Name", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
   },
   {
+    name: "govuk_nhs_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number", "ap amount"]),
+    map: { date: "Date", amount: "AP Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
+  },
+  {
+    name: "nhs_icb_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number", "ap amount"]),
+    map: { date: "Date", amount: "AP Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
+  },
+  {
     name: "govuk_spending_25k",
     detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number"]),
     map: { date: "Date", amount: "Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
