@@ -161,6 +161,7 @@ export interface MappedContract {
   buyerId?: ObjectId | null;
   procurementMethod: string | null;
   procurementMethodDetails: string | null;
+  contractMechanism: "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework";
   submissionMethod: string[];
   submissionPortalUrl: string | null;
   buyerContact: MappedBuyerContact | null;
