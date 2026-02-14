@@ -18,6 +18,7 @@ import {
   resolveColumnReferences,
   extractReferencedColumnIds,
 } from "@/lib/column-references";
+import { batchGetReportTexts } from "@/lib/ofsted-report";
 import type { AIModel } from "@/lib/ai-column-config";
 import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
@@ -195,7 +196,7 @@ export async function POST(
             "overallEffectiveness qualityOfEducation behaviourAndAttitudes " +
             "personalDevelopment leadershipAndManagement " +
             "inspectionDate previousOverallEffectiveness ratingDirection " +
-            "lastDowngradeDate downgradeType totalPupils"
+            "lastDowngradeDate downgradeType totalPupils reportUrl"
           )
           .lean()) as unknown as Array<Record<string, unknown>>;
         break;
@@ -324,6 +325,28 @@ export async function POST(
       ? null
       : buildScoringSystemPrompt(baseScoringPrompt, column.prompt, column.useCase);
 
+    // Pre-fetch Ofsted report texts for schools scanner type
+    // Maps entityId -> extracted report text (used as additionalContext during scoring)
+    let reportTexts: Map<string, string> | null = null;
+    if (scanner.type === "schools") {
+      try {
+        const schoolEntities = entitiesToScore.map((e) => ({
+          _id: e._id,
+          urn: e.urn as number,
+          reportUrl: e.reportUrl as string | undefined,
+        }));
+        reportTexts = await batchGetReportTexts(schoolEntities);
+        console.log(
+          `[score-column] Pre-fetched ${reportTexts.size}/${entitiesToScore.length} Ofsted reports`
+        );
+      } catch (err) {
+        console.error(
+          "[score-column] Report pre-fetch failed (scoring will proceed without report text):",
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
+
     // Load auto-send rules for this scanner + column (cached for entire run)
     const autoSendRules = await AutoSendRule.find({
       userId,
@@ -390,13 +413,17 @@ export async function POST(
                   column.useCase
                 );
 
+                // For schools, include Ofsted report text as additional context
+                const reportContext = reportTexts?.get(entityId) ?? undefined;
+
                 const result = await scoreOneEntity(
                   entity,
                   scanner.type,
                   entitySystemPrompt,
                   scanner.searchQuery || "",
                   (column.model as AIModel) || "haiku",
-                  column.useCase
+                  column.useCase,
+                  reportContext
                 );
 
                 if (cancelled) return;

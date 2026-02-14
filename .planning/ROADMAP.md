@@ -144,11 +144,11 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 - `apps/web/src/lib/scoring-engine.ts` -- add schools context builder (include report text)
 
 **Success criteria:**
-- [ ] User can add an AI column to a schools scanner and run scoring
-- [ ] Scoring fetches the Ofsted report PDF and extracts text for Claude analysis
-- [ ] "Tuition Relevance" prompt returns a 0-10 score with reasoning referencing report content
-- [ ] Results include specific quotes/themes from the report (literacy, numeracy, catch-up, etc.)
-- [ ] Report PDFs are cached to prevent redundant downloads on re-scoring
+- [x] User can add an AI column to a schools scanner and run scoring
+- [x] Scoring fetches the Ofsted report PDF and extracts text for Claude analysis
+- [x] "Tuition Relevance" prompt returns a 0-10 score with reasoning referencing report content
+- [x] Results include specific quotes/themes from the report (literacy, numeracy, catch-up, etc.)
+- [x] Report PDFs are cached to prevent redundant downloads on re-scoring
 
 ---
 
@@ -164,4 +164,4 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 after initial creation*
+*Last updated: 2026-02-14 after Phase 5 completion*

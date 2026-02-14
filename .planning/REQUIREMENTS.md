@@ -38,10 +38,10 @@
 
 ### AI Report Analysis
 
-- [ ] **AI-01**: User can add an AI column to the schools scanner that analyzes Ofsted report PDFs
-- [ ] **AI-02**: AI scoring fetches the school's Ofsted report PDF, extracts text, and sends it to Claude for analysis
-- [ ] **AI-03**: Default "Tuition Relevance" prompt scores 0-10 how likely a school needs tuition services based on report content (literacy, numeracy, catch-up, pupil premium, attainment gaps)
-- [ ] **AI-04**: AI analysis results include reasoning explaining what in the report suggests tuition need
+- [x] **AI-01**: User can add an AI column to the schools scanner that analyzes Ofsted report PDFs
+- [x] **AI-02**: AI scoring fetches the school's Ofsted report PDF, extracts text, and sends it to Claude for analysis
+- [x] **AI-03**: Default "Tuition Relevance" prompt scores 0-10 how likely a school needs tuition services based on report content (literacy, numeracy, catch-up, pupil premium, attainment gaps)
+- [x] **AI-04**: AI analysis results include reasoning explaining what in the report suggests tuition need
 
 ## v2 Requirements
 
@@ -86,10 +86,10 @@
 | DETL-03 | Phase 4 | Done |
 | DETL-04 | Phase 4 | Done |
 | DETL-05 | Phase 4 | Done |
-| AI-01 | Phase 5 | Pending |
-| AI-02 | Phase 5 | Pending |
-| AI-03 | Phase 5 | Pending |
-| AI-04 | Phase 5 | Pending |
+| AI-01 | Phase 5 | Done |
+| AI-02 | Phase 5 | Done |
+| AI-03 | Phase 5 | Done |
+| AI-04 | Phase 5 | Done |
 
 **Coverage:**
 - v1 requirements: 22 total
@@ -98,4 +98,4 @@
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after initial definition*
+*Last updated: 2026-02-14 after Phase 5 completion*

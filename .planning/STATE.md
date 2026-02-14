@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Suppliers can instantly find schools downgraded by Ofsted in the last N months and assess whether each school's inspection report suggests a need for their services.
-**Current focus:** Phase 4 -- School Detail Page & Timeline
+**Current focus:** All phases complete
 
 ## Current Phase
 
-**Phase 4: School Detail Page & Timeline**
+**Phase 5: AI Report Analysis Column**
 - Status: Complete
-- Goal: Deep-dive view with full inspection history and visual timeline
-- Requirements: DETL-01, DETL-02, DETL-03, DETL-04, DETL-05
+- Goal: AI column that reads Ofsted report PDFs and scores tuition relevance 0-10 with reasoning
+- Requirements: AI-01, AI-02, AI-03, AI-04
 
 ## Progress
 
@@ -66,7 +66,14 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - [x] fetchBuyerById now selects inspectionHistory + ratingDirection for Ofsted schools
 
 ### Phase 5: AI Report Analysis Column
-- [ ] Not started
+- [x] Create ofsted-report.ts library with PDF download, text extraction, and MongoDB caching
+- [x] Create /api/schools/[urn]/report API endpoint for on-demand report text extraction
+- [x] Update scoring engine: add additionalContext parameter to buildEntityUserPrompt and scoreOneEntity
+- [x] Update score-column route: pre-fetch report texts via batchGetReportTexts, pass to scoring
+- [x] Update schools entity loader to also select reportUrl field
+- [x] Enhance "Tuition Relevance" default prompt with detailed report analysis instructions
+- [x] Enhance "Outreach Priority" prompt to reference report content themes
+- [x] MongoDB cache collection (ofstedReportCache) with TTL index for 90-day expiry
 
 ## Key Context
 
@@ -86,9 +93,21 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - New "rating-change" DataType with custom canvas renderer: red pill with down arrow for downgraded, green with up arrow for improved, grey with equals for unchanged
 - `ofsted-downgrade.ts` utility provides compareInspections() for any two inspections and detectDowngradesFromHistory() for full timeline analysis
 
+## Key Context (Phase 5 additions)
+
+- `ofsted-report.ts` provides `getReportText()` and `batchGetReportTexts()` for PDF fetch + extraction + caching
+- Reports cached in MongoDB `ofstedReportCache` collection with 90-day TTL (reports don't change)
+- Cache keyed by URN + reportUrl (unique compound index)
+- Max extracted text: 40,000 chars per report (truncated to fit AI token limits)
+- PDF fetch timeout: 30 seconds per report
+- Batch pre-fetch runs sequentially to avoid hammering Ofsted servers
+- The scoring engine's `buildEntityUserPrompt` now appends report text as a dedicated "Ofsted Report Content" section for schools
+- Non-school scanner types are unaffected (additionalContext parameter is optional)
+- Report API endpoint at `/api/schools/[urn]/report` supports `?inspectionNumber=` for historical reports
+
 ## Blockers
 
 None currently.
 
 ---
-*Last updated: 2026-02-14 after Phase 4 completion*
+*Last updated: 2026-02-14 after Phase 5 completion*

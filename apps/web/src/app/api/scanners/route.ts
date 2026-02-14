@@ -54,13 +54,24 @@ const DEFAULT_AI_COLUMNS: Record<
       columnId: "tuition-relevance",
       name: "Tuition Relevance",
       prompt:
-        "Score how likely this school needs tuition services on a scale of 1-10. Consider: Ofsted rating (lower = more need), recent downgrade, quality of education grade, school phase, pupil count, and any indicators of attainment gaps or catch-up needs.",
+        "Score how likely this school needs tuition services on a scale of 1-10. Analyze the Ofsted report PDF content (provided below the school metadata) for specific evidence of:\n\n" +
+        "- **Literacy & reading gaps**: mentions of below-expected reading levels, phonics weaknesses, poor vocabulary development\n" +
+        "- **Numeracy & maths gaps**: below-expected maths attainment, gaps in number fluency\n" +
+        "- **Catch-up / recovery needs**: references to COVID recovery, catch-up funding, pupils falling behind\n" +
+        "- **Pupil premium concerns**: disadvantaged pupil underperformance, pupil premium strategy weaknesses\n" +
+        "- **Attainment gaps**: gap between disadvantaged and non-disadvantaged pupils, SEND support needs\n" +
+        "- **Quality of Education issues**: curriculum gaps, inconsistent teaching quality, poor progress rates\n\n" +
+        "Higher scores (7-10) = strong evidence of tuition need from report content. " +
+        "Medium scores (4-6) = some indicators but not definitive. " +
+        "Low scores (1-3) = school performing well, limited tuition need.\n\n" +
+        "In your reasoning, cite specific phrases or themes from the report that indicate tuition need. " +
+        "If no report text is available, score based on Ofsted ratings and metadata only.",
     },
     {
       columnId: "outreach-priority",
       name: "Outreach Priority",
       prompt:
-        "Based on this school's Ofsted data, recommend outreach priority (High/Medium/Low). Consider: recency of downgrade, severity of rating drop, school size, and region. Explain in 1-2 sentences.",
+        "Based on this school's Ofsted data and report content (if available), recommend outreach priority (High/Medium/Low). Consider: recency of downgrade, severity of rating drop, school size, region, and any specific themes from the report suggesting urgency (e.g. 'requires improvement in reading', 'pupils not making expected progress'). Explain in 1-2 sentences.",
     },
   ],
 };

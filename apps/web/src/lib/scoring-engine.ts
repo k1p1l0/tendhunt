@@ -104,11 +104,13 @@ The "score" field should be a number between 1.0 and 10.0 for relevance/scoring 
 
 /**
  * Constructs the user message from entity data depending on scanner type.
+ * Optional additionalContext is appended (e.g. Ofsted report text for schools).
  */
 export function buildEntityUserPrompt(
   entity: Record<string, unknown>,
   scannerType: ScannerType,
-  searchQuery?: string
+  searchQuery?: string,
+  additionalContext?: string
 ): string {
   const queryContext = searchQuery
     ? `\nSearch Query Context: ${searchQuery}`
@@ -154,6 +156,9 @@ ${queryContext}`;
       const ratingLabels: Record<number, string> = { 1: "Outstanding", 2: "Good", 3: "Requires Improvement", 4: "Inadequate" };
       const currentRating = entity.overallEffectiveness as number | undefined;
       const prevRating = entity.previousOverallEffectiveness as number | undefined;
+      const reportSection = additionalContext
+        ? `\n\n---\n\n## Ofsted Report Content (extracted from PDF)\n\n${additionalContext}`
+        : "\n\n(No Ofsted report PDF available for this school)";
       return `Analyze this Ofsted-inspected school:
 
 School: ${entity.name || "Unknown"}
@@ -173,7 +178,7 @@ Rating Direction: ${entity.ratingDirection || "Unknown"}
 Last Downgrade Date: ${entity.lastDowngradeDate || "None"}
 Downgrade Type: ${entity.downgradeType || "None"}
 Last Inspection: ${entity.inspectionDate || "Unknown"}
-${queryContext}`;
+${queryContext}${reportSection}`;
     }
 
     default:
@@ -189,6 +194,7 @@ ${queryContext}`;
  * Scores a single entity against a specific AI column using the configured Claude model.
  *
  * Uses cache_control on the system prompt for prompt caching (>4096 tokens).
+ * Optional additionalContext is appended to the user message (e.g. Ofsted report text).
  */
 export async function scoreOneEntity(
   entity: Record<string, unknown>,
@@ -196,9 +202,10 @@ export async function scoreOneEntity(
   systemPrompt: string,
   searchQuery?: string,
   model: AIModel = "haiku",
-  useCase?: string
+  useCase?: string,
+  additionalContext?: string
 ): Promise<{ score: number | null; reasoning: string; response: string }> {
-  const userMessage = buildEntityUserPrompt(entity, scannerType, searchQuery);
+  const userMessage = buildEntityUserPrompt(entity, scannerType, searchQuery, additionalContext);
   const maxRetries = 4;
   const textMode = isTextUseCase(useCase);
 
