@@ -56,6 +56,38 @@ Workers expose `/run-buyer?id=<ObjectId>` for on-demand single-buyer processing:
 | spend-ingest | `MONGODB_URI`, `ANTHROPIC_API_KEY` | — |
 | board-minutes | `MONGODB_URI`, `ANTHROPIC_API_KEY` | — |
 
+## Cloudflare Plan & Usage Model
+
+All workers run on the **Workers Paid plan** ($5/mo). Each `wrangler.toml` MUST include:
+
+```toml
+usage_model = "standard"
+```
+
+**Without this line, workers default to the old "Bundled" model which has 50ms CPU / 50 subrequest limits — even on the paid plan.** The "Standard" model gives:
+
+| Limit | Standard (current) | Bundled (default — broken) |
+|-------|-------------------|---------------------------|
+| CPU time | 15 min (cron), 5 min (HTTP) | 50ms |
+| Subrequests | 10,000 per request | 50 per request |
+
+The single-buyer `/run-buyer` endpoint makes 50-70+ subrequests (MongoDB + Apify + Claude + ModernGov + chained workers). Without `usage_model = "standard"`, it crashes with Cloudflare error 1101.
+
+### Single-Buyer Enrichment Priority
+
+The `/run-buyer?id=X` endpoint sets `enrichmentPriority: 10` on the target buyer so batch queries (sorted by priority) pick it up first. Two critical fixes:
+
+1. **Reset stale priority-10 entries** before setting the target — previous failed runs may leave other buyers at priority 10
+2. **Re-assert priority 10 before each stage** — the classify stage overwrites priority with a tier-based value, causing subsequent stages to process the wrong buyer
+
+## Pipeline Error Tracking
+
+Workers report processing failures to MongoDB `pipelineerrors` collection via `reportPipelineError()` (in each worker's `db/pipeline-errors.ts`). Errors are browsable in the admin panel at `/pipeline-errors`.
+
+Instrumented stages:
+- **enrichment**: website_discovery (Apify 403), logo_linkedin (Apify 403), moderngov (unreachable), scrape (HTTP errors), personnel (no data)
+- **spend-ingest**: discover (unreachable), extract_links (unreachable), download_parse (parse errors)
+
 ## Deploying Workers
 
 ```bash
