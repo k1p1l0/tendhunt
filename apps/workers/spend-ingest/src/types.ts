@@ -9,6 +9,7 @@ export interface Env {
   ANTHROPIC_API_KEY: string;
   DOCS: R2Bucket;
   WORKER_SECRET?: string;
+  SCRAPELESS_API_KEY?: string;
 }
 
 // ---------------------------------------------------------------------------

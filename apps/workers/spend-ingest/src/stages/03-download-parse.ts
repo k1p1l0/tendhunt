@@ -18,6 +18,38 @@ import { normalizeCategory } from "../normalization/category-taxonomy";
 import { reportPipelineError } from "../db/pipeline-errors";
 import type { ColumnMapping } from "../normalization/known-schemas";
 
+/**
+ * Fetch a URL through Scrapeless Web Unlocker to bypass WAF/bot protection.
+ * Used as fallback when direct fetch returns 403 (Incapsula, Cloudflare, etc.).
+ */
+async function fetchViaScrapeless(
+  url: string,
+  apiKey: string
+): Promise<Response> {
+  const res = await fetch(
+    "https://api.scrapeless.com/api/v2/unlocker/request",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-token": apiKey,
+      },
+      body: JSON.stringify({
+        actor: "unlocker.webunlocker",
+        input: {
+          url,
+          method: "GET",
+          redirect: true,
+        },
+        proxy: {
+          country: "GB",
+        },
+      }),
+    }
+  );
+  return res;
+}
+
 // ---------------------------------------------------------------------------
 // Stage 3: Download and parse CSV spend data files
 // ---------------------------------------------------------------------------
@@ -275,7 +307,7 @@ export async function downloadAndParseCsvs(
             try {
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 15000);
-              const response = await fetchWithDomainDelay(csvUrl, {
+              let response = await fetchWithDomainDelay(csvUrl, {
                 signal: controller.signal,
                 headers: {
                   "User-Agent":
@@ -283,6 +315,12 @@ export async function downloadAndParseCsvs(
                 },
               });
               clearTimeout(timeout);
+
+              // WAF bypass: retry via Scrapeless on 403
+              if (response.status === 403 && env.SCRAPELESS_API_KEY) {
+                console.log(`403 on ${csvUrl} — retrying via Scrapeless`);
+                response = await fetchViaScrapeless(csvUrl, env.SCRAPELESS_API_KEY);
+              }
 
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
