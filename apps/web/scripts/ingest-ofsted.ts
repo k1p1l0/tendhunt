@@ -131,19 +131,19 @@ function mapCsvRow(row: CsvRow) {
     postcode: row["Postcode"]?.trim() || undefined,
     matUid: row["Multi-academy trust UID"]?.trim() || undefined,
     matName: row["Multi-academy trust name"]?.trim() || undefined,
-    overallEffectiveness: parseGrade(row["Overall effectiveness"]),
-    qualityOfEducation: parseGrade(row["Quality of education"]),
-    behaviourAndAttitudes: parseGrade(row["Behaviour and attitudes"]),
-    personalDevelopment: parseGrade(row["Personal development"]),
-    leadershipAndManagement: parseGrade(row["Effectiveness of leadership and management"]),
-    safeguarding: row["Safeguarding is effective"]?.trim() || undefined,
-    inspectionDate: parseDate(row["Inspection start date"]),
-    publicationDate: parseDate(row["Publication date"]),
-    inspectionType: row["Inspection type"]?.trim() || undefined,
-    reportUrl: row["Web link"]?.trim() || undefined,
-    previousOverallEffectiveness: parseGrade(row["Previous full inspection overall effectiveness"]),
-    previousInspectionDate: parseDate(row["Previous inspection start date"]),
-    idaciQuintile: parseNumber(row["IDACI quintile"]),
+    overallEffectiveness: parseGrade(row["Latest OEIF overall effectiveness"]),
+    qualityOfEducation: parseGrade(row["Latest OEIF quality of education"]),
+    behaviourAndAttitudes: parseGrade(row["Latest OEIF behaviour and attitudes"]),
+    personalDevelopment: parseGrade(row["Latest OEIF personal development"]),
+    leadershipAndManagement: parseGrade(row["Latest OEIF effectiveness of leadership and management"]),
+    safeguarding: row["Latest OEIF  safeguarding is effective?"]?.trim() || undefined,
+    inspectionDate: parseDate(row["Inspection start date of latest OEIF graded inspection"]),
+    publicationDate: parseDate(row["Publication date of latest OEIF graded inspection"]),
+    inspectionType: row["Inspection type of latest OEIF graded inspection"]?.trim() || undefined,
+    reportUrl: row["Web Link (opens in new window)"]?.trim() || undefined,
+    previousOverallEffectiveness: parseGrade(row["Achievement"]),
+    previousInspectionDate: parseDate(row["Inspection start date"]),
+    idaciQuintile: parseNumber(row["The income deprivation affecting children index (IDACI) quintile"]),
     totalPupils: parseNumber(row["Total number of pupils"]),
   };
 }
@@ -175,16 +175,25 @@ async function matchBuyers() {
   for (const school of schools) {
     let buyerId: string | undefined;
 
-    // Try MAT name match
-    if (school.matName) {
-      const matLower = school.matName.toLowerCase();
+    // Try MAT name match (skip literal "NULL" from CSV)
+    if (school.matName && school.matName !== "NULL") {
+      const matLower = school.matName.toLowerCase().trim();
       buyerId = buyerByNameLower.get(matLower);
     }
 
-    // Try Local Authority match
+    // Try Local Authority match with common UK council name patterns
     if (!buyerId && school.localAuthority) {
-      const laLower = school.localAuthority.toLowerCase();
-      buyerId = buyerByNameLower.get(laLower);
+      const laLower = school.localAuthority.toLowerCase().trim();
+      buyerId =
+        buyerByNameLower.get(laLower) ??
+        buyerByNameLower.get(`london borough of ${laLower}`) ??
+        buyerByNameLower.get(`${laLower} council`) ??
+        buyerByNameLower.get(`${laLower} county council`) ??
+        buyerByNameLower.get(`${laLower} borough council`) ??
+        buyerByNameLower.get(`${laLower} metropolitan borough council`) ??
+        buyerByNameLower.get(`${laLower} city council`) ??
+        buyerByNameLower.get(`city of ${laLower}`) ??
+        buyerByNameLower.get(`royal borough of ${laLower}`);
     }
 
     if (buyerId) {
