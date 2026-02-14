@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 33 IN PROGRESS (2/3 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 33 COMPLETE (3/3 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 33-dps-framework-status-intelligence (2/3 plans)
-Plan: 33-02 COMPLETE -- Contract list DPS/Framework UI badges and filters
-Status: Phase 33 in progress -- mechanism badges, DPS-aware status, and Type filter added
-Last activity: 2026-02-14 - Completed 33-02: Contract list DPS/Framework UI
+Phase: 33-dps-framework-status-intelligence (3/3 plans)
+Plan: 33-03 COMPLETE -- Contract detail DPS/Framework intelligence and Sculptor AI awareness
+Status: Phase 33 complete -- mechanism section on detail page, adaptive CTA, Sculptor AI DPS knowledge
+Last activity: 2026-02-14 - Completed 33-03: Contract detail DPS/Framework intelligence
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15, 33 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 59
-- Average duration: 3.2 min
-- Total execution time: 3.06 hours
+- Total plans completed: 60
+- Average duration: 3.1 min
+- Total execution time: 3.11 hours
 
 **By Phase:**
 
@@ -45,11 +45,11 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15, 33 in progress)
 | 20-board-minutes-signals | 4/4 | 8 min | 2 min |
 | 22-crm-pipeline-procurement-inbox | 5/5 | 6 min | 1.2 min |
 | 30-sculptor-ai-homepage | 3/3 | 6 min | 2 min |
-| 33-dps-framework-status | 2/3 | 5 min | 2.5 min |
+| 33-dps-framework-status | 3/3 | 8 min | 2.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 33-02 (3 min), 33-01 (2 min), 30-03 (2 min), 30-02 (2 min), 30-01 (2 min)
-- Trend: Consistent ~2 min per plan
+- Last 5 plans: 33-03 (3 min), 33-02 (3 min), 33-01 (2 min), 30-03 (2 min), 30-02 (2 min)
+- Trend: Consistent ~2-3 min per plan
 
 *Updated after each plan completion*
 
@@ -289,6 +289,9 @@ Recent decisions affecting current work:
 - [33-01]: Two-signal classification: procurementMethodDetails (most reliable) then title regex for DPS/framework
 - [33-01]: Word-boundary regex /\bDPS\b/ to avoid false positives (e.g. ADPS)
 - [33-01]: Classification logic duplicated in backfill script since mapper is in worker package
+- [33-03]: Amber callout for DPS CLOSED + future end date to highlight reopening potential
+- [33-03]: Purple badge for DPS, indigo badge for Framework -- consistent mechanism color scheme
+- [33-03]: contractMechanism added to both AgentPageContext definitions (provider + system-prompt)
 - [33-02]: Mechanism filter uses 'Type' label in UI (not 'Mechanism') for user-friendly language
 - [33-02]: Purple for DPS variants, indigo for Framework variants to create visual grouping
 - [33-02]: Amber 'Window Closed' only when contractEndDate is in the future
@@ -331,5 +334,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 33-02-PLAN.md -- Contract list DPS/Framework UI badges and filters
-Next: Continue with 33-03 (Sculptor AI awareness of DPS/Framework contracts).
+Stopped at: Completed 33-03-PLAN.md -- Contract detail DPS/Framework intelligence and Sculptor AI awareness
+Next: Phase 33 complete. Continue with remaining phases (11, 15) or new work.
