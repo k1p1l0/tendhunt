@@ -7,7 +7,7 @@ TendHunt runs **4 Cloudflare Workers** that form a data pipeline. They are indep
 | Worker | Directory | Cron | URL | Purpose |
 |--------|-----------|------|-----|---------|
 | **data-sync** | `data-sync/` | Hourly (`0 * * * *`) | `https://tendhunt-data-sync.kozak-74d.workers.dev` | Fetches contracts from FaT + CF APIs, extracts buyers |
-| **enrichment** | `enrichment/` | Hourly (`0 * * * *`) | `https://tendhunt-enrichment.kozak-74d.workers.dev` | 8-stage buyer enrichment (classify, website, logo, governance, moderngov, scrape, personnel, score) |
+| **enrichment** | `enrichment/` | Hourly (`0 * * * *`) | `https://tendhunt-enrichment.kozak-74d.workers.dev` | 9-stage buyer enrichment (parent_link, classify, website, logo, governance, moderngov, scrape, personnel, score) |
 | **spend-ingest** | `spend-ingest/` | Weekly (Mon 3AM) | `https://tendhunt-spend-ingest.kozak-74d.workers.dev` | 4-stage spend data ingest (discover, extract links, download/parse, aggregate) |
 | **board-minutes** | `board-minutes/` | Hourly at :30 (`30 * * * *`) | `https://tendhunt-board-minutes.kozak-74d.workers.dev` | 2-stage signal extraction from board documents (extract signals via Claude Haiku, deduplicate) |
 
@@ -35,7 +35,7 @@ TendHunt runs **4 Cloudflare Workers** that form a data pipeline. They are indep
 1. **data-sync** fetches contracts hourly from Find a Tender + Contracts Finder APIs
 2. For each contract batch, it extracts buyer records via `autoExtractBuyers()` (upsert by `nameLower`)
 3. **Newly created buyers** (not existing ones) trigger a fire-and-forget `fetch()` to the **enrichment worker's** `/run-buyer?id=X` endpoint
-4. The **enrichment worker** runs all 8 stages for that buyer (classify, website discovery, logo/LinkedIn, governance URLs, ModernGov SOAP, HTML scrape, Claude personnel extraction, enrichment scoring)
+4. The **enrichment worker** runs all 9 stages for that buyer (parent linking, classify, website discovery, logo/LinkedIn, governance URLs, ModernGov SOAP, HTML scrape, Claude personnel extraction, enrichment scoring)
 5. After enrichment completes, the enrichment worker chains to **spend-ingest** worker's `/run-buyer?id=X` for spend data, then to **board-minutes** worker's `/run-buyer?id=X` for signal extraction
 6. Additionally, the **enrichment worker's** batch cron processes remaining un-enriched buyers hourly, and when all enrichment stages complete (`all_complete`), it triggers both the **spend-ingest** worker's `/run` and the **board-minutes** worker's `/run` endpoints
 
@@ -133,7 +133,7 @@ The sync engine handles error states automatically:
 
 ## Enrichment Worker
 
-An 8-stage Cloudflare Worker that enriches UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron, processing 500 buyers per invocation with cursor-based resume.
+A 9-stage Cloudflare Worker that enriches UK public sector buyers with governance data, board documents, and key personnel. Runs **hourly** via cron, processing 500 buyers per invocation with cursor-based resume.
 
 ### DataSource Seeding
 
@@ -170,12 +170,13 @@ The seed script parses markdown tables from DATA_SOURCES.md covering **20 catego
 
 Each DataSource record includes: `name`, `orgType`, `region`, `democracyPortalUrl`, `boardPapersUrl`, `platform` (ModernGov/CMIS/Custom/Jadu/None), `website`, `tier`, `status`.
 
-### 8-Stage Pipeline
+### 9-Stage Pipeline
 
 Stages run sequentially. Each stage processes all buyers before the next begins. The `EnrichmentJob` collection tracks cursor position per stage for crash-safe resume.
 
 | Stage | File | What it does |
 |-------|------|-------------|
+| 0. `parent_link` | `enrichment/src/stages/00-parent-link.ts` | Detect parent-child buyer relationships via name patterns (comma, dash, "hosted by"). Sets `parentBuyerId` on child, `childBuyerIds` + `isParent` on parent. Single-level only. |
 | 1. `classify` | `enrichment/src/stages/01-classify.ts` | Fuzzy-match buyer names → DataSource via Fuse.js (threshold 0.3, 16 strip patterns for UK org name normalization). Sets `orgType`, `dataSourceId`, governance URLs. |
 | 2. `website_discovery` | `enrichment/src/stages/01b-website-discovery.ts` | Google Search via Apify to find missing buyer websites. |
 | 3. `logo_linkedin` | `enrichment/src/stages/01c-logo-linkedin.ts` | logo.dev CDN + LinkedIn company search + og:image for buyer logos. |
@@ -205,5 +206,5 @@ Per-domain rate limiter (`enrichment/src/api-clients/rate-limiter.ts`) with expo
 
 ### Buyer Schema Extensions
 
-The `Buyer` model (`apps/web/src/models/buyer.ts`) was extended with 12 enrichment fields:
-`orgType`, `orgSubType`, `dataSourceId`, `democracyPortalUrl`, `democracyPlatform`, `boardPapersUrl`, `staffCount`, `annualBudget`, `enrichmentScore`, `enrichmentSources`, `lastEnrichedAt`, `enrichmentVersion`
+The `Buyer` model (`apps/web/src/models/buyer.ts`) was extended with 15 enrichment fields:
+`orgType`, `orgSubType`, `dataSourceId`, `democracyPortalUrl`, `democracyPlatform`, `boardPapersUrl`, `staffCount`, `annualBudget`, `enrichmentScore`, `enrichmentSources`, `lastEnrichedAt`, `enrichmentVersion`, `parentBuyerId`, `childBuyerIds`, `isParent`

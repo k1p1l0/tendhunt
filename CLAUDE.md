@@ -91,7 +91,7 @@ Pattern: requirement ID (e.g. `AUTH-01`) → Linear identifier (e.g. `HAC-1`).
 
 See **`apps/workers/CLAUDE.md`** for full worker architecture documentation including:
 - 3-worker pipeline (data-sync → enrichment → spend-ingest) with data flow diagram
-- Per-worker details: data-sync, enrichment (8-stage), spend-ingest (4-stage)
+- Per-worker details: data-sync, enrichment (9-stage, including parent_link), spend-ingest (4-stage)
 - Single-buyer endpoints, secrets/env vars, deploy commands, debugging
 - DataSource seeding, rate limiting, MongoDB collections, error recovery
 
@@ -493,7 +493,7 @@ External links get blue underline styling with `class="external-link"`.
 
 ### On-Demand Buyer Enrichment
 
-Sculptor can trigger the full enrichment pipeline (8 stages + 4 spend stages) for a buyer.
+Sculptor can trigger the full enrichment pipeline (9 stages + 4 spend stages) for a buyer.
 
 **Flow:**
 1. AI detects missing data → suggests enrichment (text or tool call)
@@ -516,3 +516,71 @@ Sculptor can trigger the full enrichment pipeline (8 stages + 4 spend stages) fo
 ### Conversation Persistence
 
 Conversations persist in `localStorage` via Zustand `persist` middleware (key: `sculptor-conversations`). Only `panelOpen`, `conversations`, and `activeConversationId` are persisted. Transient state (`isStreaming`, `activeEnrichment`) resets on refresh.
+
+## Buyer Parent-Child Hierarchy
+
+UK government buyer names are fragmented — "Ministry of Defence" appears as 26+ separate records ("Ministry of Defence, Army", "Ministry of Defence, Ships, Other", etc.). The hierarchy system links these sub-departments to their parent org.
+
+### Schema
+
+Buyer model (`apps/web/src/models/buyer.ts`) has three hierarchy fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `parentBuyerId` | `ObjectId` (ref Buyer, indexed) | Points child → parent |
+| `childBuyerIds` | `ObjectId[]` (ref Buyer) | Parent's list of children |
+| `isParent` | `Boolean` (indexed) | Quick filter for parent orgs |
+
+**Single-level only** — no grandchildren. "Ministry of Defence, Ships, Maritime Platform Systems" links directly to "Ministry of Defence".
+
+### Detection Patterns
+
+Parent names are extracted from buyer names via three patterns (in order):
+1. **"hosted by"**: `"X as hosted by Y"` → parent `"Y"`
+2. **Comma** (first only): `"Ministry of Defence, Army"` → parent `"Ministry of Defence"`
+3. **Dash with spaces** (first only): `"DIO - Ministry of Defence"` → try both sides
+
+Extracted name is looked up by `nameLower` in the buyers collection. Min parent name length: 5 chars. Self-references are skipped.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/workers/enrichment/src/stages/00-parent-link.ts` | Enrichment stage — auto-detects relationships for new buyers |
+| `apps/web/scripts/backfill-parent-buyers.ts` | One-time backfill script (`--dry-run` default, `--write` to apply) |
+| `apps/web/src/lib/buyers.ts` | `fetchBuyerById()` — aggregates contracts from children for parent pages |
+| `apps/web/src/components/buyers/buyer-header.tsx` | "Parent org · N departments" badge + "Part of [Parent →]" link |
+| `apps/web/src/components/buyers/buyer-tabs.tsx` | Conditional "Departments (N)" tab for parents |
+| `apps/web/src/components/buyers/departments-tab.tsx` | Grid of child buyer cards |
+
+### Enrichment Pipeline
+
+`parent_link` is the **first** stage in the enrichment pipeline (stage 0, before `classify`). It runs on every hourly cron and for single-buyer enrichment (`/run-buyer?id=X`). Buyers are marked with `enrichmentSources: "parent_link"` after processing (even if no parent found) to avoid reprocessing.
+
+### Contract Aggregation Rules
+
+- **Parent buyer pages**: Contracts tab shows aggregated contracts from `[parent._id, ...childBuyerIds]` using `$in` query
+- **Child buyer pages**: Contracts tab shows only the child's own contracts (no inheritance from parent)
+- **Buyers list**: Stays flat — no grouping change, just `isParent` badge available for filtering
+
+### UI Behavior
+
+- **Parent header**: Shows `Badge` "Parent org · N departments" in the badges row
+- **Child header**: Shows "Part of [Parent Name →]" link above the buyer name (routes to parent page)
+- **Departments tab**: Only visible for parent buyers. Grid of child buyer cards with logo, name, orgType, contract count, enrichment score. Animated entrance via `motion.div`
+
+### Backfill Script
+
+```bash
+# Dry run (default) — shows what would be linked
+DOTENV_CONFIG_PATH=apps/web/.env.local npx tsx --require dotenv/config apps/web/scripts/backfill-parent-buyers.ts
+
+# Write mode — updates database
+DOTENV_CONFIG_PATH=apps/web/.env.local npx tsx --require dotenv/config apps/web/scripts/backfill-parent-buyers.ts --write
+```
+
+Initial backfill (2026-02-14): 227 children → 119 parents. Top parents: Ministry of Defence (26), Department of Finance (15), NHS England (10), DAERA (8), Velindre NHS Trust (8).
+
+### Gotcha: `children` is a reserved React prop
+
+Never pass `children` as an explicit JSX prop name — ESLint `react/no-children-prop` will error. Use `departments` instead when passing child buyer arrays between components.
