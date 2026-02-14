@@ -50,6 +50,7 @@ export const ENTITY_FIELDS: Record<ScannerType, EntityField[]> = {
     { field: "valueMax", label: "Value (Max)", suggestedType: "currency" },
     { field: "publishedDate", label: "Published Date", suggestedType: "date" },
     { field: "deadlineDate", label: "Deadline Date", suggestedType: "date" },
+    { field: "contractMechanism", label: "Mechanism", suggestedType: "badge" },
     { field: "source", label: "Source", suggestedType: "badge" },
     { field: "sourceUrl", label: "Source URL", suggestedType: "url" },
     { field: "cpvCodes", label: "CPV Codes", suggestedType: "text" },
@@ -160,6 +161,14 @@ const RFP_COLUMNS: ColumnDef[] = [
     type: "badge",
     width: "w-[110px]",
     widthPx: 110,
+  },
+  {
+    id: "contractMechanism",
+    header: "Type",
+    accessor: "contractMechanism",
+    type: "badge",
+    width: "w-[130px]",
+    widthPx: 130,
   },
 ];
 

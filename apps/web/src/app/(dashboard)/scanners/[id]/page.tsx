@@ -253,6 +253,7 @@ export default function ScannerDetailPage({
         if (f.signalType) params.set("signalType", String(f.signalType));
         if (f.stage) params.set("stage", String(f.stage));
         if (f.status) params.set("status", String(f.status));
+        if (f.mechanism) params.set("mechanism", String(f.mechanism));
       }
 
       // Apply row pagination

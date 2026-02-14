@@ -14,6 +14,14 @@ import {
   formatNumber,
 } from "./format-utils";
 
+const MECHANISM_LABELS: Record<string, string> = {
+  standard: "Standard",
+  dps: "DPS",
+  framework: "Framework",
+  call_off_dps: "DPS Call-off",
+  call_off_framework: "FW Call-off",
+};
+
 const ORG_TYPE_LABELS: Record<string, string> = {
   local_council_london: "London Borough",
   local_council_metro: "Metro Borough",
@@ -172,9 +180,11 @@ export function createGetCellContent(
             allowOverlay: false,
           };
         }
-        // Human-readable labels for orgType values
+        // Human-readable labels for enum badge values
         if (meta.id === "orgType" && label in ORG_TYPE_LABELS) {
           label = ORG_TYPE_LABELS[label];
+        } else if (meta.accessor === "contractMechanism" && label in MECHANISM_LABELS) {
+          label = MECHANISM_LABELS[label];
         }
         return createCategoryBadgeCell(label);
       }
