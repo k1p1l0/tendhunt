@@ -10,6 +10,7 @@ import {
   Zap,
   Users,
   Shield,
+  Settings2,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import {
@@ -63,6 +64,11 @@ const navItems: NavItem[] = [
     title: "Users",
     href: "/users",
     icon: Users,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings2,
   },
 ];
 
