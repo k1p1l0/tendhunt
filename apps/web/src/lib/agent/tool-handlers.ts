@@ -478,18 +478,23 @@ async function handleTestScoreColumn(
     return { summary: "Scanner not found or access denied", data: null };
   }
 
-  const column = (
-    scanner.aiColumns as Array<{
-      columnId: string;
-      name: string;
-      prompt: string;
-      model?: string;
-      useCase?: string;
-    }>
-  ).find((c) => c.columnId === columnId);
+  const aiColumns = scanner.aiColumns as Array<{
+    columnId: string;
+    name: string;
+    prompt: string;
+    model?: string;
+    useCase?: string;
+  }>;
+
+  // Try exact ID match first, then fall back to case-insensitive name match
+  const column = aiColumns.find((c) => c.columnId === columnId)
+    || aiColumns.find((c) => c.name.toLowerCase() === columnId.toLowerCase())
+    || aiColumns.find((c) => c.name.toLowerCase().includes(columnId.toLowerCase())
+        || columnId.toLowerCase().includes(c.name.toLowerCase()));
 
   if (!column) {
-    return { summary: "Column not found in scanner", data: null };
+    const availableColumns = aiColumns.map((c) => `"${c.name}" (${c.columnId})`).join(", ");
+    return { summary: `Column not found in scanner. Available columns: ${availableColumns}`, data: null };
   }
 
   const profile = await CompanyProfile.findOne({ userId });
@@ -544,11 +549,14 @@ async function handleTestScoreColumn(
     column.useCase
   );
 
+  // Use the resolved column ID (input may have been a name)
+  const resolvedColumnId = column.columnId;
+
   // Save the score to scanner.scores so it appears in the grid
   await Scanner.updateOne(
     { _id: scanner._id },
     {
-      $pull: { scores: { columnId, entityId } },
+      $pull: { scores: { columnId: resolvedColumnId, entityId } },
     }
   );
   await Scanner.updateOne(
@@ -556,7 +564,7 @@ async function handleTestScoreColumn(
     {
       $push: {
         scores: {
-          columnId,
+          columnId: resolvedColumnId,
           entityId: new mongoose.Types.ObjectId(entityId),
           score: result.score,
           value: result.response,
@@ -585,7 +593,7 @@ async function handleTestScoreColumn(
     action: {
       type: "score_updated",
       scannerId,
-      columnId,
+      columnId: resolvedColumnId,
       entityId,
       score: result.score,
       value: result.response,
