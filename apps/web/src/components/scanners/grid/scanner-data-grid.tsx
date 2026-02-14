@@ -808,7 +808,7 @@ export function ScannerDataGrid({
       onAddColumn ? (
         <button
           onClick={onAddColumn}
-          className="flex h-full w-[50px] items-center justify-center border-l border-border bg-background text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+          className="flex h-full w-[50px] items-center justify-center border-l border-border bg-muted/50 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
           title="Add column"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -847,7 +847,7 @@ export function ScannerDataGrid({
         width="100%"
         height="100%"
         rightElement={addColumnButton}
-        rightElementProps={{ fill: true, sticky: false }}
+        rightElementProps={{ fill: false, sticky: true }}
         onHeaderClicked={onHeaderClicked}
         onHeaderMenuClick={onHeaderMenuClick}
         onHeaderContextMenu={(col, event) => {
