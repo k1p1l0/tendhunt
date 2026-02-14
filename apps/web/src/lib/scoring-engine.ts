@@ -60,21 +60,29 @@ export function buildScoringSystemPrompt(
   columnPrompt: string,
   useCase?: string
 ): string {
-  const jsonInstruction = isTextUseCase(useCase)
-    ? `Respond with valid JSON:
+  if (isTextUseCase(useCase)) {
+    // Text-mode: strip the scoring rubric from the base prompt and use company
+    // profile as context only. The base prompt includes scoring instructions
+    // ("score from 1-10", rubric tables) that pollute text analysis responses.
+    const profileSection = baseScoringPrompt.split("## Scoring Rubric")[0] || baseScoringPrompt;
+
+    return `${profileSection.trim()}
+
+---
+
+## Current Analysis Task
+
+${columnPrompt}
+
+IMPORTANT: Do NOT provide a numeric score. Do NOT format your response as a score with reasoning. Instead, provide a thorough qualitative analysis as plain text.
+
+Respond with valid JSON:
 {
   "response": "<your full analysis text>"
 }
 
-Provide a thorough, detailed analysis in the "response" field.`
-    : `Respond with valid JSON:
-{
-  "score": <number 1.0-10.0 or null if not applicable>,
-  "reasoning": "<1-2 sentence explanation>",
-  "response": "<full analysis text>"
-}
-
-The "score" field should be a number between 1.0 and 10.0 for relevance/scoring columns. Set it to null for columns that produce text responses (like identifying key contacts). The "response" field contains the full analysis text.`;
+Put your entire analysis in the "response" field as plain text (not JSON, not a score).`;
+  }
 
   return `${baseScoringPrompt}
 
@@ -84,7 +92,14 @@ The "score" field should be a number between 1.0 and 10.0 for relevance/scoring 
 
 ${columnPrompt}
 
-${jsonInstruction}`;
+Respond with valid JSON:
+{
+  "score": <number 1.0-10.0 or null if not applicable>,
+  "reasoning": "<1-2 sentence explanation>",
+  "response": "<full analysis text>"
+}
+
+The "score" field should be a number between 1.0 and 10.0 for relevance/scoring columns. Set it to null for columns that produce text responses (like identifying key contacts). The "response" field contains the full analysis text.`;
 }
 
 /**
@@ -240,7 +255,17 @@ export async function scoreOneEntity(
         }
 
         if (textMode) {
-          return { score: null, reasoning: "", response: parsed.response || "" };
+          let textResponse = parsed.response || "";
+          // Safety: if model returned score-mode JSON inside the response field, extract useful text
+          if (textResponse.startsWith("{") && textResponse.includes('"score"')) {
+            try {
+              const inner = JSON.parse(textResponse) as { response?: string; reasoning?: string };
+              textResponse = inner.response || inner.reasoning || textResponse;
+            } catch {
+              // keep original
+            }
+          }
+          return { score: null, reasoning: "", response: textResponse };
         }
 
         return {
