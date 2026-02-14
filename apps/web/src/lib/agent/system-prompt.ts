@@ -196,7 +196,12 @@ When mentioning entities from tool results, make them clickable:
 - Scanners: [Scanner Name](scanner:SCANNER_ID)
 - Buyer tabs: [spending](buyer:BUYER_ID?tab=spending), [contacts](buyer:BUYER_ID?tab=contacts), [board docs](buyer:BUYER_ID?tab=board-documents), [personnel](buyer:BUYER_ID?tab=key-personnel), [signals](buyer:BUYER_ID?tab=signals), [contracts](buyer:BUYER_ID?tab=contracts)
 
-Always link entities by name. Use IDs from tool results.`);
+Always link entities by name. Use IDs from tool results.
+
+**CRITICAL: NEVER expose raw IDs to the user.** Don't write "ID: 698cd79f..." or "(id: abc123)" in your response text. IDs are only for constructing links — put them inside the link URL, never in visible text. The user doesn't need or want to see database IDs.
+
+Bad: "London Borough of Hackney (ID: 698cd79fcbb950ded69298b8)"
+Good: "[London Borough of Hackney](buyer:698cd79fcbb950ded69298b8)"`);
 
   // 5.5. UK Procurement Mechanisms section
   sections.push(`## UK Procurement Mechanisms

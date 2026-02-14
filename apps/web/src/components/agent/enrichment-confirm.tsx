@@ -10,17 +10,16 @@ import { useAgentContext } from "./agent-provider";
 import type { AgentMessage } from "@/stores/agent-store";
 import type { EnrichmentStage } from "@/stores/agent-store";
 
+// Only match when the AI is clearly OFFERING to enrich, not just mentioning enrichment data
 const ENRICHMENT_PATTERNS = [
-  /enrichment/i,
-  /enrich\s+(this\s+)?buyer/i,
-  /trigger\s+.*enrichment/i,
-  /pull\s+in\s+board\s+members/i,
-  /hasn't\s+been\s+enriched/i,
-  /not\s+been\s+enriched/i,
-  /enrichment\s+gaps/i,
-  /run\s+(a\s+)?full\s+enrichment/i,
-  /worth\s+(doing|running)/i,
-  /want\s+me\s+to\s+(run|trigger|start)/i,
+  /\benrich\s+(this\s+)?buyer\b/i,
+  /\btrigger\s+(a\s+)?(full\s+)?enrichment\b/i,
+  /\brun\s+(a\s+)?full\s+enrichment\b/i,
+  /\bhasn't\s+been\s+enriched\b/i,
+  /\bnot\s+been\s+enriched\b/i,
+  /\bwant\s+me\s+to\s+(run|trigger|start)\s+(a\s+)?(full\s+)?enrichment\b/i,
+  /\bshall\s+i\s+enrich\b/i,
+  /\bi\s+can\s+enrich\b/i,
 ];
 
 const INITIAL_STAGES: EnrichmentStage[] = [
