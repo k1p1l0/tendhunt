@@ -8,6 +8,7 @@ import { RegionChart } from "./region-chart";
 import { TimelineChart } from "./timeline-chart";
 import { ContractsTab } from "./contracts-tab";
 import { BuyersTab } from "./buyers-tab";
+import { SpendTab } from "./spend-tab";
 
 import type { CompetitorProfile } from "@/lib/competitors";
 
@@ -32,6 +33,7 @@ export function ProfileTabs({ profile, supplierName }: ProfileTabsProps) {
           <TabsTrigger value="buyers">
             Buyers ({profile.buyerCount.toLocaleString()})
           </TabsTrigger>
+          <TabsTrigger value="spend">Spend</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
@@ -49,6 +51,10 @@ export function ProfileTabs({ profile, supplierName }: ProfileTabsProps) {
 
         <TabsContent value="buyers" className="mt-6">
           <BuyersTab supplierName={supplierName} />
+        </TabsContent>
+
+        <TabsContent value="spend" className="mt-6">
+          <SpendTab supplierName={supplierName} />
         </TabsContent>
       </Tabs>
     </motion.div>

@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-**Phase 2: Competitor Profile & Relationships** — Done
+**Phase 3: Spend Intelligence** — Done
 
 ## Phase Progress
 
@@ -14,7 +14,7 @@
 |-------|--------|-------------|------|
 | 1 | Done | 7 | 7 |
 | 2 | Done | 12 | 12 |
-| 3 | Not started | 4 | 0 |
+| 3 | Done | 4 | 4 |
 | 4 | Not started | 6 | 0 |
 
 ## Planning Artifacts
@@ -72,9 +72,31 @@ Additional:
 - All components use motion/react for enter/exit animations
 - Profile page is server-rendered (SSR) with client-side tabs for contracts/buyers loading
 
+## Phase 3 Deliverables
+
+All 4 requirements completed:
+
+| Requirement | Deliverable |
+|-------------|-------------|
+| SPND-01 | `apps/web/src/components/competitors/spend-tab.tsx` — Spend tab on profile page showing payment data from transparency CSVs, with empty state for suppliers with no spend data |
+| SPND-02 | Summary stat cards showing total spend, payment count, paying buyer count, and contract buyer overlap |
+| SPND-03 | Per-buyer spend breakdown cards sorted by total spend, showing payment count, date range, categories, and links to buyer detail pages |
+| SPND-04 | `DataSourceBanner` component clearly explaining the difference between spend (transparency CSVs) and contract (CF/FaT) data sources |
+
+Key files:
+- `apps/web/src/lib/competitors.ts` — added `getCompetitorSpend()` aggregation with `$facet`-style buyer grouping, buyer name resolution, and contract overlap detection
+- `apps/web/src/app/api/competitors/[name]/spend/route.ts` — authenticated API endpoint for spend data
+- `apps/web/src/components/competitors/spend-tab.tsx` — full spend tab UI with stats, data source banner, and buyer cards
+- `apps/web/src/components/competitors/profile-tabs.tsx` — updated to include 4th "Spend" tab
+
+Cross-reference features:
+- Each spend buyer card shows a green "Contract" badge if that buyer also has formal contract awards with this supplier
+- "Also in Contracts" stat card shows overlap count (N of M buyers appear in both spend and contract data)
+- Normalized vendor name matching via `vendorNormalized` field in SpendTransaction collection
+
 ## What's Next
 
-Phase 3: Spend Intelligence — Spend tab on profile page showing payment data from transparency CSVs.
+Phase 4: Navigation & AI Integration — Sidebar nav, breadcrumbs, animations, and Sculptor AI tool for competitor search.
 
 ## Notes
 
@@ -85,8 +107,11 @@ Phase 3: Spend Intelligence — Spend tab on profile page showing payment data f
 - Profile aggregation uses $facet to run overview, sectors, regions, and timeline in a single query
 - Contract pagination is server-side with sort support on value, date, and buyer name
 - Buyer list enriches regions/sectors from the Buyer collection when contract data lacks them
+- Spend data uses `vendorNormalized` field matching — same normalization logic as contract supplier names
+- Contract-spend overlap detection compares buyer names (case-insensitive) between the two data sources
 
 ---
 *Created: 2026-02-14*
 *Phase 1 completed: 2026-02-14*
 *Phase 2 completed: 2026-02-14*
+*Phase 3 completed: 2026-02-14*

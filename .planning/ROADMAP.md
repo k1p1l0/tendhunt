@@ -10,7 +10,7 @@
 |---|-------|-------------|--------|
 | 1 | Search & Data Foundation | 7 (SRCH-01..04, DATA-01..03) | Done |
 | 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Done |
-| 3 | Spend Intelligence | 4 (SPND-01..04) | Pending |
+| 3 | Spend Intelligence | 4 (SPND-01..04) | Done |
 | 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Pending |
 
 ---
@@ -83,10 +83,10 @@
 **Goal:** Users see actual payment data for a supplier, showing which buyers pay them and how much (beyond formal contract awards).
 
 **Requirements:**
-- [ ] SPND-01 — Spend tab on profile page
-- [ ] SPND-02 — Total spend amount and transaction count
-- [ ] SPND-03 — Breakdown by buyer (which buyers pay this supplier)
-- [ ] SPND-04 — Clear labeling distinguishing spend from contract data
+- [x] SPND-01 — Spend tab on profile page
+- [x] SPND-02 — Total spend amount and transaction count
+- [x] SPND-03 — Breakdown by buyer (which buyers pay this supplier)
+- [x] SPND-04 — Clear labeling distinguishing spend from contract data
 
 **Key deliverables:**
 1. `lib/competitors.ts` — `getCompetitorSpend()` aggregation on spend transactions
@@ -200,4 +200,4 @@ All phases are sequential. Each builds on the previous.
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 — Phase 2 completed*
+*Last updated: 2026-02-14 — Phase 3 completed*

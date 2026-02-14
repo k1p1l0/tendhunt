@@ -62,6 +62,27 @@ export interface CompetitorBuyer {
   latestContract: string | null;
 }
 
+export interface CompetitorSpendBuyer {
+  buyerId: string;
+  buyerName: string;
+  totalSpend: number;
+  transactionCount: number;
+  earliestPayment: string | null;
+  latestPayment: string | null;
+  categories: string[];
+  hasContractRelationship: boolean;
+}
+
+export interface CompetitorSpendResult {
+  totalSpend: number;
+  transactionCount: number;
+  buyerCount: number;
+  earliestPayment: string | null;
+  latestPayment: string | null;
+  buyers: CompetitorSpendBuyer[];
+  contractBuyerOverlap: number;
+}
+
 export type ContractSortField = "value" | "awardDate" | "buyerName";
 export type SortDirection = "asc" | "desc";
 
@@ -567,4 +588,132 @@ export async function getCompetitorBuyers(
         : null,
     };
   });
+}
+
+/**
+ * Get spend (transparency payment) data for a supplier across all buyers.
+ * SPND-01..04: Spend tab with summary stats + per-buyer breakdown + contract overlap.
+ */
+export async function getCompetitorSpend(
+  supplierName: string
+): Promise<CompetitorSpendResult> {
+  await dbConnect();
+
+  const normalized = normalizeSupplierName(supplierName);
+  const pattern = new RegExp(
+    `^${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+    "i"
+  );
+
+  // Aggregate spend transactions grouped by buyer
+  const pipeline = [
+    { $match: { vendorNormalized: { $regex: pattern } } },
+    {
+      $group: {
+        _id: "$buyerId",
+        totalSpend: { $sum: "$amount" },
+        transactionCount: { $sum: 1 },
+        earliestPayment: { $min: "$date" },
+        latestPayment: { $max: "$date" },
+        categories: { $addToSet: "$category" },
+      },
+    },
+    { $sort: { totalSpend: -1 as const } },
+  ];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawBuyers = await SpendTransaction.aggregate(pipeline as any);
+
+  if (rawBuyers.length === 0) {
+    return {
+      totalSpend: 0,
+      transactionCount: 0,
+      buyerCount: 0,
+      earliestPayment: null,
+      latestPayment: null,
+      buyers: [],
+      contractBuyerOverlap: 0,
+    };
+  }
+
+  // Resolve buyer names from the Buyer collection
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buyerIds = rawBuyers.map((b: any) => b._id);
+  const buyerDocs = await Buyer.find(
+    { _id: { $in: buyerIds } },
+    { name: 1 }
+  ).lean();
+
+  const buyerNameMap = new Map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    buyerDocs.map((b: any) => [String(b._id), b.name as string])
+  );
+
+  // Get contract buyer names for cross-reference (overlap detection)
+  const contractPattern = buildSupplierSearchPattern(supplierName);
+  const contractBuyerPipeline = [
+    { $match: { "awardedSuppliers.name": { $regex: contractPattern } } },
+    { $group: { _id: "$buyerName" } },
+  ];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contractBuyerResults = await Contract.aggregate(contractBuyerPipeline as any);
+  const contractBuyerNames = new Set(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contractBuyerResults.map((b: any) => (b._id as string).toLowerCase())
+  );
+
+  let totalSpend = 0;
+  let totalTransactions = 0;
+  let earliestOverall: Date | null = null;
+  let latestOverall: Date | null = null;
+  let overlapCount = 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buyers: CompetitorSpendBuyer[] = rawBuyers.map((b: any) => {
+    totalSpend += b.totalSpend;
+    totalTransactions += b.transactionCount;
+
+    const earliest = b.earliestPayment ? new Date(b.earliestPayment) : null;
+    const latest = b.latestPayment ? new Date(b.latestPayment) : null;
+
+    if (earliest && (!earliestOverall || earliest < earliestOverall)) {
+      earliestOverall = earliest;
+    }
+    if (latest && (!latestOverall || latest > latestOverall)) {
+      latestOverall = latest;
+    }
+
+    const buyerName = buyerNameMap.get(String(b._id)) ?? `Buyer ${String(b._id).slice(-6)}`;
+    const hasContractRelationship = contractBuyerNames.has(buyerName.toLowerCase());
+    if (hasContractRelationship) overlapCount++;
+
+    const categories = (b.categories as (string | null)[])
+      .filter((c): c is string => c != null && c !== "")
+      .slice(0, 5);
+
+    return {
+      buyerId: String(b._id),
+      buyerName,
+      totalSpend: b.totalSpend as number,
+      transactionCount: b.transactionCount as number,
+      earliestPayment: earliest ? earliest.toISOString() : null,
+      latestPayment: latest ? latest.toISOString() : null,
+      categories,
+      hasContractRelationship,
+    };
+  });
+
+  return {
+    totalSpend,
+    transactionCount: totalTransactions,
+    buyerCount: buyers.length,
+    earliestPayment: earliestOverall
+      ? (earliestOverall as Date).toISOString()
+      : null,
+    latestPayment: latestOverall
+      ? (latestOverall as Date).toISOString()
+      : null,
+    buyers,
+    contractBuyerOverlap: overlapCount,
+  };
 }

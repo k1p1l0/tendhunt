@@ -37,10 +37,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Spend
 
-- [ ] **SPND-01**: Spend tab shows payment data from transparency CSVs for this supplier across all buyers
-- [ ] **SPND-02**: Spend view shows total spend amount and transaction count
-- [ ] **SPND-03**: Spend view shows breakdown by buyer (which buyers actually pay this supplier)
-- [ ] **SPND-04**: Spend data is clearly labeled as separate from contract award data
+- [x] **SPND-01**: Spend tab shows payment data from transparency CSVs for this supplier across all buyers
+- [x] **SPND-02**: Spend view shows total spend amount and transaction count
+- [x] **SPND-03**: Spend view shows breakdown by buyer (which buyers actually pay this supplier)
+- [x] **SPND-04**: Spend data is clearly labeled as separate from contract award data
 
 ### Data Layer
 
@@ -116,10 +116,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUYR-02 | Phase 2 | Done |
 | BUYR-03 | Phase 2 | Done |
 | BUYR-04 | Phase 2 | Done |
-| SPND-01 | Phase 3 | Pending |
-| SPND-02 | Phase 3 | Pending |
-| SPND-03 | Phase 3 | Pending |
-| SPND-04 | Phase 3 | Pending |
+| SPND-01 | Phase 3 | Done |
+| SPND-02 | Phase 3 | Done |
+| SPND-03 | Phase 3 | Done |
+| SPND-04 | Phase 3 | Done |
 | NAV-01 | Phase 4 | Pending |
 | NAV-02 | Phase 4 | Pending |
 | NAV-03 | Phase 4 | Pending |
