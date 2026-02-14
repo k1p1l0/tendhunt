@@ -294,7 +294,7 @@ export default {
     const minute = new Date(controller.scheduledTime).getUTCMinutes();
 
     if (minute < 15) {
-      // :00 cron — buyer enrichment pipeline (8 stages)
+      // :00 cron — buyer enrichment pipeline (9 stages)
       try {
         await runPipeline(env);
       } catch (err) {
