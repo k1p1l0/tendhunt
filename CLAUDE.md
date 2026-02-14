@@ -427,23 +427,26 @@ Every column has a `type` field in `ColumnDef` (`apps/web/src/components/scanner
 - Stroke-based icons (date, badge, entity-name) use `lineWidth: 1.1`, `lineCap: "round"`
 - Text-based icons (T, #, £) use `600 weight`, `11px` font, `textAlign: "center"`, `textBaseline: "middle"`
 - Icon color: `theme.textMedium` (muted, not as dark as title text)
-- AI columns skip type icon — use sparkle stars + tinted lime background instead
+- AI columns use **per-use-case icons** drawn by `drawAiUseCaseIcon()` — sparkle for score, magnifying glass for research, people for decision-makers, shield+check for bid-recommendation, contact card for find-contacts. All lime `#E5FF00`.
 - Core column headers: call `drawContent()` first (Glide default), then overdraw left portion with icon + title, preserving the right menu arrow zone
 
 ### Custom Cell Renderers
 
 Four renderers registered in `customRenderers` array:
 1. **`score-badge`** — Circle with score number. Colors: red `#ef4444` (<4), yellow `#eab308` (4-7), green `#22c55e` (>=7). Loading: spinning arc. Queued: shimmer bar with "queued" label. Empty: dashed border.
-2. **`text-shimmer`** — Skeleton loader for text-mode AI columns during loading. Draws 2 horizontal gray bars (70%/50% width) with animated shimmer gradient sweep.
+2. **`text-status`** — Status indicator for text-mode AI columns. 5 states: queued (shimmer bars + "queued" label), loading (fast shimmer), success (green checkmark pill + truncated text), error (red X pill + "Failed"), empty ("--" text). Replaces the old `text-shimmer` renderer.
 3. **`category-badge`** — Rounded-rect pill with label text. Background from `theme.bgCellMedium`.
 4. **`entity-name`** — Logo image (18px, rounded corners, cached in Map) + text. Fallback: initials circle. Uses `setLogoRedrawCallback` for async image load → grid repaint.
 
 ### AI Column Loading States
 
-AI columns have a 3-phase loading state machine managed via `ScoreEntry` in `apps/web/src/stores/scanner-store.ts`:
-- **Queued** (`isQueued: true`): All rows start here. Score-mode shows shimmer bar, text-mode shows text skeleton.
-- **Active** (`isLoading: true`, no `isQueued`): Max 2 concurrent (matches `pLimit(2)` in scoring engine). Score-mode shows spinning circle, text-mode shows text skeleton.
-- **Complete** (neither flag): Shows actual score badge or text result.
+AI columns have a 4-phase loading state machine managed via `ScoreEntry` in `apps/web/src/stores/scanner-store.ts`:
+- **Queued** (`isQueued: true`): Only rows that will actually be scored start here. Score-mode shows shimmer bar, text-mode shows shimmer bars with "queued" label.
+- **Active** (`isLoading: true`, no `isQueued`): Max 2 concurrent (matches `pLimit(2)` in scoring engine). Score-mode shows spinning circle, text-mode shows fast shimmer.
+- **Complete** (neither flag): Shows actual score badge or text result (green checkmark + text for text-mode).
+- **Error** (`error` field set): Red X pill + "Failed" text. Per-entity errors captured from SSE stream.
+
+Shimmer animation is driven by an `animTick` counter (via `useReducer`) included in the `getCellContent` memo deps. A 60ms `setInterval` during `isScoring` forces redraws so shimmer bars sweep smoothly.
 
 Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on `column_start` SSE event, first 2 queued entities promote to active. On each `progress` event (entity scored), next queued entity promotes.
 
@@ -463,6 +466,19 @@ Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on
 - Respects `limit` option (e.g., "Run 1 row" only marks 1 row as queued)
 - Respects `force` flag (when false, skips rows with existing results)
 - After scoring completes, `clearStaleLoadingStates()` removes any leftover `isQueued`/`isLoading` flags
+
+### Text-Mode Scoring Rules
+
+Text-mode use cases (`research`, `decision-makers`, `bid-recommendation`, `find-contacts`) differ from score-mode:
+- **Prompt**: `buildScoringSystemPrompt()` strips the scoring rubric from the base prompt for text-mode, keeping only company profile context. Explicitly instructs "Do NOT provide a numeric score."
+- **Tokens**: `resolveMaxTokens()` doubles the limit for text-mode (2048 vs 1024) since text analyses are longer.
+- **JSON schema**: Text-mode uses `{response: string}` only (no score/reasoning fields).
+- **Safety parsing**: If the model returns score-mode JSON inside the response field, the engine extracts the useful text.
+- **AI cell drawer**: Shows "Not yet analyzed" (not "Not yet scored") for empty text-mode cells. Error state shows red-tinted error box.
+
+### Sculptor Column ID Resolution
+
+`test_score_column` tool resolves columns by **fuzzy name matching** when the exact UUID doesn't match. It normalizes both strings by stripping all non-alphanumeric chars (`/[^a-z0-9]/g`), so `"engagement-strategy"`, `"engagement_strategy"`, and `"Engagement Strategy"` all match. If still not found, the error message lists available columns with their IDs.
 
 ### Adding a New Column Type
 
