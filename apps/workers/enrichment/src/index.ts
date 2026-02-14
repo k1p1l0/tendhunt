@@ -15,7 +15,7 @@ import { extractKeyPersonnel } from "./stages/05-personnel";
 import { computeEnrichmentScores } from "./stages/06-score";
 import { enrichPcsDocuments } from "./stages/07-pcs-documents";
 import { enrichProactisDocuments } from "./stages/08-proactis-documents";
-import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-jobs";
+import { getOrCreateJob, markJobComplete, markJobError, resetCompletedJobs } from "./db/enrichment-jobs";
 
 // ---------------------------------------------------------------------------
 // Enrichment Worker entry point
@@ -118,7 +118,9 @@ async function runDocEnrichmentPipeline(
       }
     }
 
-    console.log("--- Document enrichment pipeline complete ---");
+    // Reset for next cycle to pick up new contracts
+    const reset = await resetCompletedJobs(db, DOC_STAGE_ORDER);
+    console.log(`--- Document enrichment pipeline complete. Reset ${reset} jobs for next cycle. ---`);
     return { stage: "doc_all_complete", processed: 0, errors: 0, done: true };
   } finally {
     await closeDb();
