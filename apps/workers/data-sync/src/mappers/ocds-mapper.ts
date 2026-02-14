@@ -5,6 +5,7 @@ import type {
   MappedContractLot,
   MappedContractLotCriterion,
   MappedBuyerContact,
+  MappedAwardedSupplier,
 } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -147,6 +148,87 @@ function extractBuyerContact(
 }
 
 // ---------------------------------------------------------------------------
+// Contract enrichment extraction helpers
+// ---------------------------------------------------------------------------
+
+function mapContractType(
+  category?: string
+): "goods" | "services" | "works" | null {
+  if (!category) return null;
+  const c = category.toLowerCase();
+  if (c === "goods") return "goods";
+  if (c === "services") return "services";
+  if (c === "works") return "works";
+  return null;
+}
+
+function detectSmeEligibility(
+  eligibility?: string,
+  description?: string
+): boolean | null {
+  const text = `${eligibility ?? ""} ${description ?? ""}`.toLowerCase();
+  if (/\bnot\s+(suitable|eligible)\s+(for\s+)?sme/i.test(text)) return false;
+  if (/\bsme\b|small\s*(and|&)?\s*medium|small\s+business/i.test(text))
+    return true;
+  return null;
+}
+
+function detectVcoEligibility(
+  eligibility?: string,
+  description?: string
+): boolean | null {
+  const text = `${eligibility ?? ""} ${description ?? ""}`.toLowerCase();
+  if (/\bvcse\b|\bvco\b|voluntary|community\s+organisation|social\s+enterprise|charit(y|ies|able)/i.test(text))
+    return true;
+  return null;
+}
+
+function detectEuFunding(description?: string): boolean {
+  const text = (description ?? "").toLowerCase();
+  return /\beu\s+fund|\beuropean\s+fund|\bhorizon\b|\berasmus\b|\blife\s+programme\b|\besf\b|\berdf\b|\beu\s+grant/i.test(
+    text
+  );
+}
+
+function extractRenewalFromLots(
+  lots: MappedContractLot[]
+): { canRenew: boolean; renewalDescription: string | null } {
+  for (const lot of lots) {
+    if (lot.hasRenewal) {
+      return { canRenew: true, renewalDescription: lot.renewalDescription };
+    }
+  }
+  return { canRenew: false, renewalDescription: null };
+}
+
+function extractAwardedSuppliers(
+  release: OcdsRelease
+): MappedAwardedSupplier[] {
+  const awards = release.awards;
+  if (!awards || !Array.isArray(awards)) return [];
+  const suppliers: MappedAwardedSupplier[] = [];
+  for (const award of awards) {
+    if (!award.suppliers) continue;
+    for (const s of award.suppliers) {
+      if (s.name) {
+        suppliers.push({ name: s.name, supplierId: s.id ?? null });
+      }
+    }
+  }
+  return suppliers;
+}
+
+function extractAwardDate(release: OcdsRelease): Date | null {
+  const date = release.awards?.[0]?.date;
+  return date ? new Date(date) : null;
+}
+
+function extractAwardValue(release: OcdsRelease): number | null {
+  const val = release.awards?.[0]?.value?.amount;
+  return val != null && isFinite(val) ? val : null;
+}
+
+// ---------------------------------------------------------------------------
 // Status & stage mapping helpers
 // ---------------------------------------------------------------------------
 
@@ -283,6 +365,27 @@ export function mapOcdsToContract(
   const maxLotsBidPerSupplier =
     maxLotsBid != null && isFinite(maxLotsBid) ? maxLotsBid : null;
 
+  // Contract enrichment fields
+  const contractType = mapContractType(
+    release.tender?.mainProcurementCategory
+  );
+  const eligibility = release.tender?.eligibilityCriteria ?? null;
+  const desc = release.tender?.description ?? null;
+  const suitableForSme = detectSmeEligibility(eligibility ?? undefined, desc ?? undefined);
+  const suitableForVco = detectVcoEligibility(eligibility ?? undefined, desc ?? undefined);
+  const hasEuFunding = detectEuFunding(desc ?? undefined);
+  const { canRenew, renewalDescription } = extractRenewalFromLots(lots);
+  const awardedSuppliers = extractAwardedSuppliers(release);
+  const awardDate = extractAwardDate(release);
+  const awardValue = extractAwardValue(release);
+  const tenderPeriodStart = release.tender?.tenderPeriod?.startDate
+    ? new Date(release.tender.tenderPeriod.startDate)
+    : null;
+  const enquiryPeriodEnd = release.tender?.enquiryPeriod?.endDate
+    ? new Date(release.tender.enquiryPeriod.endDate)
+    : null;
+  const geographicScope = buyerParty?.address?.region ?? null;
+
   return {
     ocid: release.ocid ?? null,
     noticeId,
@@ -320,5 +423,19 @@ export function mapOcdsToContract(
     lots,
     lotCount: lots.length,
     maxLotsBidPerSupplier,
+
+    // Contract enrichment fields
+    contractType,
+    suitableForSme,
+    suitableForVco,
+    hasEuFunding,
+    canRenew,
+    renewalDescription,
+    geographicScope,
+    awardedSuppliers,
+    awardDate,
+    awardValue,
+    tenderPeriodStart,
+    enquiryPeriodEnd,
   };
 }

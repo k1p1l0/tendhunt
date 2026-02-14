@@ -13,6 +13,9 @@ async function ContractFeed({
   minValue,
   maxValue,
   mechanism,
+  contractType,
+  smeOnly,
+  vcoOnly,
   sort,
   page,
 }: {
@@ -22,6 +25,9 @@ async function ContractFeed({
   minValue?: number;
   maxValue?: number;
   mechanism?: string;
+  contractType?: string;
+  smeOnly?: boolean;
+  vcoOnly?: boolean;
   sort?: "date" | "score";
   page: number;
 }) {
@@ -33,6 +39,9 @@ async function ContractFeed({
     minValue,
     maxValue,
     mechanism,
+    contractType,
+    smeOnly,
+    vcoOnly,
     sort,
     page,
     pageSize,
@@ -100,6 +109,11 @@ export default async function ContractsPage({
   const minValue = minValueStr ? Number(minValueStr) || undefined : undefined;
   const maxValue = maxValueStr ? Number(maxValueStr) || undefined : undefined;
 
+  const contractType =
+    typeof params.contractType === "string" ? params.contractType : undefined;
+  const smeOnly = params.smeOnly === "true" ? true : undefined;
+  const vcoOnly = params.vcoOnly === "true" ? true : undefined;
+
   const suspenseKey = JSON.stringify({
     query,
     sector,
@@ -107,6 +121,9 @@ export default async function ContractsPage({
     mechanism,
     minValue,
     maxValue,
+    contractType,
+    smeOnly,
+    vcoOnly,
     sort,
     page,
   });
@@ -122,6 +139,9 @@ export default async function ContractsPage({
           minValue={minValue}
           maxValue={maxValue}
           mechanism={mechanism}
+          contractType={contractType}
+          smeOnly={smeOnly}
+          vcoOnly={vcoOnly}
           sort={sort}
           page={page}
         />

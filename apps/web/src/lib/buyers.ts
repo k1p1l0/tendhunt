@@ -5,6 +5,7 @@ import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import BoardDocument from "@/models/board-document";
 import KeyPersonnel from "@/models/key-personnel";
+import OfstedSchool from "@/models/ofsted-school";
 
 export interface BuyerFilters {
   sort?: "name" | "contracts" | "sector" | "region" | "orgType" | "enrichmentScore";
@@ -66,11 +67,52 @@ export async function fetchBuyers(filters: BuyerFilters) {
     Buyer.countDocuments(query),
   ]);
 
-  // Map buyers to include contactCount
-  const buyersWithStatus = buyers.map((b) => ({
-    ...b,
-    contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
-  }));
+  // Batch Ofsted stats for this page of buyers
+  const buyerIds = buyers.map((b) => b._id);
+  const ofstedStats = await OfstedSchool.aggregate([
+    { $match: { buyerId: { $in: buyerIds } } },
+    {
+      $addFields: {
+        worstRating: {
+          $max: [
+            "$overallEffectiveness",
+            "$qualityOfEducation",
+            "$behaviourAndAttitudes",
+            "$personalDevelopment",
+            "$leadershipAndManagement",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$buyerId",
+        worstRating: { $max: "$worstRating" },
+        belowGoodCount: {
+          $sum: { $cond: [{ $gte: ["$worstRating", 3] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const ofstedMap = new Map<string, { worstRating: number | null; belowGoodCount: number }>();
+  for (const stat of ofstedStats) {
+    ofstedMap.set(String(stat._id), {
+      worstRating: stat.worstRating ?? null,
+      belowGoodCount: stat.belowGoodCount ?? 0,
+    });
+  }
+
+  // Map buyers to include contactCount and Ofsted stats
+  const buyersWithStatus = buyers.map((b) => {
+    const ofsted = ofstedMap.get(String(b._id));
+    return {
+      ...b,
+      contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
+      ofstedWorstRating: ofsted?.worstRating ?? null,
+      schoolsBelowGood: ofsted?.belowGoodCount ?? null,
+    };
+  });
 
   return { buyers: buyersWithStatus, total, filteredCount };
 }
@@ -110,8 +152,8 @@ export async function fetchBuyerById(buyerId: string) {
     ? Buyer.findById(buyer.parentBuyerId).select("name").lean()
     : Promise.resolve(null);
 
-  // Parallel fetch: contracts, live count, signals, board documents, key personnel, children, parent
-  const [contracts, contractCount, signals, boardDocuments, keyPersonnel, children, parentBuyer] = await Promise.all([
+  // Parallel fetch: contracts, live count, signals, board documents, key personnel, children, parent, ofsted schools
+  const [contracts, contractCount, signals, boardDocuments, keyPersonnel, children, parentBuyer, ofstedSchools] = await Promise.all([
     Contract.find(contractFilter)
       .sort({ publishedDate: -1 })
       .limit(20)
@@ -130,6 +172,9 @@ export async function fetchBuyerById(buyerId: string) {
       .lean(),
     childrenPromise,
     parentBuyerPromise,
+    OfstedSchool.find({ buyerId: buyer._id })
+      .sort({ overallEffectiveness: -1 })
+      .lean(),
   ]);
 
   return {
@@ -141,6 +186,7 @@ export async function fetchBuyerById(buyerId: string) {
     keyPersonnel,
     children,
     parentBuyer,
+    ofstedSchools,
     enrichmentScore: buyer.enrichmentScore,
     enrichmentSources: buyer.enrichmentSources,
     orgType: buyer.orgType,

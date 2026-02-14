@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Suppliers discover relevant UK government contracts and reveal buyer contacts -- turning public procurement data into actionable sales intelligence through AI-powered scoring.
-**Current focus:** Phase 33 COMPLETE (3/3 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
+**Current focus:** Phase 33 COMPLETE (1/1 plans), Phase 11 IN PROGRESS (1/5 plans), Phase 15 IN PROGRESS (1/2 plans)
 
 ## Current Position
 
-Phase: 33-dps-framework-status-intelligence (3/3 plans)
-Plan: 33-03 COMPLETE -- Contract detail DPS/Framework intelligence and Sculptor AI awareness
-Status: Phase 33 complete -- mechanism section on detail page, adaptive CTA, Sculptor AI DPS knowledge
-Last activity: 2026-02-14 - Completed 33-03: Contract detail DPS/Framework intelligence
+Phase: 33-ofsted-signals (1/1 plans)
+Plan: 33-01 COMPLETE -- Ofsted inspection signals for education sector intelligence
+Status: Phase 33 complete -- OfstedSchool model, CSV ingest, signal generation, Schools tab, Ofsted context card, scanner columns
+Last activity: 2026-02-14 - Completed 33-01: Ofsted Inspection Signals
 
-Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15, 33 in progress)
+Progress: [▓▓▓▓▓▓▓▓▓▓] ~94% (Phases 11, 15 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 60
-- Average duration: 3.1 min
-- Total execution time: 3.11 hours
+- Total plans completed: 58
+- Average duration: 3.3 min
+- Total execution time: 3.13 hours
 
 **By Phase:**
 
@@ -45,11 +45,12 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] ~93% (Phases 11, 15, 33 in progress)
 | 20-board-minutes-signals | 4/4 | 8 min | 2 min |
 | 22-crm-pipeline-procurement-inbox | 5/5 | 6 min | 1.2 min |
 | 30-sculptor-ai-homepage | 3/3 | 6 min | 2 min |
-| 33-dps-framework-status | 3/3 | 8 min | 2.7 min |
+
+| 33-ofsted-signals | 1/1 | 9 min | 9 min |
 
 **Recent Trend:**
-- Last 5 plans: 33-03 (3 min), 33-02 (3 min), 33-01 (2 min), 30-03 (2 min), 30-02 (2 min)
-- Trend: Consistent ~2-3 min per plan
+- Last 5 plans: 33-01 (9 min), 30-03 (2 min), 30-02 (2 min), 30-01 (2 min), 22-05 (2 min)
+- Trend: 33-01 was larger (6 tasks, 12 files) hence 9 min
 
 *Updated after each plan completion*
 
@@ -286,16 +287,10 @@ Recent decisions affecting current work:
 - [30-03]: Module-level SUGGESTIONS and getRelativeTime to satisfy react-hooks/static-components lint rule
 - [30-03]: useAgentStore.getState().setPanelOpen(true) before sendMessage for immediate panel open on hero send
 - [30-03]: Stagger delays 0.1/0.2/0.3s for hero section entry animation sequence
-- [33-01]: Two-signal classification: procurementMethodDetails (most reliable) then title regex for DPS/framework
-- [33-01]: Word-boundary regex /\bDPS\b/ to avoid false positives (e.g. ADPS)
-- [33-01]: Classification logic duplicated in backfill script since mapper is in worker package
-- [33-03]: Amber callout for DPS CLOSED + future end date to highlight reopening potential
-- [33-03]: Purple badge for DPS, indigo badge for Framework -- consistent mechanism color scheme
-- [33-03]: contractMechanism added to both AgentPageContext definitions (provider + system-prompt)
-- [33-02]: Mechanism filter uses 'Type' label in UI (not 'Mechanism') for user-friendly language
-- [33-02]: Purple for DPS variants, indigo for Framework variants to create visual grouping
-- [33-02]: Amber 'Window Closed' only when contractEndDate is in the future
-- [33-02]: Status column expanded from col-span-1 to col-span-2, Sector reduced accordingly
+- [33-01]: Ofsted signals reuse REGULATORY signalType with source="Ofsted Inspection" for client-side detection (no schema migration)
+- [33-01]: Signal dedup via title containing URN (e.g. "Ofsted: School Name (URN 123456)")
+- [33-01]: Batch OfstedSchool aggregation in fetchBuyers for scanner columns (worstRating + belowGoodCount per buyer page)
+- [33-01]: Education contracts detected by sector containing "education" or CPV code prefix "80"
 
 ### Pending Todos
 
@@ -315,7 +310,7 @@ Recent decisions affecting current work:
 - Phase 20 added: Board Minutes Signals (worker scaffold, schema extensions, extraction pipeline, frontend display)
 - Phase 22 added: CRM Pipeline Procurement Inbox (data layer, Kanban UI, send-to-inbox, card detail)
 - Phase 30 added: Sculptor AI Homepage & Floating Assistant (branding rename, floating bubble, hero input, AI-first dashboard)
-- Phase 33 added: DPS/Framework Status Intelligence (contract mechanism classification, UI status badges, Sculptor AI awareness)
+- Phase 33 added: Ofsted Inspection Signals (OfstedSchool model, CSV ingest, signal generation, Schools tab, contract Ofsted context, scanner columns)
 
 ### Blockers/Concerns
 
@@ -334,5 +329,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 33-03-PLAN.md -- Contract detail DPS/Framework intelligence and Sculptor AI awareness
-Next: Phase 33 complete. Continue with remaining phases (11, 15) or new work.
+Stopped at: Completed 33-01-PLAN.md -- Ofsted Inspection Signals
+Next: Continue with 11-02 (spend intelligence), 15-02 (entity linking). Run Ofsted ingest + signal generation scripts to populate data.

@@ -151,6 +151,7 @@ export default async function ContractDetailPage({
                 lastEnrichedAt: contract.buyer.lastEnrichedAt,
               }
             : null,
+          ofstedContext: contract.ofstedContext ?? null,
         }}
       />
     </div>

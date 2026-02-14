@@ -34,6 +34,7 @@ import {
   RefreshCw,
   Layers,
   ArrowRight,
+  GraduationCap,
 } from "lucide-react";
 
 interface ContactData {
@@ -142,8 +143,44 @@ interface ContractDetailData {
   lotCount?: number | null;
   maxLotsBidPerSupplier?: number | null;
   contractMechanism?: "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework" | null;
+
+  // Contract enrichment fields
+  contractType?: string | null;
+  suitableForSme?: boolean | null;
+  suitableForVco?: boolean | null;
+  hasEuFunding?: boolean | null;
+  canRenew?: boolean | null;
+  renewalDescription?: string | null;
+  geographicScope?: string | null;
+  awardedSuppliers?: Array<{
+    name: string;
+    supplierId?: string | null;
+  }> | null;
+  awardDate?: string | Date | null;
+  awardValue?: number | null;
+  tenderPeriodStart?: string | Date | null;
+  enquiryPeriodEnd?: string | Date | null;
+
   buyer?: BuyerData | null;
+
+  ofstedContext?: {
+    totalSchools: number;
+    belowGoodCount: number;
+    schools: Array<{ name: string; worstRating: number }>;
+  } | null;
 }
+
+const OFSTED_GRADE_LABELS: Record<number, string> = {
+  1: "Outstanding",
+  2: "Good",
+  3: "Requires Improvement",
+  4: "Inadequate",
+};
+
+const OFSTED_GRADE_COLORS: Record<number, string> = {
+  3: "text-amber-600 dark:text-amber-400",
+  4: "text-red-500 dark:text-red-400",
+};
 
 const currencyFormatter = new Intl.NumberFormat("en-GB", {
   style: "currency",
@@ -1255,6 +1292,170 @@ export function ContractDetailView({
             />
           </div>
 
+          {/* Contract Enrichment Details */}
+          {(contract.contractType ||
+            contract.suitableForSme != null ||
+            contract.suitableForVco != null ||
+            contract.hasEuFunding != null ||
+            contract.canRenew != null ||
+            (contract.awardedSuppliers &&
+              contract.awardedSuppliers.length > 0)) && (
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">
+                Contract Details
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-5 bg-muted/50 rounded-lg border border-border">
+                {contract.contractType && (
+                  <DetailRow
+                    label="Contract Type"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className="capitalize"
+                      >
+                        {contract.contractType}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.suitableForSme != null && (
+                  <DetailRow
+                    label="SME Suitable"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className={
+                          contract.suitableForSme
+                            ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                            : "bg-red-500/15 text-red-400 border-red-500/20"
+                        }
+                      >
+                        {contract.suitableForSme ? "Yes" : "No"}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.suitableForVco != null && (
+                  <DetailRow
+                    label="VCO Suitable"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className={
+                          contract.suitableForVco
+                            ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                            : "bg-red-500/15 text-red-400 border-red-500/20"
+                        }
+                      >
+                        {contract.suitableForVco ? "Yes" : "No"}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.hasEuFunding != null && (
+                  <DetailRow
+                    label="EU Funding"
+                    value={
+                      <Badge
+                        variant="outline"
+                        className={
+                          contract.hasEuFunding
+                            ? "bg-blue-500/15 text-blue-400 border-blue-500/20"
+                            : ""
+                        }
+                      >
+                        {contract.hasEuFunding ? "Yes" : "No"}
+                      </Badge>
+                    }
+                  />
+                )}
+                {contract.canRenew != null && (
+                  <DetailRow
+                    label="Can Renew"
+                    value={
+                      <>
+                        <Badge
+                          variant="outline"
+                          className={
+                            contract.canRenew
+                              ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                              : ""
+                          }
+                        >
+                          {contract.canRenew ? "Yes" : "No"}
+                        </Badge>
+                        {contract.renewalDescription && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {contract.renewalDescription}
+                          </p>
+                        )}
+                      </>
+                    }
+                  />
+                )}
+                {contract.geographicScope && (
+                  <DetailRow
+                    label="Geographic Scope"
+                    value={resolveRegionName(contract.geographicScope)}
+                  />
+                )}
+                {contract.awardValue != null && (
+                  <DetailRow
+                    label="Award Value"
+                    value={
+                      <span
+                        className="font-mono text-lime-400/90"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {currencyFormatter.format(contract.awardValue)}
+                      </span>
+                    }
+                  />
+                )}
+                {contract.awardDate && (
+                  <DetailRow
+                    label="Award Date"
+                    value={formatDate(contract.awardDate)}
+                  />
+                )}
+                {contract.tenderPeriodStart && (
+                  <DetailRow
+                    label="Tender Opens"
+                    value={formatDate(contract.tenderPeriodStart)}
+                  />
+                )}
+                {contract.enquiryPeriodEnd && (
+                  <DetailRow
+                    label="Enquiry Deadline"
+                    value={formatDate(contract.enquiryPeriodEnd)}
+                  />
+                )}
+              </div>
+
+              {/* Awarded Suppliers */}
+              {contract.awardedSuppliers &&
+                contract.awardedSuppliers.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                      Awarded Suppliers
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {contract.awardedSuppliers.map((s, i) => (
+                        <Badge
+                          key={i}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          <Building2 className="h-3 w-3 mr-1" />
+                          {s.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+          )}
+
           {/* Timeline */}
           <ContractTimeline
             stage={contract.stage}
@@ -1353,6 +1554,64 @@ export function ContractDetailView({
 
         {/* Buyer Intelligence Card */}
         {contract.buyer && <BuyerIntelligenceCard buyer={contract.buyer} />}
+
+        {/* Ofsted Context Card */}
+        {contract.ofstedContext && contract.ofstedContext.totalSchools > 0 && (
+          <div
+            className="p-5 rounded-xl bg-card border border-amber-500/20"
+            style={{
+              opacity: 0,
+              animation: "sidebarCardIn 200ms ease-out 250ms both",
+            }}
+          >
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <GraduationCap className="h-3.5 w-3.5 text-amber-500" />
+              Ofsted Context
+            </h3>
+
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="p-2.5 bg-muted/50 rounded-lg border border-border text-center">
+                <div className="text-sm font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {contract.ofstedContext.totalSchools}
+                </div>
+                <div className="text-[10px] text-muted-foreground">Schools</div>
+              </div>
+              <div className="p-2.5 bg-muted/50 rounded-lg border border-border text-center">
+                <div className="text-sm font-semibold text-amber-500" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {contract.ofstedContext.belowGoodCount}
+                </div>
+                <div className="text-[10px] text-muted-foreground">Below Good</div>
+              </div>
+            </div>
+
+            {contract.ofstedContext.schools.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Schools Needing Improvement
+                </div>
+                {contract.ofstedContext.schools.map((school, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded border border-border"
+                  >
+                    <span className="truncate mr-2">{school.name}</span>
+                    <span className={`shrink-0 font-medium ${OFSTED_GRADE_COLORS[school.worstRating] ?? "text-muted-foreground"}`}>
+                      {OFSTED_GRADE_LABELS[school.worstRating] ?? `Grade ${school.worstRating}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {contract.buyer && (
+              <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+                <Link href={`/buyers/${contract.buyer._id}?tab=schools`}>
+                  View All Schools
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Contact from Notice Card */}
         {hasBuyerContact && (

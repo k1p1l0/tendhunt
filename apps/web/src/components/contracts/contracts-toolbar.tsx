@@ -59,6 +59,12 @@ const MECHANISMS = [
   { value: "call_off_framework", label: "Framework Call-off" },
 ] as const;
 
+const CONTRACT_TYPES = [
+  { value: "services", label: "Services" },
+  { value: "goods", label: "Goods" },
+  { value: "works", label: "Works" },
+] as const;
+
 const VALUE_RANGES = [
   { label: "Under 100K", min: 0, max: 100000 },
   { label: "100K - 500K", min: 100000, max: 500000 },
@@ -206,6 +212,9 @@ export function ContractsToolbar({
   const currentSort = searchParams.get("sort") ?? "date";
   const currentSector = searchParams.get("sector");
   const currentRegion = searchParams.get("region");
+  const currentContractType = searchParams.get("contractType");
+  const currentSme = searchParams.get("smeOnly") === "true";
+  const currentVco = searchParams.get("vcoOnly") === "true";
   const currentMinValue = searchParams.get("minValue");
   const currentMaxValue = searchParams.get("maxValue");
   const currentValueRange = currentMinValue
@@ -286,6 +295,53 @@ export function ContractsToolbar({
               onClear={() => updateFilter("mechanism", null)}
               options={MECHANISMS.map((m) => ({ value: m.value, label: m.label }))}
             />
+            <FilterChip
+              label="Category"
+              value={currentContractType}
+              displayValue={
+                currentContractType
+                  ? CONTRACT_TYPES.find(
+                      (t) => t.value === currentContractType
+                    )?.label ?? currentContractType
+                  : undefined
+              }
+              onSelect={(v) => updateFilter("contractType", v)}
+              onClear={() => updateFilter("contractType", null)}
+              options={CONTRACT_TYPES.map((t) => ({
+                value: t.value,
+                label: t.label,
+              }))}
+            />
+            <button
+              onClick={() =>
+                updateFilter("smeOnly", currentSme ? null : "true")
+              }
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                currentSme
+                  ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-500"
+                  : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-border hover:text-foreground"
+              }`}
+            >
+              SME
+              {currentSme && (
+                <X className="h-3 w-3" />
+              )}
+            </button>
+            <button
+              onClick={() =>
+                updateFilter("vcoOnly", currentVco ? null : "true")
+              }
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                currentVco
+                  ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-500"
+                  : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-border hover:text-foreground"
+              }`}
+            >
+              VCO
+              {currentVco && (
+                <X className="h-3 w-3" />
+              )}
+            </button>
           </div>
         </div>
 

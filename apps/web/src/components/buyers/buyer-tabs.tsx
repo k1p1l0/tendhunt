@@ -19,6 +19,9 @@ import type { KeyPersonnelData } from "@/components/buyers/key-personnel-tab";
 import type { LinkedinData } from "@/components/buyers/buyer-detail-client";
 import type { ChildBuyerData } from "@/components/buyers/buyer-detail-client";
 import { DepartmentsTab } from "@/components/buyers/departments-tab";
+import { OfstedTab } from "@/components/buyers/ofsted-tab";
+
+import type { OfstedSchoolData } from "@/components/buyers/ofsted-tab";
 
 interface ContractData {
   _id: string;
@@ -50,7 +53,7 @@ interface ContactData {
 }
 
 const VALID_TABS = [
-  "spending", "contracts", "departments", "contacts", "signals",
+  "spending", "contracts", "departments", "schools", "contacts", "signals",
   "board-documents", "key-personnel", "attributes",
 ] as const;
 
@@ -77,6 +80,7 @@ interface BuyerTabsProps {
   hasSpendData?: boolean;
   spendTransactionCount?: number;
   departments?: ChildBuyerData[];
+  ofstedSchools?: OfstedSchoolData[];
   initialTab?: string;
 }
 
@@ -101,6 +105,11 @@ export function BuyerTabs(props: BuyerTabsProps) {
         {props.departments && props.departments.length > 0 && (
           <TabsTrigger value="departments" className="text-sm">
             Departments ({props.departments.length})
+          </TabsTrigger>
+        )}
+        {props.ofstedSchools && props.ofstedSchools.length > 0 && (
+          <TabsTrigger value="schools" className="text-sm">
+            Schools ({props.ofstedSchools.length})
           </TabsTrigger>
         )}
         <TabsTrigger value="contacts" className="text-sm">
@@ -131,6 +140,12 @@ export function BuyerTabs(props: BuyerTabsProps) {
       {props.departments && props.departments.length > 0 && (
         <TabsContent value="departments" className="mt-6">
           <DepartmentsTab departments={props.departments} />
+        </TabsContent>
+      )}
+
+      {props.ofstedSchools && props.ofstedSchools.length > 0 && (
+        <TabsContent value="schools" className="mt-6">
+          <OfstedTab schools={props.ofstedSchools} />
         </TabsContent>
       )}
 

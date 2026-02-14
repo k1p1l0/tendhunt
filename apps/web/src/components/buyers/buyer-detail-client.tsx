@@ -3,6 +3,8 @@
 import { BuyerHeader } from "@/components/buyers/buyer-header";
 import { BuyerTabs } from "@/components/buyers/buyer-tabs";
 
+import type { OfstedSchoolData } from "@/components/buyers/ofsted-tab";
+
 interface ContractData {
   _id: string;
   title: string;
@@ -115,6 +117,7 @@ interface BuyerData {
   children?: ChildBuyerData[];
   parentBuyer?: ParentBuyerData;
   isParent?: boolean;
+  ofstedSchools?: OfstedSchoolData[];
 }
 
 interface BuyerDetailClientProps {
@@ -168,6 +171,7 @@ export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps)
         hasSpendData={buyer.hasSpendData}
         spendTransactionCount={buyer.spendTransactionCount}
         departments={buyer.children}
+        ofstedSchools={buyer.ofstedSchools}
         initialTab={initialTab}
       />
     </div>
