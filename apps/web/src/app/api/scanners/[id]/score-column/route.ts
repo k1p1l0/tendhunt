@@ -189,6 +189,16 @@ export async function POST(
       );
     }
 
+    // Preserve display order: re-sort to match the entityIds array from the client
+    if (scopedEntityIds) {
+      const orderMap = new Map(scopedEntityIds.map((id, idx) => [id, idx]));
+      entities.sort((a, b) => {
+        const aIdx = orderMap.get(String(a._id)) ?? Infinity;
+        const bIdx = orderMap.get(String(b._id)) ?? Infinity;
+        return aIdx - bIdx;
+      });
+    }
+
     // Collect existing score entity IDs for this column
     const existingScoreIds = new Set(
       ((scanner.scores as unknown as Array<{ columnId: string; entityId: string }>) || [])
