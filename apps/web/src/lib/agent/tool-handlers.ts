@@ -486,11 +486,13 @@ async function handleTestScoreColumn(
     useCase?: string;
   }>;
 
-  // Try exact ID match first, then fall back to case-insensitive name match
+  // Try exact ID match first, then fall back to fuzzy name match
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const column = aiColumns.find((c) => c.columnId === columnId)
     || aiColumns.find((c) => c.name.toLowerCase() === columnId.toLowerCase())
-    || aiColumns.find((c) => c.name.toLowerCase().includes(columnId.toLowerCase())
-        || columnId.toLowerCase().includes(c.name.toLowerCase()));
+    || aiColumns.find((c) => normalize(c.name) === normalize(columnId))
+    || aiColumns.find((c) => normalize(c.name).includes(normalize(columnId))
+        || normalize(columnId).includes(normalize(c.name)));
 
   if (!column) {
     const availableColumns = aiColumns.map((c) => `"${c.name}" (${c.columnId})`).join(", ");
