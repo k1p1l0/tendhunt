@@ -24,6 +24,11 @@ export interface AgentPageContext {
   contractValue?: string;
   contractMechanism?: string;
   selectedRow?: Record<string, unknown>;
+  buyerContractCount?: number;
+  buyerContactCount?: number;
+  buyerSignalCount?: number;
+  buyerBoardDocCount?: number;
+  buyerKeyPersonnelNames?: string;
 }
 
 interface CompanyProfileData {
@@ -122,7 +127,7 @@ You have access to the following tools to query real data:
         );
       }
       if (context.scannerId)
-        contextLines.push(`**Scanner ID:** ${context.scannerId}`);
+        contextLines.push(`_Internal scanner ID for links: ${context.scannerId} — never display this to the user._`);
       break;
 
     case "buyer_detail":
@@ -135,7 +140,17 @@ You have access to the following tools to query real data:
       if (context.buyerOrgType)
         contextLines.push(`**Organisation Type:** ${context.buyerOrgType}`);
       if (context.buyerId)
-        contextLines.push(`**Buyer ID:** ${context.buyerId}`);
+        contextLines.push(`_Internal buyer ID for links: ${context.buyerId} — never display this to the user._`);
+      if (context.buyerContractCount != null)
+        contextLines.push(`**Contracts:** ${context.buyerContractCount}`);
+      if (context.buyerContactCount != null)
+        contextLines.push(`**Key Contacts:** ${context.buyerContactCount}`);
+      if (context.buyerSignalCount != null)
+        contextLines.push(`**Buying Signals:** ${context.buyerSignalCount}`);
+      if (context.buyerBoardDocCount != null)
+        contextLines.push(`**Board Documents:** ${context.buyerBoardDocCount}`);
+      if (context.buyerKeyPersonnelNames)
+        contextLines.push(`**Key Personnel:** ${context.buyerKeyPersonnelNames}`);
       break;
 
     case "contract_detail":
@@ -150,7 +165,7 @@ You have access to the following tools to query real data:
       if (context.contractMechanism && context.contractMechanism !== "standard")
         contextLines.push(`**Procurement Mechanism:** ${context.contractMechanism}`);
       if (context.contractId)
-        contextLines.push(`**Contract ID:** ${context.contractId}`);
+        contextLines.push(`_Internal contract ID for links: ${context.contractId} — never display this to the user._`);
       break;
   }
 
@@ -197,6 +212,8 @@ When mentioning entities from tool results, make them clickable:
 - Buyer tabs: [spending](buyer:BUYER_ID?tab=spending), [contacts](buyer:BUYER_ID?tab=contacts), [board docs](buyer:BUYER_ID?tab=board-documents), [personnel](buyer:BUYER_ID?tab=key-personnel), [signals](buyer:BUYER_ID?tab=signals), [contracts](buyer:BUYER_ID?tab=contracts)
 
 Always link entities by name. Use IDs from tool results.
+
+When mentioning buyer tabs, include the count from context if known, e.g. "[Contracts (138)](buyer:ID?tab=contracts)" or "[Key Personnel (5)](buyer:ID?tab=key-personnel)".
 
 **CRITICAL: NEVER expose raw IDs to the user.** Don't write "ID: 698cd79f..." or "(id: abc123)" in your response text. IDs are only for constructing links — put them inside the link URL, never in visible text. The user doesn't need or want to see database IDs.
 
