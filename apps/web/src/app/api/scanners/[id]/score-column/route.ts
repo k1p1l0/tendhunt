@@ -4,6 +4,7 @@ import Scanner from "@/models/scanner";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import Buyer from "@/models/buyer";
+import OfstedSchool from "@/models/ofsted-school";
 import CompanyProfile from "@/models/company-profile";
 import PipelineCard from "@/models/pipeline-card";
 import AutoSendRule from "@/models/auto-send-rule";
@@ -22,10 +23,11 @@ import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
 import pLimit from "p-limit";
 
-const ENTITY_TYPE_MAP: Record<string, "contract" | "buyer" | "signal"> = {
+const ENTITY_TYPE_MAP: Record<string, "contract" | "buyer" | "signal" | "school"> = {
   rfps: "contract",
   meetings: "signal",
   buyers: "buyer",
+  schools: "school",
 };
 
 function getEntityDisplayFields(
@@ -54,6 +56,12 @@ function getEntityDisplayFields(
         subtitle: entity.insight as string | undefined,
         buyerName: entity.organizationName as string | undefined,
         sector: entity.sector as string | undefined,
+      };
+    case "schools":
+      return {
+        title: String(entity.name || "Unknown School"),
+        subtitle: `${entity.phase || ""} - ${entity.localAuthority || ""}`.trim(),
+        sector: entity.region as string | undefined,
       };
     default:
       return {
@@ -176,6 +184,18 @@ export async function POST(
         entities = (await Buyer.find(entityFilter)
           .select(
             "name sector region description contractCount website contacts"
+          )
+          .lean()) as unknown as Array<Record<string, unknown>>;
+        break;
+
+      case "schools":
+        entities = (await OfstedSchool.find(entityFilter)
+          .select(
+            "name urn phase schoolType localAuthority region " +
+            "overallEffectiveness qualityOfEducation behaviourAndAttitudes " +
+            "personalDevelopment leadershipAndManagement " +
+            "inspectionDate previousOverallEffectiveness ratingDirection " +
+            "lastDowngradeDate downgradeType totalPupils"
           )
           .lean()) as unknown as Array<Record<string, unknown>>;
         break;

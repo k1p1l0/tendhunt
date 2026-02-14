@@ -54,10 +54,28 @@ interface ScannerHeaderProps {
   onEditScanner: () => void;
 }
 
+const TYPE_BADGE_STYLES: Record<ScannerType, string> = {
+  rfps: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  meetings:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  buyers:
+    "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  schools:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+};
+
+const TYPE_LABELS: Record<ScannerType, string> = {
+  rfps: "RFPs",
+  meetings: "Meetings",
+  buyers: "Buyers",
+  schools: "Schools",
+};
+
 const ENTITY_LABELS: Record<ScannerType, [string, string]> = {
   rfps: ["contract", "contracts"],
   meetings: ["signal", "signals"],
   buyers: ["buyer", "buyers"],
+  schools: ["school", "schools"],
 };
 
 function formatNumber(n: number): string {

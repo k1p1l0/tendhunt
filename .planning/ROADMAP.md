@@ -57,12 +57,12 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 - ~10 more files with scanner type switch statements
 
 **Success criteria:**
-- [ ] User can create a new scanner with type "schools" from the scanners page
-- [ ] Schools scanner grid displays columns with correct Ofsted data (ratings, dates, region)
-- [ ] "Downgraded in last N months" filter returns only schools with recent downgrades
-- [ ] Filters for rating, region, school phase, and local authority work correctly
-- [ ] Search by school name returns matching results
-- [ ] AI column can be added to schools scanner (scoring infrastructure connected)
+- [x] User can create a new scanner with type "schools" from the scanners page
+- [x] Schools scanner grid displays columns with correct Ofsted data (ratings, dates, region)
+- [x] "Downgraded in last N months" filter returns only schools with recent downgrades
+- [x] Filters for rating, region, school phase, and local authority work correctly
+- [x] Search by school name returns matching results
+- [x] AI column can be added to schools scanner (scoring infrastructure connected)
 
 ---
 

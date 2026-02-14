@@ -15,12 +15,12 @@
 
 ### Scanner
 
-- [ ] **SCAN-01**: User can create a scanner of type "schools" that queries the ofstedschools collection
-- [ ] **SCAN-02**: Schools scanner displays columns: School name, Overall rating, Quality of Education, Inspection Date, Previous Rating, Rating Change, Region, School Phase, Pupils, Local Authority
-- [ ] **SCAN-03**: User can filter schools by "downgraded in last N months" (1m, 3m, 6m, 1y, any) as the primary filter
-- [ ] **SCAN-04**: User can filter schools by current rating (Outstanding, Good, Requires Improvement, Inadequate), region, local authority, and school phase
-- [ ] **SCAN-05**: User can search schools by name or keyword
-- [ ] **SCAN-06**: Schools scanner supports AI columns following the existing scanner AI column pattern (add column, set prompt, run scoring)
+- [x] **SCAN-01**: User can create a scanner of type "schools" that queries the ofstedschools collection
+- [x] **SCAN-02**: Schools scanner displays columns: School name, Overall rating, Quality of Education, Inspection Date, Previous Rating, Rating Change, Region, School Phase, Pupils, Local Authority
+- [x] **SCAN-03**: User can filter schools by "downgraded in last N months" (1m, 3m, 6m, 1y, any) as the primary filter
+- [x] **SCAN-04**: User can filter schools by current rating (Outstanding, Good, Requires Improvement, Inadequate), region, local authority, and school phase
+- [x] **SCAN-05**: User can search schools by name or keyword
+- [x] **SCAN-06**: Schools scanner supports AI columns following the existing scanner AI column pattern (add column, set prompt, run scoring)
 
 ### Downgrade Detection
 
@@ -72,12 +72,12 @@
 | DATA-03 | Phase 1 | Done |
 | DATA-04 | Phase 1 | Done |
 | DATA-05 | Phase 1 | Done |
-| SCAN-01 | Phase 2 | Pending |
-| SCAN-02 | Phase 2 | Pending |
-| SCAN-03 | Phase 2 | Pending |
-| SCAN-04 | Phase 2 | Pending |
-| SCAN-05 | Phase 2 | Pending |
-| SCAN-06 | Phase 2 | Pending |
+| SCAN-01 | Phase 2 | Done |
+| SCAN-02 | Phase 2 | Done |
+| SCAN-03 | Phase 2 | Done |
+| SCAN-04 | Phase 2 | Done |
+| SCAN-05 | Phase 2 | Done |
+| SCAN-06 | Phase 2 | Done |
 | DOWN-01 | Phase 3 | Pending |
 | DOWN-02 | Phase 3 | Pending |
 | DOWN-03 | Phase 3 | Pending |

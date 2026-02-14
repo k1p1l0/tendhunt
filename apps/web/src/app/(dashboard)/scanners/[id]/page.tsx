@@ -70,12 +70,14 @@ const DATA_ENDPOINTS: Record<ScannerType, string> = {
   rfps: "/api/contracts",
   meetings: "/api/signals",
   buyers: "/api/buyers",
+  schools: "/api/schools",
 };
 
 const DATA_KEYS: Record<ScannerType, string> = {
   rfps: "contracts",
   meetings: "signals",
   buyers: "buyers",
+  schools: "schools",
 };
 
 /**
@@ -255,6 +257,10 @@ export default function ScannerDetailPage({
         if (f.stage) params.set("stage", String(f.stage));
         if (f.status) params.set("status", String(f.status));
         if (f.mechanism) params.set("mechanism", String(f.mechanism));
+        if (f.downgradeWithin) params.set("downgradeWithin", String(f.downgradeWithin));
+        if (f.ofstedRating) params.set("ofstedRating", String(f.ofstedRating));
+        if (f.schoolPhase) params.set("schoolPhase", String(f.schoolPhase));
+        if (f.localAuthority) params.set("localAuthority", String(f.localAuthority));
       }
 
       // Apply row pagination — always send a pageSize to avoid loading all results

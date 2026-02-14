@@ -49,6 +49,20 @@ const DEFAULT_AI_COLUMNS: Record<
         "Based on the organization's structure and procurement activities, identify the most likely key contact role for engagement (e.g., Procurement Manager, IT Director, etc.).",
     },
   ],
+  schools: [
+    {
+      columnId: "tuition-relevance",
+      name: "Tuition Relevance",
+      prompt:
+        "Score how likely this school needs tuition services on a scale of 1-10. Consider: Ofsted rating (lower = more need), recent downgrade, quality of education grade, school phase, pupil count, and any indicators of attainment gaps or catch-up needs.",
+    },
+    {
+      columnId: "outreach-priority",
+      name: "Outreach Priority",
+      prompt:
+        "Based on this school's Ofsted data, recommend outreach priority (High/Medium/Low). Consider: recency of downgrade, severity of rating drop, school size, and region. Explain in 1-2 sentences.",
+    },
+  ],
 };
 
 export async function GET() {
@@ -118,9 +132,9 @@ export async function POST(request: Request) {
       filters?: Record<string, unknown>;
     };
 
-    if (!body.type || !["rfps", "meetings", "buyers"].includes(body.type)) {
+    if (!body.type || !["rfps", "meetings", "buyers", "schools"].includes(body.type)) {
       return Response.json(
-        { error: "Valid scanner type is required (rfps, meetings, buyers)" },
+        { error: "Valid scanner type is required (rfps, meetings, buyers, schools)" },
         { status: 400 }
       );
     }

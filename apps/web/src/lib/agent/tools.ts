@@ -249,8 +249,8 @@ export function getToolDefinitions(): Anthropic.Tool[] {
           },
           type: {
             type: "string",
-            enum: ["rfps", "meetings", "buyers"],
-            description: "Scanner type: rfps (contracts), meetings (signals), or buyers",
+            enum: ["rfps", "meetings", "buyers", "schools"],
+            description: "Scanner type: rfps (contracts), meetings (signals), buyers, or schools (Ofsted)",
           },
           searchQuery: {
             type: "string",

@@ -150,6 +150,32 @@ Contract Count: ${entity.contractCount || 0}
 Website: ${entity.website || "Not available"}
 ${queryContext}`;
 
+    case "schools": {
+      const ratingLabels: Record<number, string> = { 1: "Outstanding", 2: "Good", 3: "Requires Improvement", 4: "Inadequate" };
+      const currentRating = entity.overallEffectiveness as number | undefined;
+      const prevRating = entity.previousOverallEffectiveness as number | undefined;
+      return `Analyze this Ofsted-inspected school:
+
+School: ${entity.name || "Unknown"}
+URN: ${entity.urn || "N/A"}
+Phase: ${entity.phase || "Unknown"}
+Type: ${entity.schoolType || "Unknown"}
+Region: ${entity.region || "Unknown"}
+Local Authority: ${entity.localAuthority || "Unknown"}
+Pupils: ${entity.totalPupils || "Unknown"}
+Current Overall Rating: ${currentRating ? `${currentRating} (${ratingLabels[currentRating] || "Unknown"})` : "Not rated"}
+Quality of Education: ${entity.qualityOfEducation || "N/A"}
+Behaviour & Attitudes: ${entity.behaviourAndAttitudes || "N/A"}
+Personal Development: ${entity.personalDevelopment || "N/A"}
+Leadership & Management: ${entity.leadershipAndManagement || "N/A"}
+Previous Rating: ${prevRating ? `${prevRating} (${ratingLabels[prevRating] || "Unknown"})` : "N/A"}
+Rating Direction: ${entity.ratingDirection || "Unknown"}
+Last Downgrade Date: ${entity.lastDowngradeDate || "None"}
+Downgrade Type: ${entity.downgradeType || "None"}
+Last Inspection: ${entity.inspectionDate || "Unknown"}
+${queryContext}`;
+    }
+
     default:
       return `Analyze this entity:\n${JSON.stringify(entity, null, 2)}${queryContext}`;
   }

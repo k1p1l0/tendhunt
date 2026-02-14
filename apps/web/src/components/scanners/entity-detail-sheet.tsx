@@ -37,6 +37,7 @@ const SCANNER_TO_ENTITY: Record<ScannerType, PipelineEntityType> = {
   rfps: "contract",
   meetings: "signal",
   buyers: "buyer",
+  schools: "contract",
 };
 
 interface EntityDetailSheetProps {
@@ -252,6 +253,75 @@ function SignalDetails({ row }: { row: Record<string, unknown> }) {
   );
 }
 
+function SchoolDetails({ row }: { row: Record<string, unknown> }) {
+  const ratingLabels: Record<number, string> = {
+    1: "Outstanding",
+    2: "Good",
+    3: "Requires Improvement",
+    4: "Inadequate",
+  };
+  const currentRating = row.overallEffectiveness as number | undefined;
+  const prevRating = row.previousOverallEffectiveness as number | undefined;
+  const qoe = row.qualityOfEducation as number | undefined;
+
+  return (
+    <>
+      {currentRating != null && (
+        <DetailRow
+          icon={Tag}
+          label="Overall Rating"
+          value={`${currentRating} - ${ratingLabels[currentRating] || "Unknown"}`}
+        />
+      )}
+      {qoe != null && (
+        <DetailRow icon={Tag} label="Quality of Education" value={String(qoe)} />
+      )}
+      {prevRating != null && (
+        <DetailRow
+          icon={Tag}
+          label="Previous Rating"
+          value={`${prevRating} - ${ratingLabels[prevRating] || "Unknown"}`}
+        />
+      )}
+      {row.ratingDirection && (
+        <DetailRow icon={TrendingUp} label="Rating Change" value={String(row.ratingDirection)} />
+      )}
+      <DetailRow
+        icon={Calendar}
+        label="Last Inspection"
+        value={formatDate(row.inspectionDate)}
+      />
+      {row.lastDowngradeDate && (
+        <DetailRow
+          icon={Calendar}
+          label="Last Downgrade"
+          value={formatDate(row.lastDowngradeDate)}
+        />
+      )}
+      {row.downgradeType && (
+        <DetailRow icon={Tag} label="Downgrade Type" value={String(row.downgradeType)} />
+      )}
+      <DetailRow icon={Building2} label="Phase" value={row.phase as string} />
+      <DetailRow icon={MapPin} label="Region" value={row.region as string} />
+      <DetailRow icon={MapPin} label="Local Authority" value={row.localAuthority as string} />
+      {row.totalPupils != null && Number(row.totalPupils) > 0 && (
+        <DetailRow icon={Users} label="Pupils" value={String(row.totalPupils)} />
+      )}
+      {row.schoolType && (
+        <DetailRow icon={Tag} label="School Type" value={String(row.schoolType)} />
+      )}
+      {row.reportUrl && (
+        <DetailRow
+          icon={ExternalLink}
+          label="Ofsted Report"
+          value="View report"
+          href={row.reportUrl as string}
+        />
+      )}
+    </>
+  );
+}
+
 function BuyerDetails({ row }: { row: Record<string, unknown> }) {
   const staffStr = formatCompactNumber(row.staffCount);
   const budgetStr = row.annualBudget ? formatCurrency(row.annualBudget) : "";
@@ -372,6 +442,7 @@ export function EntityDetailSheet({
             {scannerType === "rfps" && <ContractDetails row={row} />}
             {scannerType === "meetings" && <SignalDetails row={row} />}
             {scannerType === "buyers" && <BuyerDetails row={row} />}
+            {scannerType === "schools" && <SchoolDetails row={row} />}
           </div>
 
           {/* AI Scores section */}
