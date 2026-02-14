@@ -70,6 +70,18 @@ export interface SpendTransactionDoc {
 // SpendSummary — pre-computed per-buyer aggregates (mirrors Mongoose schema)
 // ---------------------------------------------------------------------------
 
+export interface VendorSizeBucket {
+  totalSpend: number;
+  vendorCount: number;
+  transactionCount: number;
+}
+
+export interface YearlyVendorSet {
+  year: number;
+  vendors: string[];
+  totalSpend: number;
+}
+
 export interface SpendSummaryDoc {
   _id?: ObjectId;
   buyerId: ObjectId;
@@ -96,6 +108,13 @@ export interface SpendSummaryDoc {
   }>;
   csvFilesProcessed: string[];
   lastComputedAt?: Date;
+  vendorSizeBreakdown?: {
+    sme: VendorSizeBucket;
+    large: VendorSizeBucket;
+  };
+  yearlyVendorSets?: YearlyVendorSet[];
+  smeOpennessScore?: number;
+  vendorStabilityScore?: number;
   createdAt: Date;
   updatedAt: Date;
 }

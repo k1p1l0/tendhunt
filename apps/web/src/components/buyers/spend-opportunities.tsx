@@ -12,6 +12,8 @@ import {
   RefreshCw,
   AlertTriangle,
   Target,
+  Users,
+  Shuffle,
 } from "lucide-react";
 
 interface ProfileMatch {
@@ -41,12 +43,25 @@ interface SpendGrowthSignal {
   growthPercent: number;
 }
 
+interface SmeOpennessData {
+  smeOpennessScore: number;
+  signal: string;
+  sme: { percentage: number; count: number };
+}
+
+interface VendorStabilityData {
+  vendorStabilityScore: number;
+  signal: string;
+}
+
 interface SpendOpportunitiesProps {
   opportunities: {
     profileMatch: ProfileMatch | null;
     recurringPatterns: RecurringPattern[];
     vendorConcentration: VendorConcentration[];
     spendGrowthSignals: SpendGrowthSignal[];
+    smeOpenness?: SmeOpennessData | null;
+    vendorStability?: VendorStabilityData | null;
   };
 }
 
@@ -56,13 +71,17 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
     recurringPatterns,
     vendorConcentration,
     spendGrowthSignals,
+    smeOpenness,
+    vendorStability,
   } = opportunities;
 
   const hasAnyOpportunities =
     profileMatch ||
     recurringPatterns.length > 0 ||
     vendorConcentration.length > 0 ||
-    spendGrowthSignals.length > 0;
+    spendGrowthSignals.length > 0 ||
+    smeOpenness ||
+    vendorStability;
 
   if (!hasAnyOpportunities) {
     return (
@@ -228,6 +247,68 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
                 ))}
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* SME Openness */}
+      {smeOpenness && (
+        <Card className="border-l-4 border-l-teal-500 transition-all hover:shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-teal-500" />
+              <CardTitle className="text-lg">SME Openness</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="text-3xl font-bold text-teal-500">
+                {smeOpenness.smeOpennessScore}/100
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {smeOpenness.sme.percentage}% of spend goes to SMEs ({smeOpenness.sme.count} vendors)
+              </p>
+            </div>
+            <Badge variant="outline" className={
+              smeOpenness.signal === "SME-friendly"
+                ? "bg-green-500/15 text-green-600 border-green-500/30"
+                : smeOpenness.signal === "Large-org dominated"
+                  ? "bg-red-500/15 text-red-600 border-red-500/30"
+                  : "bg-yellow-500/15 text-yellow-600 border-yellow-500/30"
+            }>
+              {smeOpenness.signal}
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vendor Stability */}
+      {vendorStability && (
+        <Card className="border-l-4 border-l-orange-500 transition-all hover:shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Shuffle className="h-5 w-5 text-orange-500" />
+              <CardTitle className="text-lg">Vendor Stability</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="text-3xl font-bold text-orange-500">
+                {vendorStability.vendorStabilityScore}/100
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {vendorStability.signal}
+              </p>
+            </div>
+            <Badge variant="outline" className={
+              vendorStability.vendorStabilityScore < 40
+                ? "bg-green-500/15 text-green-600 border-green-500/30"
+                : vendorStability.vendorStabilityScore > 70
+                  ? "bg-red-500/15 text-red-600 border-red-500/30"
+                  : "bg-yellow-500/15 text-yellow-600 border-yellow-500/30"
+            }>
+              {vendorStability.vendorStabilityScore < 40 ? "Open to new suppliers" : vendorStability.vendorStabilityScore > 70 ? "Hard to break in" : "Moderate openness"}
+            </Badge>
           </CardContent>
         </Card>
       )}

@@ -41,11 +41,36 @@ interface SpendGrowthSignal {
   growthPercent: number;
 }
 
+export interface VendorMixAnalysis {
+  sme: { spend: number; count: number; percentage: number };
+  large: { spend: number; count: number; percentage: number };
+  smeOpennessScore: number;
+  signal: "SME-friendly" | "Mixed" | "Large-org dominated";
+}
+
+export interface VendorChurnYear {
+  year: number;
+  newCount: number;
+  retainedCount: number;
+  lostCount: number;
+  totalVendors: number;
+  newVendors: string[];
+  lostVendors: string[];
+}
+
+export interface VendorChurnAnalysis {
+  years: VendorChurnYear[];
+  vendorStabilityScore: number;
+  signal: "High turnover" | "Moderate stability" | "Very stable";
+}
+
 export interface SpendOpportunities {
   profileMatch: ProfileMatch | null;
   recurringPatterns: RecurringPattern[];
   vendorConcentration: VendorConcentration[];
   spendGrowthSignals: SpendGrowthSignal[];
+  smeOpenness: VendorMixAnalysis | null;
+  vendorStability: VendorChurnAnalysis | null;
 }
 
 // --- Helpers ---
@@ -98,6 +123,8 @@ export function computeSpendOpportunities(
     recurringPatterns: computeRecurringPatterns(summary),
     vendorConcentration: computeVendorConcentration(summary),
     spendGrowthSignals: computeSpendGrowthSignals(summary),
+    smeOpenness: computeVendorMixAnalysis(summary),
+    vendorStability: computeVendorChurnAnalysis(summary),
   };
 }
 
@@ -255,4 +282,67 @@ function computeSpendGrowthSignals(
   }
 
   return [];
+}
+
+// --- Vendor Mix Analysis ---
+
+export function computeVendorMixAnalysis(summary: ISpendSummary): VendorMixAnalysis | null {
+  const breakdown = summary.vendorSizeBreakdown;
+  if (!breakdown?.sme && !breakdown?.large) return null;
+
+  const smeSpend = breakdown?.sme?.totalSpend ?? 0;
+  const largeSpend = breakdown?.large?.totalSpend ?? 0;
+  const total = smeSpend + largeSpend;
+  if (total === 0) return null;
+
+  const smePct = Math.round((smeSpend / total) * 100);
+  const score = summary.smeOpennessScore ?? smePct;
+
+  let signal: VendorMixAnalysis["signal"] = "Mixed";
+  if (smePct > 50) signal = "SME-friendly";
+  else if (smePct < 20) signal = "Large-org dominated";
+
+  return {
+    sme: { spend: smeSpend, count: breakdown?.sme?.vendorCount ?? 0, percentage: smePct },
+    large: { spend: largeSpend, count: breakdown?.large?.vendorCount ?? 0, percentage: 100 - smePct },
+    smeOpennessScore: score,
+    signal,
+  };
+}
+
+// --- Vendor Churn Analysis ---
+
+export function computeVendorChurnAnalysis(summary: ISpendSummary): VendorChurnAnalysis | null {
+  const sets = summary.yearlyVendorSets;
+  if (!sets || sets.length < 2) return null;
+
+  const sorted = [...sets].sort((a, b) => a.year - b.year);
+  const years: VendorChurnYear[] = [];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prevVendors = sorted[i - 1].vendors ?? [];
+    const currVendors = sorted[i].vendors ?? [];
+    const prevSet = new Set(prevVendors);
+    const currSet = new Set(currVendors);
+    const retained = [...currSet].filter(v => prevSet.has(v));
+    const newVendors = [...currSet].filter(v => !prevSet.has(v));
+    const lost = [...prevSet].filter(v => !currSet.has(v));
+
+    years.push({
+      year: sorted[i].year,
+      newCount: newVendors.length,
+      retainedCount: retained.length,
+      lostCount: lost.length,
+      totalVendors: currSet.size,
+      newVendors: newVendors.slice(0, 10),
+      lostVendors: lost.slice(0, 10),
+    });
+  }
+
+  const score = summary.vendorStabilityScore ?? 50;
+  let signal: VendorChurnAnalysis["signal"] = "Moderate stability";
+  if (score < 40) signal = "High turnover";
+  else if (score > 70) signal = "Very stable";
+
+  return { years, vendorStabilityScore: score, signal };
 }

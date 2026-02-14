@@ -94,6 +94,34 @@ export async function aggregateSpendData(
                 },
                 { $sort: { "_id.year": 1 as const, "_id.month": 1 as const } },
               ],
+              byVendorSize: [
+                {
+                  $group: {
+                    _id: "$vendorNormalized",
+                    total: { $sum: "$amount" },
+                    count: { $sum: 1 },
+                  },
+                },
+              ],
+              byYearVendor: [
+                {
+                  $group: {
+                    _id: {
+                      year: { $year: "$date" },
+                      vendor: "$vendorNormalized",
+                    },
+                    total: { $sum: "$amount" },
+                  },
+                },
+                {
+                  $group: {
+                    _id: "$_id.year",
+                    vendors: { $push: "$_id.vendor" },
+                    totalSpend: { $sum: "$total" },
+                  },
+                },
+                { $sort: { _id: 1 as const } },
+              ],
             },
           },
         ];
@@ -151,6 +179,56 @@ export async function aggregateSpendData(
           total: m.total,
         }));
 
+        // Vendor size classification
+        const vendorSizeData = result.byVendorSize as Array<{ _id: string; total: number; count: number }>;
+        let smeTotalSpend = 0, smeVendorCount = 0, smeTxnCount = 0;
+        let largeTotalSpend = 0, largeVendorCount = 0, largeTxnCount = 0;
+
+        for (const v of vendorSizeData) {
+          const isLarge = v.total > 500000 || v.count > 50;
+          if (isLarge) {
+            largeTotalSpend += v.total;
+            largeVendorCount++;
+            largeTxnCount += v.count;
+          } else {
+            smeTotalSpend += v.total;
+            smeVendorCount++;
+            smeTxnCount += v.count;
+          }
+        }
+
+        const vendorSizeBreakdown = {
+          sme: { totalSpend: smeTotalSpend, vendorCount: smeVendorCount, transactionCount: smeTxnCount },
+          large: { totalSpend: largeTotalSpend, vendorCount: largeVendorCount, transactionCount: largeTxnCount },
+        };
+
+        // Yearly vendor sets
+        const yearlyVendorSets = (result.byYearVendor as Array<{ _id: number; vendors: string[]; totalSpend: number }>)
+          .map(y => ({ year: y._id, vendors: y.vendors, totalSpend: y.totalSpend }));
+
+        // SME Openness score
+        const totalVendorSpend = smeTotalSpend + largeTotalSpend;
+        const smeSpendPct = totalVendorSpend > 0 ? (smeTotalSpend / totalVendorSpend) * 100 : 0;
+        const smeBonus = smeVendorCount > 20 ? 10 : 0;
+        const smeOpennessScore = Math.min(100, Math.round(smeSpendPct + smeBonus));
+
+        // Vendor Stability score
+        let vendorStabilityScore = 50;
+        if (yearlyVendorSets.length >= 2) {
+          const retentionRates: number[] = [];
+          for (let i = 1; i < yearlyVendorSets.length; i++) {
+            const prevSet = new Set(yearlyVendorSets[i - 1].vendors);
+            const currSet = new Set(yearlyVendorSets[i].vendors);
+            const retained = [...currSet].filter(v => prevSet.has(v)).length;
+            const total = new Set([...prevSet, ...currSet]).size;
+            if (total > 0) retentionRates.push(retained / total);
+          }
+          if (retentionRates.length > 0) {
+            const avgRetention = retentionRates.reduce((a, b) => a + b, 0) / retentionRates.length;
+            vendorStabilityScore = Math.round(avgRetention * 100);
+          }
+        }
+
         // Collect processed CSV files
         const csvFiles = await db
           .collection("spendtransactions")
@@ -169,6 +247,10 @@ export async function aggregateSpendData(
           monthlyTotals,
           csvFilesProcessed: csvFiles as string[],
           lastComputedAt: new Date(),
+          vendorSizeBreakdown,
+          yearlyVendorSets,
+          smeOpennessScore,
+          vendorStabilityScore,
         });
 
         // Mark buyer as having spend data available
