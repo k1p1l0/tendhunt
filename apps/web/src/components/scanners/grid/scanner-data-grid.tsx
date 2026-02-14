@@ -84,8 +84,8 @@ export function ScannerDataGrid({
 
   const theme = useGlideTheme();
 
-  // Force re-render when logos finish loading asynchronously
-  const [, forceRedraw] = useReducer((x: number) => x + 1, 0);
+  // Force re-render when logos finish loading or during scoring animations
+  const [animTick, forceRedraw] = useReducer((x: number) => x + 1, 0);
   useEffect(() => {
     setLogoRedrawCallback(forceRedraw);
     return () => setLogoRedrawCallback(() => {});
@@ -181,10 +181,11 @@ export function ScannerDataGrid({
   // Display rows = filtered rows (no threshold splitting)
   const displayRows = filteredRows;
 
-  // getCellContent callback — only uses store entries for loading/queued state
+  // getCellContent callback — include animTick so Glide repaints animated cells
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const getCellContent = useMemo(
     () => createGetCellContent(columnMeta, displayRows, scores, getScore),
-    [columnMeta, displayRows, scores]
+    [columnMeta, displayRows, scores, isScoring ? animTick : 0]
   );
 
   // Store columnMeta + columnFilters in refs so drawHeader can access without re-creating
