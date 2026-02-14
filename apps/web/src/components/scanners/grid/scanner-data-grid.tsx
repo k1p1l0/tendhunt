@@ -201,6 +201,143 @@ export function ScannerDataGrid({
     columnScoringProgressRef.current = columnScoringProgress;
   }, [columnMeta, columnFilters, isScoring, scoringProgress, columnScoringProgress]);
 
+  // Draw a use-case-specific icon for AI column headers
+  const drawAiUseCaseIcon = useCallback(
+    (ctx: CanvasRenderingContext2D, useCase: string | undefined, x: number, cy: number) => {
+      ctx.save();
+
+      switch (useCase) {
+        case "research": {
+          // Magnifying glass: circle + diagonal handle
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.arc(x - 1, cy - 1, 4, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + 2, cy + 2);
+          ctx.lineTo(x + 5.5, cy + 5.5);
+          ctx.stroke();
+          break;
+        }
+        case "decision-makers": {
+          // Two person silhouettes
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          // Front person head
+          ctx.beginPath();
+          ctx.arc(x - 1, cy - 3, 2.2, 0, Math.PI * 2);
+          ctx.stroke();
+          // Front person shoulders
+          ctx.beginPath();
+          ctx.arc(x - 1, cy + 4, 3.5, Math.PI * 1.15, Math.PI * 1.85);
+          ctx.stroke();
+          // Back person head (offset right)
+          ctx.beginPath();
+          ctx.arc(x + 4, cy - 3.5, 2, 0, Math.PI * 2);
+          ctx.stroke();
+          // Back person shoulders
+          ctx.beginPath();
+          ctx.arc(x + 4, cy + 3.5, 3, Math.PI * 1.15, Math.PI * 1.85);
+          ctx.stroke();
+          break;
+        }
+        case "bid-recommendation": {
+          // Shield with checkmark
+          ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
+          ctx.fillStyle = "#E5FF00";
+          ctx.lineWidth = 1.3;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          // Shield outline
+          ctx.beginPath();
+          ctx.moveTo(x, cy - 5.5);
+          ctx.lineTo(x + 5, cy - 3.5);
+          ctx.lineTo(x + 5, cy + 1);
+          ctx.quadraticCurveTo(x + 5, cy + 4, x, cy + 6);
+          ctx.quadraticCurveTo(x - 5, cy + 4, x - 5, cy + 1);
+          ctx.lineTo(x - 5, cy - 3.5);
+          ctx.closePath();
+          ctx.stroke();
+          // Checkmark inside
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x - 2.5, cy);
+          ctx.lineTo(x - 0.5, cy + 2.5);
+          ctx.lineTo(x + 3, cy - 2);
+          ctx.stroke();
+          break;
+        }
+        case "find-contacts": {
+          // Contact card: rounded rect with person + lines
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          // Card outline
+          ctx.beginPath();
+          ctx.roundRect(x - 6, cy - 4.5, 12, 9, 1.5);
+          ctx.stroke();
+          // Person circle (left half)
+          ctx.beginPath();
+          ctx.arc(x - 2.5, cy - 1.5, 1.5, 0, Math.PI * 2);
+          ctx.stroke();
+          // Person shoulders
+          ctx.beginPath();
+          ctx.arc(x - 2.5, cy + 3.5, 2.5, Math.PI * 1.2, Math.PI * 1.8);
+          ctx.stroke();
+          // Lines (right half)
+          ctx.beginPath();
+          ctx.moveTo(x + 1.5, cy - 1.5);
+          ctx.lineTo(x + 4.5, cy - 1.5);
+          ctx.moveTo(x + 1.5, cy + 1);
+          ctx.lineTo(x + 4, cy + 1);
+          ctx.stroke();
+          break;
+        }
+        default: {
+          // Default sparkle ✦ for "score" and unknown use cases
+          const ss = 4.5;
+          ctx.beginPath();
+          ctx.moveTo(x, cy - ss);
+          ctx.quadraticCurveTo(x, cy, x + ss, cy);
+          ctx.quadraticCurveTo(x, cy, x, cy + ss);
+          ctx.quadraticCurveTo(x, cy, x - ss, cy);
+          ctx.quadraticCurveTo(x, cy, x, cy - ss);
+          ctx.closePath();
+          ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = "#E5FF00";
+          ctx.fill();
+
+          // Mini sparkle
+          const sx2 = x + 7;
+          const sy2 = cy - 4;
+          const ss2 = 2;
+          ctx.beginPath();
+          ctx.moveTo(sx2, sy2 - ss2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2 + ss2, sy2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 + ss2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2 - ss2, sy2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 - ss2);
+          ctx.closePath();
+          ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          ctx.fillStyle = "#E5FF00";
+          ctx.fill();
+          break;
+        }
+      }
+
+      ctx.restore();
+    },
+    []
+  );
+
   // Draw a small type icon — all centered at (x, cy), ~10px wide
   const drawTypeIcon = useCallback(
     (
@@ -574,44 +711,9 @@ export function ScannerDataGrid({
         ctx.fillRect(rect.x, rect.y + rect.height - 2, rect.width, 2);
         ctx.restore();
 
-        // Sparkle icon (left side) — with outline for light-mode visibility
-        ctx.save();
+        // Use-case-specific icon (left side)
         const sparkleX = rect.x + 12;
-        const sparkleY = cy;
-        const ss = 4.5;
-
-        // Draw sparkle path
-        ctx.beginPath();
-        ctx.moveTo(sparkleX, sparkleY - ss);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX + ss, sparkleY);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX, sparkleY + ss);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX - ss, sparkleY);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX, sparkleY - ss);
-        ctx.closePath();
-        // Outline for contrast
-        ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = "#E5FF00";
-        ctx.fill();
-
-        // Mini sparkle
-        const sx2 = sparkleX + 7;
-        const sy2 = sparkleY - 4;
-        const ss2 = 2;
-        ctx.beginPath();
-        ctx.moveTo(sx2, sy2 - ss2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2 + ss2, sy2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 + ss2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2 - ss2, sy2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 - ss2);
-        ctx.closePath();
-        ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = "#E5FF00";
-        ctx.fill();
-        ctx.restore();
+        drawAiUseCaseIcon(ctx, meta.aiUseCase, sparkleX, cy);
 
         // Column title text (after sparkle) — clip to available area
         const textX = sparkleX + 16;
@@ -660,7 +762,7 @@ export function ScannerDataGrid({
         ctx.restore();
       }
     },
-    [drawTypeIcon]
+    [drawTypeIcon, drawAiUseCaseIcon]
   );
 
   // Header click: play button zone → score, otherwise → open menu

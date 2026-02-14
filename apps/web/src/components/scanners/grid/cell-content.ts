@@ -3,7 +3,7 @@ import type { GridCell } from "@glideapps/glide-data-grid";
 import type { ColumnMeta } from "./glide-columns";
 import {
   createScoreBadgeCell,
-  createTextShimmerCell,
+  createTextStatusCell,
   createCategoryBadgeCell,
   createEntityNameCell,
 } from "./custom-renderers";
@@ -89,17 +89,11 @@ export function createGetCellContent(
       const entry = getScore(scores, meta.aiColumnId, entityId);
 
       if (isTextUseCase(meta.aiUseCase)) {
-        // Text mode: show text shimmer skeleton while loading
-        if (entry?.isLoading || entry?.isQueued) {
-          return createTextShimmerCell();
-        }
-        const text = entry?.response || "";
-        return {
-          kind: GridCellKind.Text,
-          data: text,
-          displayData: text || "--",
-          allowOverlay: false,
-        };
+        if (entry?.isQueued) return createTextStatusCell("", "queued");
+        if (entry?.isLoading) return createTextStatusCell("", "loading");
+        if (entry?.error) return createTextStatusCell("", "error", entry.error);
+        if (entry?.response) return createTextStatusCell(entry.response, "success");
+        return createTextStatusCell("", "empty");
       }
 
       // Score mode: queued shows shimmer bar, active shows spinner
