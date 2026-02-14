@@ -391,6 +391,72 @@ function extractGoogleLinks(html: string): string[] {
   return links;
 }
 
+async function tryDataGovUkSearch(
+  buyerName: string
+): Promise<{ url: string; csvLinks: string[] } | null> {
+  const cleanName = buyerName
+    .replace(/[,()]/g, " ")
+    .replace(/\b(the|of|and|for)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const query = encodeURIComponent(`${cleanName} spend 25k`);
+  const searchUrl = `https://www.data.gov.uk/search?q=${query}`;
+  console.log(`\nSearching data.gov.uk: ${searchUrl}`);
+
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    const datasetRegex = /href="(\/dataset\/[^"]+)"[^>]*>([^<]+)/g;
+    const datasets: { url: string; title: string }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = datasetRegex.exec(html)) !== null && datasets.length < 5) {
+      datasets.push({ url: `https://www.data.gov.uk${m[1]}`, title: m[2].trim() });
+    }
+    if (datasets.length === 0) { console.log("  No datasets found on data.gov.uk"); return null; }
+    console.log(`  Found ${datasets.length} candidate datasets`);
+
+    const nameWords = buyerName
+      .toLowerCase()
+      .replace(/[,()]/g, " ")
+      .replace(/\b(nhs|icb|the|of|and|for|trust|council|borough)\b/g, "")
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
+    console.log(`  Name keywords: ${nameWords.join(", ")}`);
+
+    for (const dataset of datasets) {
+      const searchText = `${dataset.url.toLowerCase()} ${dataset.title.toLowerCase()}`;
+      const matchCount = nameWords.filter((w) => searchText.includes(w)).length;
+      console.log(`  Dataset: "${dataset.title}" — ${matchCount}/${nameWords.length} keywords match`);
+      if (matchCount < 1) continue;
+
+      console.log(`  Checking dataset: ${dataset.url}`);
+      try {
+        const datasetRes = await fetch(dataset.url, {
+          headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+          redirect: "follow",
+        });
+        if (!datasetRes.ok) continue;
+        const datasetHtml = await datasetRes.text();
+        const csvRegex = /href="(https?:\/\/[^"]+\.csv[^"]*)"/gi;
+        const csvLinks: string[] = [];
+        const seen = new Set<string>();
+        while ((m = csvRegex.exec(datasetHtml)) !== null) {
+          const link = m[1];
+          if (!seen.has(link)) { seen.add(link); csvLinks.push(link); }
+        }
+        if (csvLinks.length > 0) return { url: dataset.url, csvLinks };
+      } catch { /* skip */ }
+    }
+  } catch { /* skip */ }
+  return null;
+}
+
 // GOV.UK buyer filtering
 const DEPT_ABBREVIATION_MAP: Record<string, string[]> = {
   "ministry of defence": ["mod", "ministry-of-defence", "defence"],
@@ -689,8 +755,27 @@ async function main() {
     if (transparencyUrl && transparencyUrl !== "none") {
       console.log(`Already has transparencyPageUrl: ${transparencyUrl}`);
     } else if (!buyer.website) {
-      console.log("No website — cannot discover transparency page. Stopping.");
-      return;
+      console.log("No website — trying data.gov.uk search as fallback...");
+      const dataGovResult = await tryDataGovUkSearch(buyer.name as string);
+      if (dataGovResult) {
+        console.log(`data.gov.uk match: ${dataGovResult.url}`);
+        console.log(`CSV links: ${dataGovResult.csvLinks.length}`);
+        dataGovResult.csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+        await db.collection("buyers").updateOne(
+          { _id: buyerId },
+          { $set: {
+            transparencyPageUrl: dataGovResult.url,
+            csvLinks: dataGovResult.csvLinks,
+            discoveryMethod: "data_gov_uk",
+            updatedAt: new Date(),
+          } }
+        );
+        transparencyUrl = dataGovResult.url;
+        // csvLinks written to DB — Stage 2 reads from DB
+      } else {
+        console.log("data.gov.uk also found nothing. Stopping.");
+        return;
+      }
     } else {
       const websiteUrl = buyer.website as string;
       let discoveryMethod = "none";
@@ -914,12 +999,32 @@ Return ONLY valid JSON (no markdown):
         const parsed = parseDiscoveryResponse(responseText);
 
         if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
-          console.log("No transparency page found. Marking as 'none'.");
-          await db.collection("buyers").updateOne(
-            { _id: buyerId },
-            { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
-          );
-          return;
+          console.log("AI found nothing. Trying data.gov.uk search...");
+          const dataGovResult = await tryDataGovUkSearch(buyer.name);
+          if (dataGovResult) {
+            console.log(`data.gov.uk match: ${dataGovResult.url}`);
+            console.log(`CSV links: ${dataGovResult.csvLinks.length}`);
+            dataGovResult.csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+            await db.collection("buyers").updateOne(
+              { _id: buyerId },
+              { $set: {
+                transparencyPageUrl: dataGovResult.url,
+                csvLinks: dataGovResult.csvLinks,
+                discoveryMethod: "data_gov_uk",
+                updatedAt: new Date(),
+              } }
+            );
+            transparencyUrl = dataGovResult.url;
+            csvLinks = dataGovResult.csvLinks;
+            discoveryMethod = "data_gov_uk";
+          } else {
+            console.log("No transparency page found. Marking as 'none'.");
+            await db.collection("buyers").updateOne(
+              { _id: buyerId },
+              { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
+            );
+            return;
+          }
         }
 
         try {

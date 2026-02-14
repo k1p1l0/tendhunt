@@ -192,6 +192,9 @@ const ALT_SPEND_PATHS = [
   "/publications/expenditure-over-25000",
   "/about-us/transparency/spending",
   "/transparency/spending",
+  "/how-we-work/expenditure-over-25k",
+  "/policies-and-documents/expenditure-over-25k-1",
+  "/about-us/what-we-spend-and-how-we-spend-it",
 ];
 
 async function tryAlternateDomains(
@@ -220,6 +223,98 @@ async function tryAlternateDomains(
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// data.gov.uk search fallback — many NHS ICBs publish spending data there
+// ---------------------------------------------------------------------------
+
+async function tryDataGovUk(
+  buyerName: string
+): Promise<AltDomainResult | null> {
+  // Strip punctuation/stopwords for cleaner search
+  const cleanName = buyerName
+    .replace(/[,()]/g, " ")
+    .replace(/\b(the|of|and|for)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const query = encodeURIComponent(`${cleanName} spend 25k`);
+  const searchUrl = `https://www.data.gov.uk/search?q=${query}`;
+
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // Extract dataset titles + links from search results
+    // data.gov.uk renders datasets as <h2><a href="/dataset/...">Title</a></h2>
+    const datasetRegex = /href="(\/dataset\/[^"]+)"[^>]*>([^<]+)</g;
+    const datasets: { url: string; title: string }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = datasetRegex.exec(html)) !== null && datasets.length < 5) {
+      datasets.push({
+        url: `https://www.data.gov.uk${m[1]}`,
+        title: m[2].trim(),
+      });
+    }
+    if (datasets.length === 0) return null;
+
+    // Keywords from buyer name for relevance matching
+    const nameWords = buyerName
+      .toLowerCase()
+      .replace(/[,()]/g, " ")
+      .replace(/\b(nhs|icb|the|of|and|for|trust|council|borough)\b/g, "")
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
+
+    for (const dataset of datasets) {
+      // Check both URL and title for matching keywords
+      const searchText = `${dataset.url.toLowerCase()} ${dataset.title.toLowerCase()}`;
+      const matchCount = nameWords.filter((w) => searchText.includes(w)).length;
+      // Require at least 1 significant word match
+      if (matchCount < 1) continue;
+
+      try {
+        const datasetRes = await fetch(dataset.url, {
+          headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+          redirect: "follow",
+        });
+        if (!datasetRes.ok) continue;
+
+        const datasetHtml = await datasetRes.text();
+
+        // Extract CSV download links from dataset page
+        const csvRegex = /href="(https?:\/\/[^"]+\.csv[^"]*)"/gi;
+        const csvLinks: string[] = [];
+        const seen = new Set<string>();
+        while ((m = csvRegex.exec(datasetHtml)) !== null) {
+          const link = m[1];
+          if (!seen.has(link)) {
+            seen.add(link);
+            csvLinks.push(link);
+          }
+        }
+
+        if (csvLinks.length > 0) {
+          console.log(
+            `data.gov.uk match for "${buyerName}": ${dataset.url} → ${csvLinks.length} CSV links`
+          );
+          return { url: dataset.url, csvLinks };
+        }
+      } catch {
+        // Skip unreachable dataset pages
+      }
+    }
+  } catch {
+    // data.gov.uk unreachable — skip
+  }
+
+  return null;
+}
+
 /**
  * Stage 1: Discover transparency pages on buyer websites.
  *
@@ -228,7 +323,8 @@ async function tryAlternateDomains(
  * 2. PATTERN PHASE: probe known URL paths, validate with spend keywords
  * 3. AI FALLBACK: if no pattern matched, fetch homepage + Claude Haiku
  * 4. ALTERNATE DOMAIN: try governance/ICB domains when AI fails
- * 5. Store result with discoveryMethod tag
+ * 5. data.gov.uk SEARCH: search for buyer spending datasets
+ * 6. Store result with discoveryMethod tag
  */
 export async function discoverTransparencyPages(
   db: Db,
@@ -261,7 +357,26 @@ export async function discoverTransparencyPages(
     const results = await Promise.allSettled(
       batch.map((buyer) =>
         limit(async () => {
-          const websiteUrl = buyer.website!;
+          // No website? Skip to data.gov.uk search directly
+          if (!buyer.website) {
+            const dataGovResult = await tryDataGovUk(buyer.name);
+            if (dataGovResult) {
+              await updateBuyerTransparencyInfo(db, buyer._id!, {
+                transparencyPageUrl: dataGovResult.url,
+                csvLinks: dataGovResult.csvLinks,
+                discoveryMethod: "data_gov_uk",
+              });
+              discovered++;
+              return { error: false, found: true };
+            }
+            await updateBuyerTransparencyInfo(db, buyer._id!, {
+              transparencyPageUrl: "none",
+              discoveryMethod: "none",
+            });
+            return { error: false, found: false };
+          }
+
+          const websiteUrl = buyer.website;
 
           // ---------------------------------------------------------------
           // GOV.UK DEPT-SPECIFIC: try department publication page first
@@ -463,6 +578,20 @@ Return ONLY valid JSON (no markdown):
                   transparencyPageUrl: altResult.url,
                   csvLinks: altResult.csvLinks,
                   discoveryMethod: "alt_domain",
+                });
+                discovered++;
+                return { error: false, found: true };
+              }
+
+              // ---------------------------------------------------------------
+              // data.gov.uk SEARCH: many NHS ICBs/trusts publish spending there
+              // ---------------------------------------------------------------
+              const dataGovResult = await tryDataGovUk(buyer.name);
+              if (dataGovResult) {
+                await updateBuyerTransparencyInfo(db, buyer._id!, {
+                  transparencyPageUrl: dataGovResult.url,
+                  csvLinks: dataGovResult.csvLinks,
+                  discoveryMethod: "data_gov_uk",
                 });
                 discovered++;
                 return { error: false, found: true };
