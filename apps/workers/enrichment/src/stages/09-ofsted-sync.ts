@@ -473,21 +473,33 @@ export async function syncOfstedInspections(
     errors: 0,
   };
 
-  // ── Weekly gate check ──────────────────────────────────────
+  // ── Weekly gate check (atomic to prevent race conditions) ──
   const metaCol = db.collection(SYNC_META_COLLECTION);
-  const meta = await metaCol.findOne({ key: "ofsted_sync" });
-  const lastSyncedAt = meta?.lastSyncedAt as Date | undefined;
+  const cutoff = new Date(Date.now() - SYNC_INTERVAL_MS);
+  const gateResult = await metaCol.findOneAndUpdate(
+    {
+      key: "ofsted_sync",
+      $or: [
+        { lastSyncedAt: { $exists: false } },
+        { lastSyncedAt: null },
+        { lastSyncedAt: { $lte: cutoff } },
+      ],
+    },
+    { $set: { syncStartedAt: new Date() } },
+    { upsert: true, returnDocument: "before" }
+  );
 
-  if (lastSyncedAt) {
-    const elapsed = Date.now() - lastSyncedAt.getTime();
-    if (elapsed < SYNC_INTERVAL_MS) {
-      const daysAgo = (elapsed / (24 * 60 * 60 * 1000)).toFixed(1);
-      console.log(
-        `Ofsted sync skipped: last synced ${daysAgo} days ago (gate: 7 days)`
-      );
-      summary.skippedGateCheck = true;
-      return summary;
-    }
+  if (gateResult === null) {
+    // Another worker already claimed this sync window (or it's too recent)
+    const meta = await metaCol.findOne({ key: "ofsted_sync" });
+    const lastSyncedAt = meta?.lastSyncedAt as Date | undefined;
+    const elapsed = lastSyncedAt ? Date.now() - lastSyncedAt.getTime() : 0;
+    const daysAgo = (elapsed / (24 * 60 * 60 * 1000)).toFixed(1);
+    console.log(
+      `Ofsted sync skipped: last synced ${daysAgo} days ago (gate: 7 days)`
+    );
+    summary.skippedGateCheck = true;
+    return summary;
   }
 
   console.log("=== Ofsted Inspection Data Sync ===");

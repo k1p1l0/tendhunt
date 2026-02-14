@@ -166,11 +166,12 @@ export async function batchGetReportTexts(
 // ---------------------------------------------------------------------------
 
 async function fetchAndExtractReport(reportUrl: string): Promise<string | null> {
+  let response: Response;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    const response = await fetch(reportUrl, {
+    response = await fetch(reportUrl, {
       signal: controller.signal,
       headers: {
         "User-Agent": "TendHunt/1.0 (Ofsted Report Analysis)",
@@ -179,31 +180,51 @@ async function fetchAndExtractReport(reportUrl: string): Promise<string | null> 
     });
 
     clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error(
-        `[ofsted-report] HTTP ${response.status} fetching ${reportUrl}`
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.warn(`[ofsted-report] Timeout fetching ${reportUrl}`);
+    } else {
+      console.warn(
+        `[ofsted-report] Fetch failed for ${reportUrl}:`,
+        err instanceof Error ? err.message : err
       );
-      return null;
     }
+    return null;
+  }
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("pdf") && !contentType.includes("octet-stream")) {
-      console.error(
-        `[ofsted-report] Unexpected content-type "${contentType}" for ${reportUrl}`
-      );
-      return null;
-    }
+  if (!response.ok) {
+    console.warn(
+      `[ofsted-report] HTTP ${response.status} fetching ${reportUrl}`
+    );
+    return null;
+  }
 
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("pdf") && !contentType.includes("octet-stream")) {
+    console.warn(
+      `[ofsted-report] Unexpected content-type "${contentType}" for ${reportUrl}`
+    );
+    return null;
+  }
+
+  let buffer: Buffer;
+  try {
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    buffer = Buffer.from(arrayBuffer);
+  } catch (err) {
+    console.warn(
+      `[ofsted-report] Failed to read response body for ${reportUrl}:`,
+      err instanceof Error ? err.message : err
+    );
+    return null;
+  }
 
-    if (buffer.length < 100) {
-      console.error(`[ofsted-report] PDF too small (${buffer.length} bytes) for ${reportUrl}`);
-      return null;
-    }
+  if (buffer.length < 100) {
+    console.warn(`[ofsted-report] PDF too small (${buffer.length} bytes) for ${reportUrl}`);
+    return null;
+  }
 
-    // Dynamic import to avoid build-time issues with pdfjs-dist
+  try {
     const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
     const result = await parser.getText();
@@ -211,20 +232,16 @@ async function fetchAndExtractReport(reportUrl: string): Promise<string | null> 
 
     const text = result.text?.trim() || "";
     if (text.length < 50) {
-      console.error(`[ofsted-report] Extracted text too short (${text.length} chars) for ${reportUrl}`);
+      console.warn(`[ofsted-report] Extracted text too short (${text.length} chars) for ${reportUrl}`);
       return null;
     }
 
     return text;
   } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      console.error(`[ofsted-report] Timeout fetching ${reportUrl}`);
-    } else {
-      console.error(
-        `[ofsted-report] Error fetching/extracting ${reportUrl}:`,
-        err instanceof Error ? err.message : err
-      );
-    }
+    console.warn(
+      `[ofsted-report] PDF parse failed for ${reportUrl}:`,
+      err instanceof Error ? err.message : err
+    );
     return null;
   }
 }

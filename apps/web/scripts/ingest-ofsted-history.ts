@@ -550,18 +550,42 @@ async function main() {
   const inspectionNumbers = new Set<string>();
   let duplicatesSkipped = 0;
 
+  // Validation counters across all CSVs
+  let totalMissingUrn = 0;
+  let totalInvalidDate = 0;
+  let totalNoGrades = 0;
+  let totalMissingName = 0;
+  let totalMissingInspNum = 0;
+
   for (const { source, filePath } of csvFiles) {
     console.log(`\n  Parsing ${source.era} (${source.filename})...`);
     const rows = await parseCsvFile(filePath, source.hasTitleRow);
     console.log(`  Raw rows: ${rows.length.toLocaleString()}`);
 
     let mapped = 0;
-    let skipped = 0;
+    let skippedMissingUrn = 0;
+    let skippedInvalidDate = 0;
+    let skippedNoGrades = 0;
+    let skippedMissingName = 0;
+    let skippedMissingInspNum = 0;
 
     for (const row of rows) {
+      // Validate in the same order as mapRow to categorize skip reasons
+      const urn = parseNumber(getCol(row, "URN"));
+      if (!urn) { skippedMissingUrn++; continue; }
+
+      const schoolName = getCol(row, "School name")?.trim();
+      if (!schoolName) { skippedMissingName++; continue; }
+
+      const inspectionNumber = getCol(row, "Inspection number")?.trim();
+      if (!inspectionNumber || inspectionNumber === "NULL") { skippedMissingInspNum++; continue; }
+
+      const inspectionDate = parseDateVal(getCol(row, "Inspection start date"));
+      if (!inspectionDate) { skippedInvalidDate++; continue; }
+
       const parsed = mapRow(row, source.era);
       if (!parsed) {
-        skipped++;
+        skippedNoGrades++;
         continue;
       }
 
@@ -576,9 +600,19 @@ async function main() {
       mapped++;
     }
 
+    const totalSkipped = skippedMissingUrn + skippedMissingName + skippedMissingInspNum + skippedInvalidDate + skippedNoGrades;
     console.log(
-      `  Mapped: ${mapped.toLocaleString()}, Skipped (no grades/invalid): ${skipped.toLocaleString()}`
+      `  Mapped: ${mapped.toLocaleString()}, Skipped: ${totalSkipped.toLocaleString()}`
     );
+    console.log(
+      `    missingUrn: ${skippedMissingUrn}, missingName: ${skippedMissingName}, missingInspNum: ${skippedMissingInspNum}, invalidDate: ${skippedInvalidDate}, noGrades: ${skippedNoGrades}`
+    );
+
+    totalMissingUrn += skippedMissingUrn;
+    totalInvalidDate += skippedInvalidDate;
+    totalNoGrades += skippedNoGrades;
+    totalMissingName += skippedMissingName;
+    totalMissingInspNum += skippedMissingInspNum;
   }
 
   console.log(
@@ -586,6 +620,9 @@ async function main() {
   );
   console.log(
     `Duplicates skipped: ${duplicatesSkipped.toLocaleString()}`
+  );
+  console.log(
+    `Skipped record breakdown — missingUrn: ${totalMissingUrn}, missingName: ${totalMissingName}, missingInspNum: ${totalMissingInspNum}, invalidDate: ${totalInvalidDate}, noGrades: ${totalNoGrades}, duplicateInspection: ${duplicatesSkipped}`
   );
 
   // Step 3: Group inspections by URN (school)
