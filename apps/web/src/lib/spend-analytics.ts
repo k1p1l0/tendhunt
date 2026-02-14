@@ -116,10 +116,11 @@ export function computeSpendMetrics(summary: ISpendSummary): SpendMetrics {
 
 export function computeSpendOpportunities(
   summary: ISpendSummary,
-  userProfile: ICompanyProfile | null
+  userProfile: ICompanyProfile | null,
+  contractSectors?: string[]
 ): SpendOpportunities {
   return {
-    profileMatch: computeProfileMatch(summary, userProfile),
+    profileMatch: computeProfileMatch(summary, userProfile, contractSectors),
     recurringPatterns: computeRecurringPatterns(summary),
     vendorConcentration: computeVendorConcentration(summary),
     spendGrowthSignals: computeSpendGrowthSignals(summary),
@@ -132,47 +133,70 @@ export function computeSpendOpportunities(
 
 function computeProfileMatch(
   summary: ISpendSummary,
-  userProfile: ICompanyProfile | null
+  userProfile: ICompanyProfile | null,
+  contractSectors?: string[]
 ): ProfileMatch | null {
-  // null = no profile at all → show "complete your profile" CTA
   if (!userProfile) return null;
 
-  const sectors = [
+  const profileTerms = [
     ...(userProfile.sectors ?? []),
     ...(userProfile.capabilities ?? []),
     ...(userProfile.keywords ?? []),
   ].map((s) => s.toLowerCase());
 
-  // Profile exists but empty sectors → return 0% match (not null)
-  if (sectors.length === 0) {
+  if (profileTerms.length === 0) {
     return { matchedCategories: [], totalMatchedSpend: 0, matchPercentage: 0 };
   }
 
   const categories = summary.categoryBreakdown ?? [];
   const totalSpend = summary.totalSpend ?? 0;
-  if (totalSpend === 0) {
-    return { matchedCategories: [], totalMatchedSpend: 0, matchPercentage: 0 };
-  }
 
   const matchedCategories: string[] = [];
   let totalMatchedSpend = 0;
 
-  for (const cat of categories) {
-    const catLower = cat.category.toLowerCase();
-    const isMatch = sectors.some(
-      (s) => catLower.includes(s) || s.includes(catLower)
-    );
-    if (isMatch) {
-      matchedCategories.push(cat.category);
-      totalMatchedSpend += cat.total;
+  // Match against spend categories
+  if (totalSpend > 0) {
+    for (const cat of categories) {
+      const catLower = cat.category.toLowerCase();
+      const isMatch = profileTerms.some(
+        (s) => catLower.includes(s) || s.includes(catLower)
+      );
+      if (isMatch) {
+        matchedCategories.push(cat.category);
+        totalMatchedSpend += cat.total;
+      }
     }
   }
 
-  const rawPercent = totalSpend > 0 ? (totalMatchedSpend / totalSpend) * 100 : 0;
-  // Show 1 decimal for small matches (<1%), whole number otherwise
-  const matchPercentage = rawPercent > 0 && rawPercent < 1
-    ? Math.round(rawPercent * 10) / 10
-    : Math.round(rawPercent);
+  // Also match against contract sectors (e.g. "Education & Training")
+  if (contractSectors && contractSectors.length > 0) {
+    for (const sector of contractSectors) {
+      const sectorLower = sector.toLowerCase();
+      const alreadyMatched = matchedCategories.some(
+        (c) => c.toLowerCase() === sectorLower
+      );
+      if (alreadyMatched) continue;
+
+      const isMatch = profileTerms.some(
+        (s) => sectorLower.includes(s) || s.includes(sectorLower)
+      );
+      if (isMatch) {
+        matchedCategories.push(sector);
+      }
+    }
+  }
+
+  // Calculate spend-based percentage
+  let matchPercentage = 0;
+  if (totalSpend > 0 && totalMatchedSpend > 0) {
+    const rawPercent = (totalMatchedSpend / totalSpend) * 100;
+    matchPercentage = rawPercent > 0 && rawPercent < 1
+      ? Math.round(rawPercent * 10) / 10
+      : Math.round(rawPercent);
+  } else if (matchedCategories.length > 0) {
+    // Matched via contracts but no spend data overlap — show a base match
+    matchPercentage = Math.min(matchedCategories.length * 15, 60);
+  }
 
   return { matchedCategories, totalMatchedSpend, matchPercentage };
 }
