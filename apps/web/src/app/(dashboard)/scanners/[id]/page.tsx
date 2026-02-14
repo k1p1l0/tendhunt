@@ -254,15 +254,13 @@ export default function ScannerDetailPage({
         if (f.mechanism) params.set("mechanism", String(f.mechanism));
       }
 
-      // Apply row pagination
-      if (savedLimit > 0) {
-        const page = Math.floor(savedOffset / savedLimit) + 1;
-        params.set("page", String(page));
-        params.set("pageSize", String(savedLimit));
-      } else if (savedOffset > 0) {
-        params.set("page", String(savedOffset + 1));
-        params.set("pageSize", "1");
-      }
+      // Apply row pagination — always send a pageSize to avoid loading all results
+      const effectiveLimit = savedLimit > 0 ? savedLimit : 100;
+      const page = savedLimit > 0
+        ? Math.floor(savedOffset / savedLimit) + 1
+        : savedOffset > 0 ? savedOffset + 1 : 1;
+      params.set("page", String(page));
+      params.set("pageSize", String(effectiveLimit));
 
       const queryString = params.toString();
       const dataUrl = queryString
