@@ -88,6 +88,36 @@ Instrumented stages:
 - **enrichment**: website_discovery (Apify 403), logo_linkedin (Apify 403), moderngov (unreachable), scrape (HTTP errors), personnel (no data)
 - **spend-ingest**: discover (unreachable), extract_links (unreachable), download_parse (parse errors)
 
+## WAF / Bot Protection Issues
+
+### Known WAF-Blocked Sites
+
+Some NHS ICBs and public sector sites use Incapsula/Imperva WAF that blocks all automated requests (including headless browsers from datacenter IPs). These sites return HTTP 403 with an Incapsula challenge page.
+
+**Affected buyers:** NHS Buckinghamshire, Oxfordshire and Berkshire West ICB (bucksoxonberksw.icb.nhs.uk), and potentially other NHS sites behind Incapsula.
+
+**What we tested (2026-02-14):**
+- Direct fetch from Cloudflare Worker → 403 (blocked)
+- Apify `playwright-scraper` with datacenter proxy → 403 (blocked)
+- Apify `camoufox-scraper` (stealth Firefox) → 403 (blocked)
+- Apify residential proxy → not available on Starter plan ($29/mo)
+- Scrapeless Web Unlocker API → requires Growth plan ($49/mo), Basic plan only has Proxy Solutions
+- Scrapeless Browser API → also requires Growth plan
+
+**Current fallback:** When Stage 3 (download) gets a 403, it checks for `SCRAPELESS_API_KEY` env var and attempts to retry via Scrapeless Web Unlocker API. Currently non-functional because the Basic plan doesn't include the Web Unlocker actor.
+
+**Workaround:** For the few blocked buyers, manually download CSVs in a browser and import via the test script. The pipeline errors admin page tracks which buyers are blocked.
+
+**Cost analysis for future:**
+| Service | Cost | What it provides |
+|---------|------|-----------------|
+| Scrapeless Growth | $49/mo | Web Unlocker API + residential proxies |
+| Scrapeless Basic proxy | $1.80/GB | Residential proxies only (need to wire up) |
+| Apify residential proxy | Requires higher plan | Only works inside Apify actors |
+| BrightData / Oxylabs | $10-15/GB residential | Standalone proxy, works from CF Workers |
+
+**Recommendation:** Wait until more buyers are blocked before investing. Currently only ~3-5 NHS ICBs are affected. Track via pipeline errors admin page.
+
 ## Deploying Workers
 
 ```bash

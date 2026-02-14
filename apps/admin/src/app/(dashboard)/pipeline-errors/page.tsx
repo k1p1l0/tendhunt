@@ -43,13 +43,14 @@ interface PipelineErrorsResponse {
 }
 
 const WORKERS = ["enrichment", "spend-ingest", "board-minutes", "data-sync"];
-const ERROR_TYPES = ["api_403", "timeout", "unreachable", "no_data", "parse_error", "rate_limit", "other"];
+const ERROR_TYPES = ["api_403", "waf_blocked", "timeout", "unreachable", "no_data", "parse_error", "rate_limit", "other"];
 const PAGE_SIZE = 50;
 const POLL_INTERVAL = 30_000;
 
 const renderErrorTypeBadge = (errorType: string) => {
   const variants: Record<string, "destructive" | "default" | "secondary" | "outline"> = {
     api_403: "destructive",
+    waf_blocked: "destructive",
     timeout: "destructive",
     unreachable: "destructive",
     no_data: "secondary",
