@@ -421,6 +421,12 @@ export default function ScannerDetailPage({
 
           lastProgressRef.current = Date.now();
         }
+        if (event.type === "error" && event.entityId && event.columnId) {
+          setScore(event.columnId, event.entityId, {
+            response: "",
+            error: event.message ?? "Scoring failed",
+          });
+        }
         if (event.type === "error" && event.message && !fatalErrorSeen) {
           fatalErrorSeen = true;
           const msg = event.message.includes("credit balance")
@@ -710,8 +716,13 @@ export default function ScannerDetailPage({
 
           lastProgressRef.current = Date.now();
         }
+        if (event.type === "error" && event.entityId && event.columnId) {
+          setScore(event.columnId, event.entityId, {
+            response: "",
+            error: event.message ?? "Scoring failed",
+          });
+        }
         if (event.type === "error" && event.message && !fatalErrorSeen) {
-          // Surface the first error message to the user
           fatalErrorSeen = true;
           const msg = event.message.includes("credit balance")
             ? "Anthropic API credits exhausted. Please top up at console.anthropic.com."
@@ -720,7 +731,6 @@ export default function ScannerDetailPage({
               : `Scoring error: ${event.message}`;
           setScoringError(msg);
 
-          // If fatal, abort the rest of the scoring run
           if (event.fatal) {
             scoringAbortRef.current?.abort();
           }

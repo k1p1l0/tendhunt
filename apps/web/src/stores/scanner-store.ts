@@ -7,6 +7,7 @@ export interface ScoreEntry {
   reasoning?: string;
   isLoading?: boolean;
   isQueued?: boolean;
+  error?: string;
 }
 
 type ScoreKey = string;
