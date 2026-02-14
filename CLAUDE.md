@@ -455,7 +455,14 @@ Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on
 - `onScoreColumn` (inline play button callback)
 - Any future scoring trigger
 
-`getVisibleEntityIds()` always returns an array of IDs from the currently loaded rows, respecting both row pagination AND column filters. **Never pass `entityIds` as undefined/null** — the backend interprets missing `entityIds` as "score ALL entities in the database", which ignores pagination. This was a bug caught on 2026-02-11 (column filters) and 2026-02-12 (row pagination).
+`getVisibleEntityIds()` returns entity IDs in **display order** (sorted + filtered as shown in the grid) via `displayRowIdsRef`. The grid component populates this ref in a `useEffect` whenever `displayRows` changes. The backend's `score-column` API re-sorts entities to match the client's order using an `orderMap`. This ensures scoring starts from row 1 (top of grid) and works downward. **Never pass `entityIds` as undefined/null** — the backend interprets missing `entityIds` as "score ALL entities in the database", which ignores pagination. This was a bug caught on 2026-02-11 (column filters) and 2026-02-12 (row pagination).
+
+### Queued State Scoping Rule
+
+`scoreSingleColumn()` only sets `isQueued: true` on rows that will **actually** be scored — matching the backend's logic:
+- Respects `limit` option (e.g., "Run 1 row" only marks 1 row as queued)
+- Respects `force` flag (when false, skips rows with existing results)
+- After scoring completes, `clearStaleLoadingStates()` removes any leftover `isQueued`/`isLoading` flags
 
 ### Adding a New Column Type
 
