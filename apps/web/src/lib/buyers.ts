@@ -5,6 +5,7 @@ import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import BoardDocument from "@/models/board-document";
 import KeyPersonnel from "@/models/key-personnel";
+import OfstedSchool from "@/models/ofsted-school";
 
 export interface BuyerFilters {
   sort?: "name" | "contracts" | "sector" | "region" | "orgType" | "enrichmentScore";
@@ -110,8 +111,8 @@ export async function fetchBuyerById(buyerId: string) {
     ? Buyer.findById(buyer.parentBuyerId).select("name").lean()
     : Promise.resolve(null);
 
-  // Parallel fetch: contracts, live count, signals, board documents, key personnel, children, parent
-  const [contracts, contractCount, signals, boardDocuments, keyPersonnel, children, parentBuyer] = await Promise.all([
+  // Parallel fetch: contracts, live count, signals, board documents, key personnel, children, parent, ofsted schools
+  const [contracts, contractCount, signals, boardDocuments, keyPersonnel, children, parentBuyer, ofstedSchools] = await Promise.all([
     Contract.find(contractFilter)
       .sort({ publishedDate: -1 })
       .limit(20)
@@ -130,6 +131,9 @@ export async function fetchBuyerById(buyerId: string) {
       .lean(),
     childrenPromise,
     parentBuyerPromise,
+    OfstedSchool.find({ buyerId: buyer._id })
+      .sort({ overallEffectiveness: -1 })
+      .lean(),
   ]);
 
   return {
@@ -141,6 +145,7 @@ export async function fetchBuyerById(buyerId: string) {
     keyPersonnel,
     children,
     parentBuyer,
+    ofstedSchools,
     enrichmentScore: buyer.enrichmentScore,
     enrichmentSources: buyer.enrichmentSources,
     orgType: buyer.orgType,

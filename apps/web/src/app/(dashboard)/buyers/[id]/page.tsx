@@ -98,6 +98,25 @@ export default async function BuyerDetailPage({
     contractCount: c.contractCount ?? 0,
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ofstedSchools = (buyer.ofstedSchools ?? []).map((s: any) => ({
+    _id: String(s._id),
+    urn: s.urn ?? 0,
+    name: s.name ?? "",
+    phase: s.phase ?? undefined,
+    schoolType: s.schoolType ?? undefined,
+    overallEffectiveness: s.overallEffectiveness ?? null,
+    qualityOfEducation: s.qualityOfEducation ?? null,
+    behaviourAndAttitudes: s.behaviourAndAttitudes ?? null,
+    personalDevelopment: s.personalDevelopment ?? null,
+    leadershipAndManagement: s.leadershipAndManagement ?? null,
+    inspectionDate: s.inspectionDate ? String(s.inspectionDate) : null,
+    totalPupils: s.totalPupils ?? null,
+    idaciQuintile: s.idaciQuintile ?? null,
+    reportUrl: s.reportUrl ?? null,
+    postcode: s.postcode ?? null,
+  }));
+
   const parentBuyer = buyer.parentBuyer
     ? { _id: String(buyer.parentBuyer._id), name: buyer.parentBuyer.name ?? "" }
     : undefined;
@@ -201,6 +220,7 @@ export default async function BuyerDetailPage({
               children,
               parentBuyer,
               isParent: buyer.isParent ?? false,
+              ofstedSchools,
             }}
           />
         </div>
