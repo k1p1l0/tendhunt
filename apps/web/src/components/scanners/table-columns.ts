@@ -10,7 +10,8 @@ export type DataType =
   | "url"
   | "email"
   | "checkbox"
-  | "paragraph";
+  | "paragraph"
+  | "rating-change";
 
 export interface ColumnDef {
   id: string;
@@ -46,7 +47,7 @@ export const ENTITY_FIELDS: Record<ScannerType, EntityField[]> = {
     { field: "leadershipAndManagement", label: "Leadership & Management", suggestedType: "number" },
     { field: "inspectionDate", label: "Inspection Date", suggestedType: "date" },
     { field: "previousOverallEffectiveness", label: "Previous Rating", suggestedType: "number" },
-    { field: "ratingDirection", label: "Rating Change", suggestedType: "badge" },
+    { field: "ratingDirection", label: "Rating Change", suggestedType: "rating-change" },
     { field: "region", label: "Region", suggestedType: "badge" },
     { field: "phase", label: "School Phase", suggestedType: "badge" },
     { field: "totalPupils", label: "Pupils", suggestedType: "number" },
@@ -118,6 +119,7 @@ const DATA_TYPE_WIDTHS: Record<DataType, number> = {
   url: 160,
   email: 160,
   checkbox: 80,
+  "rating-change": 140,
 };
 
 // ── Core column definitions per scanner type ─────────────────
@@ -169,9 +171,9 @@ const SCHOOLS_COLUMNS: ColumnDef[] = [
     id: "ratingDirection",
     header: "Rating Change",
     accessor: "ratingDirection",
-    type: "badge",
-    width: "w-[120px]",
-    widthPx: 120,
+    type: "rating-change",
+    width: "w-[140px]",
+    widthPx: 140,
   },
   {
     id: "region",

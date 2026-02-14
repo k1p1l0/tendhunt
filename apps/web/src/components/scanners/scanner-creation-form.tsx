@@ -67,6 +67,7 @@ interface Filters {
   ofstedRating?: string;
   schoolPhase?: string;
   localAuthority?: string;
+  sortBy?: string;
 }
 
 export function ScannerCreationForm({
@@ -143,6 +144,7 @@ export function ScannerCreationForm({
     if (filters.ofstedRating) cleanFilters.ofstedRating = filters.ofstedRating;
     if (filters.schoolPhase) cleanFilters.schoolPhase = filters.schoolPhase;
     if (filters.localAuthority) cleanFilters.localAuthority = filters.localAuthority;
+    if (filters.sortBy) cleanFilters.sortBy = filters.sortBy;
 
     try {
       const res = await fetch("/api/scanners", {
@@ -535,6 +537,15 @@ const DOWNGRADE_PERIODS = [
   { value: "any", label: "Any downgrade" },
 ];
 
+const SCHOOL_SORT_OPTIONS = [
+  { value: "downgrade_recent", label: "Most recent downgrades" },
+  { value: "inspection_recent", label: "Most recent inspection" },
+  { value: "name_asc", label: "Name A-Z" },
+  { value: "name_desc", label: "Name Z-A" },
+  { value: "rating_asc", label: "Rating (best first)" },
+  { value: "rating_desc", label: "Rating (worst first)" },
+] as const;
+
 const SCHOOL_PHASES = [
   "Primary",
   "Secondary",
@@ -636,6 +647,25 @@ function SchoolsFilters({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Sort By</Label>
+        <Select
+          value={filters.sortBy || "downgrade_recent"}
+          onValueChange={(v) => onChange("sortBy", v)}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Most recent downgrades" />
+          </SelectTrigger>
+          <SelectContent>
+            {SCHOOL_SORT_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </>
   );

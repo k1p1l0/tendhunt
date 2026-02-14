@@ -261,6 +261,7 @@ export default function ScannerDetailPage({
         if (f.ofstedRating) params.set("ofstedRating", String(f.ofstedRating));
         if (f.schoolPhase) params.set("schoolPhase", String(f.schoolPhase));
         if (f.localAuthority) params.set("localAuthority", String(f.localAuthority));
+        if (f.sortBy) params.set("sortBy", String(f.sortBy));
       }
 
       // Apply row pagination — always send a pageSize to avoid loading all results

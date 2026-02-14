@@ -24,9 +24,9 @@
 
 ### Downgrade Detection
 
-- [ ] **DOWN-01**: System detects downgrades by comparing current sub-judgement grades against the previous inspection's corresponding grades
-- [ ] **DOWN-02**: Downgrade detection works for post-September-2024 inspections where overall effectiveness is NULL, using sub-judgement grades instead
-- [ ] **DOWN-03**: Scanner results can be sorted by downgrade recency (most recent downgrades first)
+- [x] **DOWN-01**: System detects downgrades by comparing current sub-judgement grades against the previous inspection's corresponding grades
+- [x] **DOWN-02**: Downgrade detection works for post-September-2024 inspections where overall effectiveness is NULL, using sub-judgement grades instead
+- [x] **DOWN-03**: Scanner results can be sorted by downgrade recency (most recent downgrades first)
 
 ### Detail Page
 
@@ -78,9 +78,9 @@
 | SCAN-04 | Phase 2 | Done |
 | SCAN-05 | Phase 2 | Done |
 | SCAN-06 | Phase 2 | Done |
-| DOWN-01 | Phase 3 | Pending |
-| DOWN-02 | Phase 3 | Pending |
-| DOWN-03 | Phase 3 | Pending |
+| DOWN-01 | Phase 3 | Done |
+| DOWN-02 | Phase 3 | Done |
+| DOWN-03 | Phase 3 | Done |
 | DETL-01 | Phase 4 | Pending |
 | DETL-02 | Phase 4 | Pending |
 | DETL-03 | Phase 4 | Pending |

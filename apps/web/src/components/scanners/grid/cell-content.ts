@@ -6,6 +6,7 @@ import {
   createTextStatusCell,
   createCategoryBadgeCell,
   createEntityNameCell,
+  createRatingChangeCell,
 } from "./custom-renderers";
 import {
   resolveAccessor,
@@ -160,6 +161,11 @@ export function createGetCellContent(
           displayData: formatNumber(value),
           allowOverlay: false,
         };
+      }
+
+      case "rating-change": {
+        const direction = value != null ? String(value) : "";
+        return createRatingChangeCell(direction || null);
       }
 
       case "badge": {

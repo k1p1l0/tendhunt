@@ -86,10 +86,10 @@ This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tui
 - `apps/web/src/app/api/scanners/route.ts` -- add sort by lastDowngradeDate
 
 **Success criteria:**
-- [ ] Schools with a rating that dropped between consecutive inspections are flagged as "downgraded"
-- [ ] Post-Sep-2024 inspections (no overall grade) detect downgrades via sub-judgement comparison
-- [ ] Scanner can be sorted by "most recent downgrade first"
-- [ ] Rating Change column shows colored badges (red/green/amber) indicating direction
+- [x] Schools with a rating that dropped between consecutive inspections are flagged as "downgraded"
+- [x] Post-Sep-2024 inspections (no overall grade) detect downgrades via sub-judgement comparison
+- [x] Scanner can be sorted by "most recent downgrade first"
+- [x] Rating Change column shows colored badges (red/green/amber) indicating direction
 
 ---
 

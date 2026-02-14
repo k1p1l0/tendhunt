@@ -2,6 +2,17 @@ import { auth } from "@clerk/nextjs/server";
 import { dbConnect } from "@/lib/mongodb";
 import OfstedSchool from "@/models/ofsted-school";
 
+type SortSpec = Record<string, 1 | -1>;
+
+const SORT_OPTIONS: Record<string, SortSpec> = {
+  downgrade_recent: { lastDowngradeDate: -1, inspectionDate: -1 },
+  inspection_recent: { inspectionDate: -1 },
+  name_asc: { name: 1 },
+  name_desc: { name: -1 },
+  rating_asc: { overallEffectiveness: 1, inspectionDate: -1 },
+  rating_desc: { overallEffectiveness: -1, inspectionDate: -1 },
+};
+
 export async function GET(request: Request) {
   try {
     const { userId } = await auth();
@@ -17,6 +28,7 @@ export async function GET(request: Request) {
     const schoolPhase = searchParams.get("schoolPhase") ?? undefined;
     const localAuthority = searchParams.get("localAuthority") ?? undefined;
     const downgradeWithin = searchParams.get("downgradeWithin") ?? undefined;
+    const sortBy = searchParams.get("sortBy") ?? undefined;
     const page = searchParams.get("page")
       ? parseInt(searchParams.get("page")!, 10)
       : 1;
@@ -84,6 +96,10 @@ export async function GET(request: Request) {
       }
     }
 
+    // Resolve sort order — default to "most recent downgrades first"
+    const sortSpec: SortSpec =
+      (sortBy ? SORT_OPTIONS[sortBy] : undefined) ?? SORT_OPTIONS.downgrade_recent;
+
     const skip = (page - 1) * pageSize;
 
     const [schools, filteredCount, totalCount] = await Promise.all([
@@ -96,7 +112,7 @@ export async function GET(request: Request) {
           "ratingDirection lastDowngradeDate downgradeType totalPupils " +
           "matName reportUrl"
         )
-        .sort({ lastDowngradeDate: -1, inspectionDate: -1 })
+        .sort(sortSpec)
         .skip(skip)
         .limit(pageSize)
         .lean(),

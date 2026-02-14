@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Suppliers can instantly find schools downgraded by Ofsted in the last N months and assess whether each school's inspection report suggests a need for their services.
-**Current focus:** Phase 3 -- Downgrade Detection & Sorting
+**Current focus:** Phase 4 -- School Detail Page & Timeline
 
 ## Current Phase
 
-**Phase 2: Schools Scanner Type**
+**Phase 3: Downgrade Detection & Sorting**
 - Status: Complete
-- Goal: Users can create a "schools" scanner with Ofsted-specific columns and filters
-- Requirements: SCAN-01, SCAN-02, SCAN-03, SCAN-04, SCAN-05, SCAN-06
+- Goal: Robust downgrade detection for both pre-2024 and post-2024 inspections with color-coded badges and sort options
+- Requirements: DOWN-01, DOWN-02, DOWN-03
 
 ## Progress
 
@@ -43,7 +43,13 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - [x] Default AI columns: Tuition Relevance + Outreach Priority
 
 ### Phase 3: Downgrade Detection & Sorting
-- [ ] Not started
+- [x] Create ofsted-downgrade.ts utility library with compareInspections() and detectDowngradesFromHistory()
+- [x] Handle post-Sep-2024 inspections (no overall effectiveness) via sub-judgement comparison
+- [x] Add "rating-change" custom column type with color-coded badge renderer (red/green/amber)
+- [x] Add rating-change icon to drawTypeIcon in scanner-data-grid.tsx
+- [x] Add sortBy parameter to /api/schools route (6 sort options including downgrade_recent)
+- [x] Wire sortBy through scanner page filter params
+- [x] Add Sort By dropdown to SchoolsFilters in both creation form and edit dialog
 
 ### Phase 4: School Detail Page & Timeline
 - [ ] Not started
@@ -63,13 +69,15 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 - ~22,000 schools already ingested from monthly management info CSV
 - Do NOT run `bun run lint` -- memory exhaustion on this machine
 - Schools scanner type added: "schools" is now a valid ScannerType alongside rfps/meetings/buyers
-- Schools API at /api/schools supports: q (name search), ofstedRating, region, schoolPhase, localAuthority, downgradeWithin (1m/3m/6m/1y/any)
+- Schools API at /api/schools supports: q, ofstedRating, region, schoolPhase, localAuthority, downgradeWithin, sortBy
+- sortBy options: downgrade_recent (default), inspection_recent, name_asc, name_desc, rating_asc, rating_desc
 - Default AI columns for schools: "Tuition Relevance" (score 1-10) and "Outreach Priority" (text assessment)
-- Schools scanner sorts by lastDowngradeDate desc, inspectionDate desc by default
+- New "rating-change" DataType with custom canvas renderer: red pill with down arrow for downgraded, green with up arrow for improved, grey with equals for unchanged
+- `ofsted-downgrade.ts` utility provides compareInspections() for any two inspections and detectDowngradesFromHistory() for full timeline analysis
 
 ## Blockers
 
 None currently.
 
 ---
-*Last updated: 2026-02-14 after Phase 1 completion*
+*Last updated: 2026-02-14 after Phase 3 completion*
