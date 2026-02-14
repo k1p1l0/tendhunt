@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
 - [x] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
 - [ ] **Phase 30: Sculptor AI Homepage & Floating Assistant** - AI-first dashboard with Sculptor chat hero, animated starburst icon, floating bubble assistant on all pages
-- [ ] **Phase 33: DPS & Framework Status Intelligence** - Procurement mechanism awareness (DPS, Framework, Call-off) in data model, UI, and AI
+- [x] **Phase 33: DPS & Framework Status Intelligence** - Procurement mechanism awareness (DPS, Framework, Call-off) in data model, UI, and AI
 
 ## Phase Details
 
@@ -529,6 +529,6 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 33-01-PLAN.md -- Contract schema contractMechanism field, OCDS mapper classification logic, backfill script
-- [ ] 33-02-PLAN.md -- Contract list mechanism badge, DPS-aware status colors, mechanism filter chip
-- [ ] 33-03-PLAN.md -- Contract detail procurement mechanism section, adaptive CTA, Sculptor AI DPS/Framework awareness
+- [x] 33-01-PLAN.md -- Contract schema contractMechanism field, OCDS mapper classification logic, backfill script
+- [x] 33-02-PLAN.md -- Contract list mechanism badge, DPS-aware status colors, mechanism filter chip
+- [x] 33-03-PLAN.md -- Contract detail procurement mechanism section, adaptive CTA, Sculptor AI DPS/Framework awareness
