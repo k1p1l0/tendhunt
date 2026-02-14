@@ -3,14 +3,14 @@
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { resolveRegionName } from "@/lib/nuts-regions";
+import { isDpsFrameworkActive, statusLabel } from "@/lib/contract-mechanism";
+import type { ContractMechanism } from "@/lib/contract-mechanism";
 import {
   Building2,
   MapPin,
   Calendar,
   FileText,
 } from "lucide-react";
-
-type ContractMechanism = "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework";
 
 interface ContractRow {
   _id: string;
@@ -56,17 +56,6 @@ function sourceLabel(source: string) {
   return source === "FIND_A_TENDER" ? "FTS" : "CF";
 }
 
-function isDpsFrameworkActive(
-  mechanism: ContractMechanism | null | undefined,
-  status: string,
-  contractEndDate: string | Date | null | undefined
-): boolean {
-  if (!mechanism || mechanism === "standard") return false;
-  if (status !== "CLOSED") return false;
-  if (!contractEndDate) return false;
-  return new Date(contractEndDate).getTime() > Date.now();
-}
-
 function statusClassName(
   status: string,
   mechanism?: ContractMechanism | null,
@@ -85,17 +74,6 @@ function statusClassName(
     default:
       return "";
   }
-}
-
-function statusLabel(
-  status: string,
-  mechanism?: ContractMechanism | null,
-  contractEndDate?: string | Date | null
-): string {
-  if (isDpsFrameworkActive(mechanism, status, contractEndDate)) {
-    return "Window Closed";
-  }
-  return status;
 }
 
 const MECHANISM_BADGE_CONFIG: Record<string, { label: string; className: string } | undefined> = {
