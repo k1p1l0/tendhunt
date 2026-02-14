@@ -115,6 +115,35 @@ const contractSchema = new Schema(
     lotCount: { type: Number },
     maxLotsBidPerSupplier: { type: Number },
 
+    // Contract enrichment fields (extracted from rawData)
+    contractType: {
+      type: String,
+      enum: ["goods", "services", "works"],
+    },
+    suitableForSme: { type: Boolean },
+    suitableForVco: { type: Boolean },
+    hasEuFunding: { type: Boolean },
+    canRenew: { type: Boolean },
+    renewalDescription: { type: String },
+    geographicScope: { type: String },
+
+    // Award details
+    awardedSuppliers: [
+      new Schema(
+        {
+          name: { type: String },
+          supplierId: { type: String },
+        },
+        { _id: false }
+      ),
+    ],
+    awardDate: { type: Date },
+    awardValue: { type: Number },
+
+    // Additional dates
+    tenderPeriodStart: { type: Date },
+    enquiryPeriodEnd: { type: Date },
+
     // AI scoring (Phase 5 placeholder)
     vibeScore: { type: Number, min: 0, max: 10 },
     vibeReasoning: { type: String },
@@ -132,6 +161,9 @@ contractSchema.index({ title: "text", description: "text" });
 contractSchema.index({ source: 1, noticeId: 1 }, { unique: true });
 contractSchema.index({ status: 1, publishedDate: -1 });
 contractSchema.index({ sector: 1, status: 1 });
+contractSchema.index({ contractType: 1 });
+contractSchema.index({ suitableForSme: 1 });
+contractSchema.index({ suitableForVco: 1 });
 
 export type IContract = InferSchemaType<typeof contractSchema>;
 

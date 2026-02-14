@@ -1,5 +1,14 @@
 # TendHunt — Project Instructions
 
+## Active Worktrees
+
+| Branch | Path | Phase |
+|--------|------|-------|
+| `main` | `/Users/kirillkozak/Projects/tendhunt.com` | Main development |
+| `feat/phase-32-contract-enrichment` | `/Users/kirillkozak/Projects/tendhunt-contract-enrichment` | Phase 32: Contract Enrichment |
+
+When working on Phase 32, use the worktree path. Merge back to main via PR when complete.
+
 ## Source of Truth
 
 This project uses **three synchronized sources of truth**:
