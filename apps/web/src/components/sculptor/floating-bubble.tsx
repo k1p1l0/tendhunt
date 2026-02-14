@@ -122,16 +122,20 @@ export function FloatingBubble() {
           {/* Nudge tooltip */}
           <AnimatePresence>
             {nudge && (
-              <motion.button
-                type="button"
+              <motion.div
                 initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.97 }}
                 transition={{ type: "spring", visualDuration: 0.3, bounce: 0.2 }}
-                onClick={handleNudgeClick}
-                className="group relative max-w-[260px] rounded-2xl rounded-br-md bg-background border shadow-lg px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-muted/60 cursor-pointer"
+                className="group relative max-w-[260px] rounded-2xl rounded-br-md bg-background border shadow-lg text-left text-sm text-foreground cursor-pointer"
               >
-                <span>{nudge}</span>
+                <button
+                  type="button"
+                  onClick={handleNudgeClick}
+                  className="w-full px-4 py-3 text-left transition-colors hover:bg-muted/60 rounded-2xl rounded-br-md"
+                >
+                  {nudge}
+                </button>
                 <button
                   type="button"
                   onClick={handleDismiss}
@@ -140,7 +144,7 @@ export function FloatingBubble() {
                 >
                   <X className="h-3 w-3 text-muted-foreground" />
                 </button>
-              </motion.button>
+              </motion.div>
             )}
           </AnimatePresence>
 
