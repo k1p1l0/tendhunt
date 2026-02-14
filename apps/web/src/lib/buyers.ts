@@ -67,11 +67,52 @@ export async function fetchBuyers(filters: BuyerFilters) {
     Buyer.countDocuments(query),
   ]);
 
-  // Map buyers to include contactCount
-  const buyersWithStatus = buyers.map((b) => ({
-    ...b,
-    contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
-  }));
+  // Batch Ofsted stats for this page of buyers
+  const buyerIds = buyers.map((b) => b._id);
+  const ofstedStats = await OfstedSchool.aggregate([
+    { $match: { buyerId: { $in: buyerIds } } },
+    {
+      $addFields: {
+        worstRating: {
+          $max: [
+            "$overallEffectiveness",
+            "$qualityOfEducation",
+            "$behaviourAndAttitudes",
+            "$personalDevelopment",
+            "$leadershipAndManagement",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$buyerId",
+        worstRating: { $max: "$worstRating" },
+        belowGoodCount: {
+          $sum: { $cond: [{ $gte: ["$worstRating", 3] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const ofstedMap = new Map<string, { worstRating: number | null; belowGoodCount: number }>();
+  for (const stat of ofstedStats) {
+    ofstedMap.set(String(stat._id), {
+      worstRating: stat.worstRating ?? null,
+      belowGoodCount: stat.belowGoodCount ?? 0,
+    });
+  }
+
+  // Map buyers to include contactCount and Ofsted stats
+  const buyersWithStatus = buyers.map((b) => {
+    const ofsted = ofstedMap.get(String(b._id));
+    return {
+      ...b,
+      contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
+      ofstedWorstRating: ofsted?.worstRating ?? null,
+      schoolsBelowGood: ofsted?.belowGoodCount ?? null,
+    };
+  });
 
   return { buyers: buyersWithStatus, total, filteredCount };
 }

@@ -75,6 +75,8 @@ export const ENTITY_FIELDS: Record<ScannerType, EntityField[]> = {
     { field: "linkedinUrl", label: "LinkedIn", suggestedType: "url" },
     { field: "contractCount", label: "Contract Count", suggestedType: "number" },
     { field: "orgId", label: "Org ID", suggestedType: "text" },
+    { field: "ofstedWorstRating", label: "Ofsted Rating", suggestedType: "number" },
+    { field: "schoolsBelowGood", label: "Schools Below Good", suggestedType: "number" },
   ],
 };
 
