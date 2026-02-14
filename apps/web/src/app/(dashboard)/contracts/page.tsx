@@ -115,7 +115,6 @@ export default async function ContractsPage({
   const vcoOnly = params.vcoOnly === "true" ? true : undefined;
 
   const suspenseKey = JSON.stringify({
-    query,
     sector,
     region,
     mechanism,

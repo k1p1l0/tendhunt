@@ -198,7 +198,11 @@ export function ContractsToolbar({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleSearch = useDebouncedCallback((term: string) => {
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("query")?.toString() ?? ""
+  );
+
+  const syncSearchToUrl = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", "1");
     if (term) {
@@ -208,6 +212,11 @@ export function ContractsToolbar({
     }
     replace(`${pathname}?${params.toString()}`);
   }, 300);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    syncSearchToUrl(term);
+  };
 
   const currentSort = searchParams.get("sort") ?? "date";
   const currentSector = searchParams.get("sector");
@@ -245,8 +254,9 @@ export function ContractsToolbar({
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              data-search-input
               placeholder="Search contracts, buyers, or CPV codes..."
-              defaultValue={searchParams.get("query")?.toString()}
+              value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-9 h-8 text-sm"
             />

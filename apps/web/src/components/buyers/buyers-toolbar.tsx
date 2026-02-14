@@ -163,7 +163,11 @@ export function BuyersToolbar({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleSearch = useDebouncedCallback((term: string) => {
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("q")?.toString() ?? ""
+  );
+
+  const syncSearchToUrl = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", "1");
     if (term) {
@@ -173,6 +177,11 @@ export function BuyersToolbar({
     }
     replace(`${pathname}?${params.toString()}`);
   }, 300);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    syncSearchToUrl(term);
+  };
 
   const currentSector = searchParams.get("sector");
   const currentOrgType = searchParams.get("orgType");
@@ -185,8 +194,9 @@ export function BuyersToolbar({
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              data-search-input
               placeholder="Search buyers..."
-              defaultValue={searchParams.get("q")?.toString()}
+              value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-9 h-8 text-sm"
             />
