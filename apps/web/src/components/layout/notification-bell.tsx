@@ -237,16 +237,23 @@ export function NotificationBell() {
                 const colorClass = TYPE_COLORS[notification.type] ?? "";
 
                 return (
-                  <motion.button
+                  <motion.div
                     key={notification._id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.15 }}
-                    className={`w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-start gap-3 ${
+                    className={`w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-start gap-3 cursor-pointer ${
                       !notification.read ? "bg-accent/20" : ""
                     }`}
                     onClick={() => handleClickNotification(notification)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleClickNotification(notification);
+                      }
+                    }}
                   >
                     <div
                       className={`shrink-0 mt-0.5 rounded-md p-1.5 ${colorClass}`}
@@ -283,7 +290,7 @@ export function NotificationBell() {
                         {formatTimeAgo(notification.createdAt)}
                       </p>
                     </div>
-                  </motion.button>
+                  </motion.div>
                 );
               })}
             </div>
