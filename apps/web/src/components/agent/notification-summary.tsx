@@ -2,50 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Swords, MapPin, Tag, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAgentStore } from "@/stores/agent-store";
-
-const TYPE_ICONS: Record<string, typeof Swords> = {
-  NEW_CONTRACT: Swords,
-  NEW_REGION: MapPin,
-  NEW_SECTOR: Tag,
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  NEW_CONTRACT: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  NEW_REGION: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  NEW_SECTOR: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  NEW_CONTRACT: "New Contract",
-  NEW_REGION: "New Region",
-  NEW_SECTOR: "New Sector",
-};
-
-function formatTimeAgo(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
+import { formatTimeAgo } from "@/lib/format-time-ago";
+import {
+  NOTIFICATION_TYPE_ICONS,
+  NOTIFICATION_TYPE_COLORS,
+  NOTIFICATION_TYPE_LABELS,
+} from "@/lib/notification-types";
 
 export function NotificationSummary() {
   const router = useRouter();
-  const { notifications, unreadCount } = useNotifications();
+  const { notifications, unreadCount, isLoading } = useNotifications();
   const panelOpen = useAgentStore((s) => s.panelOpen);
   const [hasShownSummary, setHasShownSummary] = useState(false);
 
@@ -70,7 +40,33 @@ export function NotificationSummary() {
     }
   }, [shouldShow]);
 
-  if (!shouldShow || notifications.length === 0) {
+  if (!shouldShow) {
+    return null;
+  }
+
+  // Show loading skeleton if loading and no notifications yet
+  if (isLoading && notifications.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="mx-4 mt-4 mb-2 rounded-lg border bg-card p-3 shadow-sm"
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-muted animate-pulse" />
+          <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="h-16 bg-muted/50 animate-pulse rounded-md" />
+          ))}
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (notifications.length === 0) {
     return null;
   }
 
@@ -95,9 +91,9 @@ export function NotificationSummary() {
       </div>
       <div className="space-y-2">
         {unreadNotifications.map((notification) => {
-          const Icon = TYPE_ICONS[notification.type] ?? Swords;
-          const colorClass = TYPE_COLORS[notification.type] ?? "";
-          const typeLabel = TYPE_LABELS[notification.type] ?? notification.type;
+          const Icon = NOTIFICATION_TYPE_ICONS[notification.type];
+          const colorClass = NOTIFICATION_TYPE_COLORS[notification.type] ?? "";
+          const typeLabel = NOTIFICATION_TYPE_LABELS[notification.type] ?? notification.type;
 
           return (
             <button

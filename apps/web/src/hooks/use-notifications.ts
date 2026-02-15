@@ -26,36 +26,52 @@ export function useNotifications() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchNotifications = useCallback(async (unreadOnly = false) => {
-    try {
-      setIsLoading(true);
-      const url = unreadOnly
-        ? "/api/notifications?unread=true&limit=10"
-        : "/api/notifications?limit=15";
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const json = await res.json();
-      setData({
-        notifications: json.notifications ?? [],
-        total: json.total ?? 0,
-        unreadCount: json.unreadCount ?? 0,
-      });
-    } catch {
-      // silent
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetchNotifications = useCallback(
+    async (unreadOnly = false, signal?: AbortSignal) => {
+      try {
+        setIsLoading(true);
+        const url = unreadOnly
+          ? "/api/notifications?unread=true&limit=10"
+          : "/api/notifications?limit=15";
+        const res = await fetch(url, { signal });
+        if (!res.ok) return;
+        const json = await res.json();
+        // Only update if not aborted
+        if (!signal?.aborted) {
+          setData({
+            notifications: json.notifications ?? [],
+            total: json.total ?? 0,
+            unreadCount: json.unreadCount ?? 0,
+          });
+        }
+      } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === "AbortError") return;
+        // silent for other errors
+      } finally {
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   // Initial fetch + polling every 5 minutes
   useEffect(() => {
-    fetchNotifications();
-
+    const abortController = new AbortController();
     let interval: ReturnType<typeof setInterval> | null = null;
+
+    // Initial fetch with abort signal
+    fetchNotifications(false, abortController.signal);
 
     function startPolling() {
       if (interval) return;
-      interval = setInterval(() => fetchNotifications(), 300_000);
+      interval = setInterval(() => {
+        if (!abortController.signal.aborted) {
+          fetchNotifications(false, abortController.signal);
+        }
+      }, 300_000);
     }
 
     function stopPolling() {
@@ -67,7 +83,9 @@ export function useNotifications() {
 
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {
-        fetchNotifications();
+        if (!abortController.signal.aborted) {
+          fetchNotifications(false, abortController.signal);
+        }
         startPolling();
       } else {
         stopPolling();
@@ -81,6 +99,7 @@ export function useNotifications() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      abortController.abort();
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Eye, Swords, MapPin, Tag } from "lucide-react";
+import { Bell, Check, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Popover,
@@ -10,6 +10,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { formatTimeAgo } from "@/lib/format-time-ago";
+import {
+  NOTIFICATION_TYPE_ICONS,
+  NOTIFICATION_TYPE_COLORS,
+} from "@/lib/notification-types";
 
 interface NotificationItem {
   _id: string;
@@ -20,36 +25,6 @@ interface NotificationItem {
   supplierName?: string;
   read: boolean;
   createdAt: string;
-}
-
-const TYPE_ICONS: Record<string, typeof Swords> = {
-  NEW_CONTRACT: Swords,
-  NEW_REGION: MapPin,
-  NEW_SECTOR: Tag,
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  NEW_CONTRACT: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  NEW_REGION: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  NEW_SECTOR: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-};
-
-function formatTimeAgo(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 export function NotificationBell() {
@@ -233,8 +208,8 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y">
               {notifications.map((notification) => {
-                const Icon = TYPE_ICONS[notification.type] ?? Bell;
-                const colorClass = TYPE_COLORS[notification.type] ?? "";
+                const Icon = NOTIFICATION_TYPE_ICONS[notification.type] ?? Bell;
+                const colorClass = NOTIFICATION_TYPE_COLORS[notification.type] ?? "";
 
                 return (
                   <motion.div
