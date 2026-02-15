@@ -28,6 +28,7 @@ const TYPE_LABELS: Record<ScannerType, string> = {
   rfps: "RFPs",
   meetings: "Meetings",
   buyers: "Buyers",
+  schools: "Schools",
 };
 
 function ScoreCircle({ score }: { score: number }) {

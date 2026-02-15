@@ -1,15 +1,16 @@
 # TendHunt — Cloudflare Workers
 
-TendHunt runs **4 Cloudflare Workers** that form a data pipeline. They are independent deployable units that communicate via HTTP fire-and-forget calls.
+TendHunt runs **4 Cloudflare Workers** (+ 1 planned) that form a data pipeline. They are independent deployable units that communicate via HTTP fire-and-forget calls.
 
 ## Worker Overview
 
 | Worker | Directory | Cron | URL | Purpose |
 |--------|-----------|------|-----|---------|
 | **data-sync** | `data-sync/` | Hourly (`0 * * * *`) | `https://tendhunt-data-sync.kozak-74d.workers.dev` | Fetches contracts from FaT + CF APIs, extracts buyers |
-| **enrichment** | `enrichment/` | Hourly (`0 * * * *`) | `https://tendhunt-enrichment.kozak-74d.workers.dev` | 9-stage buyer enrichment (parent_link, classify, website, logo, governance, moderngov, scrape, personnel, score) |
+| **enrichment** | `enrichment/` | Hourly (`0 * * * *`) | `https://tendhunt-enrichment.kozak-74d.workers.dev` | 9-stage buyer enrichment + Ofsted sync (parent_link, classify, website, logo, governance, moderngov, scrape, personnel, score, ofsted-sync) |
 | **spend-ingest** | `spend-ingest/` | Weekly (Mon 3AM) | `https://tendhunt-spend-ingest.kozak-74d.workers.dev` | 4-stage spend data ingest (discover, extract links, download/parse, aggregate) |
 | **board-minutes** | `board-minutes/` | Hourly at :30 (`30 * * * *`) | `https://tendhunt-board-minutes.kozak-74d.workers.dev` | 2-stage signal extraction from board documents (extract signals via Claude Haiku, deduplicate) |
+| **notifications** | `notifications/` | Planned | — | Platform-level notifications: scanner alerts, competitor watchlist, Ofsted downgrades. Channels: in-app, Slack webhook, email digest |
 
 ## Data Flow — How Workers Connect
 
@@ -21,14 +22,24 @@ TendHunt runs **4 Cloudflare Workers** that form a data pipeline. They are indep
        │                                           │            │
        │ FaT + CF APIs → contracts + buyers        │            │  after all_complete    ┌───────────────┐
        │ bulkWrite upsert, cursor-based resume     │            └── /run ─────────────→ │ board-minutes │
-       ▼                                           ▼                                    │ (hourly :30)  │
-  MongoDB: contracts, buyers, syncJobs        MongoDB: buyers (enrichment fields),      └───────────────┘
-                                              boarddocuments, keypersonnels,                  │
-                                              enrichmentjobs, datasources               │ 2 stages per buyer
-                                                                                        │ (extract → dedup)
-                                              MongoDB: spendtransactions,                ▼
-                                              spendsummaries,                       MongoDB: signals,
-                                              spendingestjobs                       signalingestjobs
+       ▼                                           │                                    │ (hourly :30)  │
+  MongoDB: contracts, buyers, syncJobs             │                                    └───────────────┘
+                                                   │  after all_complete (weekly gate)        │
+                                                   └── ofsted-sync ──→ MongoDB:              │
+                                                       (GOV.UK CSVs)   ofstedschools,        ▼
+                                                                       ofstedsyncmeta   MongoDB: signals,
+                                                                                        signalingestjobs
+                                              MongoDB: buyers (enrichment fields),
+                                              boarddocuments, keypersonnels,
+                                              enrichmentjobs, datasources
+
+                                              MongoDB: spendtransactions,
+                                              spendsummaries, spendingestjobs
+
+  ┌───────────────┐ (PLANNED)
+  │ notifications │ Watches scanners, competitors, Ofsted downgrades
+  │  (cron TBD)   │ Channels: in-app bell, Slack webhook, email digest
+  └───────────────┘ MongoDB: notifications, watchlists, notificationpreferences
 ```
 
 **Key flow:**
@@ -87,6 +98,36 @@ Workers report processing failures to MongoDB `pipelineerrors` collection via `r
 Instrumented stages:
 - **enrichment**: website_discovery (Apify 403), logo_linkedin (Apify 403), moderngov (unreachable), scrape (HTTP errors), personnel (no data)
 - **spend-ingest**: discover (unreachable), extract_links (unreachable), download_parse (parse errors)
+
+## WAF / Bot Protection Issues
+
+### Known WAF-Blocked Sites
+
+Some NHS ICBs and public sector sites use Incapsula/Imperva WAF that blocks all automated requests (including headless browsers from datacenter IPs). These sites return HTTP 403 with an Incapsula challenge page.
+
+**Affected buyers:** NHS Buckinghamshire, Oxfordshire and Berkshire West ICB (bucksoxonberksw.icb.nhs.uk), and potentially other NHS sites behind Incapsula.
+
+**What we tested (2026-02-14):**
+- Direct fetch from Cloudflare Worker → 403 (blocked)
+- Apify `playwright-scraper` with datacenter proxy → 403 (blocked)
+- Apify `camoufox-scraper` (stealth Firefox) → 403 (blocked)
+- Apify residential proxy → not available on Starter plan ($29/mo)
+- Scrapeless Web Unlocker API → requires Growth plan ($49/mo), Basic plan only has Proxy Solutions
+- Scrapeless Browser API → also requires Growth plan
+
+**Current fallback:** When Stage 3 (download) gets a 403, it checks for `SCRAPELESS_API_KEY` env var and attempts to retry via Scrapeless Web Unlocker API. Currently non-functional because the Basic plan doesn't include the Web Unlocker actor.
+
+**Workaround:** For the few blocked buyers, manually download CSVs in a browser and import via the test script. The pipeline errors admin page tracks which buyers are blocked.
+
+**Cost analysis for future:**
+| Service | Cost | What it provides |
+|---------|------|-----------------|
+| Scrapeless Growth | $49/mo | Web Unlocker API + residential proxies |
+| Scrapeless Basic proxy | $1.80/GB | Residential proxies only (need to wire up) |
+| Apify residential proxy | Requires higher plan | Only works inside Apify actors |
+| BrightData / Oxylabs | $10-15/GB residential | Standalone proxy, works from CF Workers |
+
+**Recommendation:** Wait until more buyers are blocked before investing. Currently only ~3-5 NHS ICBs are affected. Track via pipeline errors admin page.
 
 ## Deploying Workers
 
@@ -217,6 +258,7 @@ Stages run sequentially. Each stage processes all buyers before the next begins.
 | 6. `scrape` | `enrichment/src/stages/04-scrape.ts` | HTML scrape governance pages for non-ModernGov orgs. Extract board document links, descriptions, meeting dates. |
 | 7. `personnel` | `enrichment/src/stages/05-personnel.ts` | Claude Haiku extracts key personnel from scraped content. p-limit(2) concurrency. Upserts `KeyPersonnel` records with role, confidence score. |
 | 8. `score` | `enrichment/src/stages/06-score.ts` | Compute weighted enrichment score (0–100): orgType(15) + governance(10) + boardPapers(10) + website(5) + description(5) + staff(10) + budget(10) + personnel(20) + docs(15). |
+| 9. `ofsted_sync` | `enrichment/src/stages/09-ofsted-sync.ts` | Weekly Ofsted inspection data sync from GOV.UK CSVs. Downloads 3 CSV files (pre-2019, 2019-2024, post-Sep-2024), diffs against existing inspectionHistory, inserts new inspections, recomputes `lastDowngradeDate`/`ratingDirection`/`downgradeType`. Self-gated via `ofstedsyncmeta` collection (max once per 7 days). Manual trigger: `GET /run-ofsted-sync?force=1`. NOT a buyer stage — runs standalone after buyer pipeline completes. |
 
 ### Rate Limiting
 

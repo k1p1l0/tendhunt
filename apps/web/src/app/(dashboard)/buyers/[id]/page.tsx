@@ -115,6 +115,22 @@ export default async function BuyerDetailPage({
     idaciQuintile: s.idaciQuintile ?? null,
     reportUrl: s.reportUrl ?? null,
     postcode: s.postcode ?? null,
+    ratingDirection: s.ratingDirection ?? null,
+    lastDowngradeDate: s.lastDowngradeDate ? String(s.lastDowngradeDate) : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    inspectionHistory: (s.inspectionHistory ?? []).map((entry: any) => ({
+      inspectionNumber: entry.inspectionNumber ?? "",
+      inspectionDate: entry.inspectionDate ? String(entry.inspectionDate) : "",
+      publicationDate: entry.publicationDate ? String(entry.publicationDate) : null,
+      inspectionType: entry.inspectionType ?? undefined,
+      reportUrl: entry.reportUrl ?? null,
+      overallEffectiveness: entry.overallEffectiveness ?? null,
+      qualityOfEducation: entry.qualityOfEducation ?? null,
+      behaviourAndAttitudes: entry.behaviourAndAttitudes ?? null,
+      personalDevelopment: entry.personalDevelopment ?? null,
+      leadershipAndManagement: entry.leadershipAndManagement ?? null,
+      era: entry.era ?? undefined,
+    })),
   }));
 
   const parentBuyer = buyer.parentBuyer

@@ -15,7 +15,8 @@ import { extractKeyPersonnel } from "./stages/05-personnel";
 import { computeEnrichmentScores } from "./stages/06-score";
 import { enrichPcsDocuments } from "./stages/07-pcs-documents";
 import { enrichProactisDocuments } from "./stages/08-proactis-documents";
-import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-jobs";
+import { syncOfstedInspections } from "./stages/09-ofsted-sync";
+import { getOrCreateJob, markJobComplete, markJobError, resetCompletedJobs } from "./db/enrichment-jobs";
 
 // ---------------------------------------------------------------------------
 // Enrichment Worker entry point
@@ -31,6 +32,9 @@ import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-j
 //   6. scrape              — HTML scraping for NHS trusts, ICBs, etc.
 //   7. personnel           — Claude Haiku key personnel extraction
 //   8. score               — Compute enrichment scores (0-100)
+//
+// After all buyer stages complete:
+//   9. ofsted_sync         — Weekly Ofsted CSV diff + downgrade detection
 //
 // :30 — Document enrichment pipeline (contract-level):
 //   A. pcs_documents       — PCS OCDS API document URL enrichment
@@ -62,6 +66,14 @@ async function runPipeline(env: Env, maxItems = 500) {
         console.log("Board-minutes signal extraction result:", JSON.stringify(bmResult));
       } catch (err) {
         console.error("Board-minutes trigger failed:", err);
+      }
+
+      // Ofsted inspection data sync (self-gated to run at most once per week)
+      try {
+        const ofstedResult = await syncOfstedInspections(db, env);
+        console.log("Ofsted sync result:", JSON.stringify(ofstedResult));
+      } catch (err) {
+        console.error("Ofsted sync failed:", err);
       }
     }
     console.log("--- Enrichment pipeline run complete ---");
@@ -118,7 +130,9 @@ async function runDocEnrichmentPipeline(
       }
     }
 
-    console.log("--- Document enrichment pipeline complete ---");
+    // Reset for next cycle to pick up new contracts
+    const reset = await resetCompletedJobs(db, DOC_STAGE_ORDER);
+    console.log(`--- Document enrichment pipeline complete. Reset ${reset} jobs for next cycle. ---`);
     return { stage: "doc_all_complete", processed: 0, errors: 0, done: true };
   } finally {
     await closeDb();
@@ -225,6 +239,26 @@ export default {
       }
     }
 
+    // Manual Ofsted sync trigger: GET /run-ofsted-sync[?force=1]
+    if (url.pathname === "/run-ofsted-sync") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
+      const db = await getDb(env.MONGODB_URI);
+      try {
+        // If ?force=1, reset the last sync timestamp to force a re-run
+        if (url.searchParams.get("force") === "1") {
+          await db.collection("ofstedsyncmeta").deleteOne({ key: "ofsted_sync" });
+        }
+        const result = await syncOfstedInspections(db, env);
+        return Response.json(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return Response.json({ error: msg }, { status: 500 });
+      } finally {
+        await closeDb();
+      }
+    }
+
     // Document enrichment trigger: GET /run-doc-enrichment?max=500
     if (url.pathname === "/run-doc-enrichment") {
       const denied = requireSecret(url, env);
@@ -292,7 +326,7 @@ export default {
     const minute = new Date(controller.scheduledTime).getUTCMinutes();
 
     if (minute < 15) {
-      // :00 cron — buyer enrichment pipeline (8 stages)
+      // :00 cron — buyer enrichment pipeline (9 stages)
       try {
         await runPipeline(env);
       } catch (err) {

@@ -1,3 +1,5 @@
+import type { ConversationSettings } from "@/stores/agent-store";
+
 export interface AgentPageContext {
   page:
     | "dashboard"
@@ -6,7 +8,9 @@ export interface AgentPageContext {
     | "contract_detail"
     | "contracts"
     | "buyers"
-    | "inbox";
+    | "inbox"
+    | "competitors"
+    | "competitor_detail";
   scannerId?: string;
   scannerType?: string;
   scannerName?: string;
@@ -29,6 +33,11 @@ export interface AgentPageContext {
   buyerSignalCount?: number;
   buyerBoardDocCount?: number;
   buyerKeyPersonnelNames?: string;
+  competitorName?: string;
+  competitorContractCount?: number;
+  competitorTotalValue?: number;
+  competitorBuyerCount?: number;
+  competitorSectors?: string[];
 }
 
 interface CompanyProfileData {
@@ -41,7 +50,8 @@ interface CompanyProfileData {
 
 export function buildSystemPrompt(
   context: AgentPageContext,
-  companyProfile?: CompanyProfileData | null
+  companyProfile?: CompanyProfileData | null,
+  settings?: ConversationSettings | null
 ): string {
   const sections: string[] = [];
 
@@ -60,7 +70,7 @@ export function buildSystemPrompt(
 
 ## Output Rules
 
-- **Short by default.** 2-4 sentences for simple answers. Tables for multi-entity results. One-liners for confirmations.
+- ${getResponseDetailInstruction(settings?.responseDetail)}
 - **No preamble.** Don't say "I'll search for..." or "Let me look into...". Just do it, then present findings.
 - **No filler phrases.** Never say "Great question!", "Certainly!", "I'd be happy to", "Here's what I found".
 - **Bold key facts** — names, values, dates, scores. The user should be able to scan and get the gist.
@@ -93,6 +103,7 @@ You have access to the following tools to query real data:
 - \`query_key_personnel\` — Find decision-makers by buyer or role type
 - \`query_spend_data\` — Get buyer spending analytics: top vendors, categories, monthly totals
 - \`query_board_documents\` — Find board meeting documents by buyer, committee, date range
+- \`search_competitor\` — Search for a supplier/competitor by company name. Returns contract count, total value, buyers, sectors, and profile page link. Handles name variations (Ltd vs Limited).
 - \`web_search\` — Search the web for information not available in internal data
 
 **Write Tools:**
@@ -185,6 +196,19 @@ Default to \`"score"\` unless the user's request clearly fits another type.
       if (context.contractId)
         contextLines.push(`_Internal contract ID for links: ${context.contractId} — never display this to the user._`);
       break;
+
+    case "competitor_detail":
+      if (context.competitorName)
+        contextLines.push(`**Competitor/Supplier:** ${context.competitorName}`);
+      if (context.competitorContractCount != null)
+        contextLines.push(`**Contracts:** ${context.competitorContractCount}`);
+      if (context.competitorTotalValue != null)
+        contextLines.push(`**Total Value:** GBP ${context.competitorTotalValue.toLocaleString()}`);
+      if (context.competitorBuyerCount != null)
+        contextLines.push(`**Buyers:** ${context.competitorBuyerCount}`);
+      if (context.competitorSectors && context.competitorSectors.length > 0)
+        contextLines.push(`**Sectors:** ${context.competitorSectors.join(", ")}`);
+      break;
   }
 
   if (context.selectedRow && Object.keys(context.selectedRow).length > 0) {
@@ -199,8 +223,8 @@ Default to \`"score"\` unless the user's request clearly fits another type.
 
   sections.push(contextLines.join("\n"));
 
-  // 4. Company profile section
-  if (companyProfile) {
+  // 4. Company profile section (skipped when contextScope is "table_only")
+  if (companyProfile && settings?.contextScope !== "table_only") {
     const profileLines: string[] = [];
     profileLines.push(`## User's Company Profile`);
     if (companyProfile.companyName)
@@ -227,6 +251,7 @@ When mentioning entities from tool results, make them clickable:
 - Buyers: [Buyer Name](buyer:BUYER_ID)
 - Contracts: [Contract Title](contract:CONTRACT_ID)
 - Scanners: [Scanner Name](scanner:SCANNER_ID)
+- Competitors/Suppliers: [Company Name](competitor:COMPANY_NAME) — use the exact company name from tool results, URL-encoded
 - Buyer tabs: [spending](buyer:BUYER_ID?tab=spending), [contacts](buyer:BUYER_ID?tab=contacts), [board docs](buyer:BUYER_ID?tab=board-documents), [personnel](buyer:BUYER_ID?tab=key-personnel), [signals](buyer:BUYER_ID?tab=signals), [contracts](buyer:BUYER_ID?tab=contracts)
 
 Always link entities by name. Use IDs from tool results.
@@ -287,7 +312,45 @@ A DPS or Framework can be "CLOSED" (current window shut) but the **contract itse
 - "This buyer" / "this contract" = use the page context above.
 - When unsure about a write action, ask one sharp clarifying question with chip options (see below). Don't guess.
 
-## Clarifying Questions
+${getClarifyingQuestionsSection(settings?.askClarifyingQuestions)}
+
+## Actionable Next Steps
+
+**Every substantive response MUST end with a concrete, actionable next step.** Not vague suggestions — specific things the user can do right now.
+
+**Good next steps (specific, immediately actionable):**
+- "I'd check their [key personnel](buyer:ID?tab=key-personnel) — the procurement lead there is likely your first contact."
+- "Set up a scanner for their upcoming education tenders so you don't miss the next one."
+- "Their [spending tab](buyer:ID?tab=spending) shows heavy social care spend — worth digging into if that's your sector."
+- "Three of their contracts expire in Q2 — check the [contracts tab](buyer:ID?tab=contracts) for re-tender opportunities."
+
+**Bad next steps (vague, unhelpful — NEVER do these):**
+- "Would you like me to enrich this buyer?" (don't suggest enrichment as a default action)
+- "Let me know if you need anything else." (filler)
+- "I can look into this further if you'd like." (passive)
+
+**Enrichment should only be suggested when data is genuinely missing** — e.g. no contacts, no personnel, no board docs, no signals at all. If the buyer already has rich data, suggesting enrichment is pointless noise.`);
+
+  return sections.join("\n\n");
+}
+
+function getResponseDetailInstruction(detail?: string): string {
+  switch (detail) {
+    case "concise":
+      return "**Extremely concise.** 1-2 sentences max. Tables over prose. Skip reasoning.";
+    case "detailed":
+      return "**Thorough analysis.** 4-8 sentences with reasoning, context, implications.";
+    default:
+      return "**Short by default.** 2-4 sentences for simple answers. Tables for multi-entity results. One-liners for confirmations.";
+  }
+}
+
+function getClarifyingQuestionsSection(enabled?: boolean): string {
+  if (enabled === false) {
+    return "## Clarifying Questions\n\nNever ask clarifying questions. Use best judgment and proceed.";
+  }
+
+  return `## Clarifying Questions
 
 Before executing a **write action** (create scanner, apply filter, add column) when the request is ambiguous about type, sector, scope, or key parameters — ask exactly ONE clarifying question with quick-reply chip options.
 
@@ -312,26 +375,7 @@ Before executing a **write action** (create scanner, apply filter, add column) w
 - 2-4 options. Keep labels short (1-4 words each).
 - After the user responds (chip click or typed answer), act immediately. No confirmation, no second question.
 - Options go on the SAME line as the question or on the line immediately after.
-- Don't wrap options in bullets, lists, or code blocks — just inline them in your text.
-
-## Actionable Next Steps
-
-**Every substantive response MUST end with a concrete, actionable next step.** Not vague suggestions — specific things the user can do right now.
-
-**Good next steps (specific, immediately actionable):**
-- "I'd check their [key personnel](buyer:ID?tab=key-personnel) — the procurement lead there is likely your first contact."
-- "Set up a scanner for their upcoming education tenders so you don't miss the next one."
-- "Their [spending tab](buyer:ID?tab=spending) shows heavy social care spend — worth digging into if that's your sector."
-- "Three of their contracts expire in Q2 — check the [contracts tab](buyer:ID?tab=contracts) for re-tender opportunities."
-
-**Bad next steps (vague, unhelpful — NEVER do these):**
-- "Would you like me to enrich this buyer?" (don't suggest enrichment as a default action)
-- "Let me know if you need anything else." (filler)
-- "I can look into this further if you'd like." (passive)
-
-**Enrichment should only be suggested when data is genuinely missing** — e.g. no contacts, no personnel, no board docs, no signals at all. If the buyer already has rich data, suggesting enrichment is pointless noise.`);
-
-  return sections.join("\n\n");
+- Don't wrap options in bullets, lists, or code blocks — just inline them in your text.`;
 }
 
 function formatPageName(page: AgentPageContext["page"]): string {
@@ -343,6 +387,8 @@ function formatPageName(page: AgentPageContext["page"]): string {
     contracts: "Contracts List",
     buyers: "Buyers List",
     inbox: "Inbox",
+    competitors: "Competitor Search",
+    competitor_detail: "Competitor Profile",
   };
   return names[page] ?? page;
 }

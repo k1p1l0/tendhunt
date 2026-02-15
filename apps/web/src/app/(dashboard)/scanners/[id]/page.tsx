@@ -70,12 +70,14 @@ const DATA_ENDPOINTS: Record<ScannerType, string> = {
   rfps: "/api/contracts",
   meetings: "/api/signals",
   buyers: "/api/buyers",
+  schools: "/api/schools",
 };
 
 const DATA_KEYS: Record<ScannerType, string> = {
   rfps: "contracts",
   meetings: "signals",
   buyers: "buyers",
+  schools: "schools",
 };
 
 /**
@@ -233,7 +235,8 @@ export default function ScannerDetailPage({
       const dataKey = DATA_KEYS[scannerData.type];
 
       const params = new URLSearchParams();
-      if (scannerData.searchQuery) {
+      // Schools scanner searchQuery is an AI scoring context, not a name filter
+      if (scannerData.searchQuery && scannerData.type !== "schools") {
         // MongoDB $text: unquoted words are OR'd, quoted phrases are AND'd.
         // Strip OR/AND operators and quotes so all terms become OR'd words —
         // otherwise multiple quoted phrases require ALL to appear in one document.
@@ -255,6 +258,11 @@ export default function ScannerDetailPage({
         if (f.stage) params.set("stage", String(f.stage));
         if (f.status) params.set("status", String(f.status));
         if (f.mechanism) params.set("mechanism", String(f.mechanism));
+        if (f.downgradeWithin) params.set("downgradeWithin", String(f.downgradeWithin));
+        if (f.ofstedRating) params.set("ofstedRating", String(f.ofstedRating));
+        if (f.schoolPhase) params.set("schoolPhase", String(f.schoolPhase));
+        if (f.localAuthority) params.set("localAuthority", String(f.localAuthority));
+        if (f.sortBy) params.set("sortBy", String(f.sortBy));
       }
 
       // Apply row pagination — always send a pageSize to avoid loading all results
@@ -885,6 +893,14 @@ export default function ScannerDetailPage({
     loadData();
   }
 
+  function handleScoreCell(columnId: string, entityId: string) {
+    scoreSingleColumn(columnId, {
+      force: true,
+      entityIds: [entityId],
+      limit: 1,
+    });
+  }
+
   function handleRunColumn(options: RunColumnOptions) {
     const visibleIds = getVisibleEntityIds();
     scoreSingleColumn(options.columnId, {
@@ -1230,11 +1246,10 @@ export default function ScannerDetailPage({
 
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
-      {/* Sticky toolbar area */}
-      <div className="shrink-0 space-y-3 px-1 pb-3">
-        {/* Scanner Header */}
+      {/* Compact single-line toolbar */}
+      <div className="shrink-0 px-1 pb-1">
         <ScannerHeader
-          scanner={{ ...scanner, autoRun }}
+          scanner={{ ...scanner, autoRun, searchQuery: scanner.searchQuery }}
           rowCount={filteredRowCount}
           totalRowCount={totalRowCount}
           activeFilterCount={Object.values(columnFilters).filter((v) => v.length > 0).length}
@@ -1247,7 +1262,7 @@ export default function ScannerDetailPage({
           onEditScanner={handleEditScanner}
         />
 
-        {/* Filter chip toolbar */}
+        {/* Filter chip toolbar (auto-hides when no filters) */}
         <ScannerFilterToolbar columns={columns} />
       </div>
 
@@ -1289,6 +1304,8 @@ export default function ScannerDetailPage({
           onDeleteColumn={handleDeleteColumn}
           onRowDoubleClick={handleRowDoubleClick}
           onInsertColumn={handleInsertColumn}
+          onScoreCell={handleScoreCell}
+          onOpenEntity={(row) => setDetailRow(row)}
           onAutoRule={(columnId, columnName) =>
             setAutoRuleColumn({ columnId, columnName })
           }
@@ -1329,6 +1346,8 @@ export default function ScannerDetailPage({
         onOpenChange={setAddColumnOpen}
         scannerId={id}
         scannerType={scanner.type}
+        existingAiColumns={scanner.aiColumns}
+        existingCustomColumns={scanner.customColumns}
         onColumnAdded={handleColumnAdded}
       />
 
@@ -1340,6 +1359,9 @@ export default function ScannerDetailPage({
         }}
         column={editColumn}
         scannerId={id}
+        scannerType={scanner.type}
+        scannerAiColumns={scanner.aiColumns}
+        scannerCustomColumns={scanner.customColumns}
         onColumnUpdated={handleColumnUpdated}
       />
 

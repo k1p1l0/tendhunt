@@ -220,6 +220,27 @@ export function getToolDefinitions(): Anthropic.Tool[] {
       },
     },
     {
+      name: "search_competitor",
+      description:
+        "Search for a supplier/competitor by company name to see their public sector contract history, buyer relationships, and spend data. Returns contract count, total value, active buyers, sectors, and a link to the competitor profile page.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          companyName: {
+            type: "string",
+            description:
+              "Company/supplier name to search for (e.g. 'Capita', 'Serco', 'G4S'). Handles name variations like Ltd vs Limited.",
+          },
+          limit: {
+            type: "number",
+            description:
+              "Maximum results to return (default 5, max 10). Use higher limit when the name is ambiguous.",
+          },
+        },
+        required: ["companyName"],
+      },
+    },
+    {
       name: "web_search",
       description:
         "Search the web for information not available in TendHunt's internal data. Use this when internal tools don't have the answer.",
@@ -249,8 +270,8 @@ export function getToolDefinitions(): Anthropic.Tool[] {
           },
           type: {
             type: "string",
-            enum: ["rfps", "meetings", "buyers"],
-            description: "Scanner type: rfps (contracts), meetings (signals), or buyers",
+            enum: ["rfps", "meetings", "buyers", "schools"],
+            description: "Scanner type: rfps (contracts), meetings (signals), buyers, or schools (Ofsted)",
           },
           searchQuery: {
             type: "string",

@@ -16,7 +16,7 @@ export const ACCOUNT_MANAGER = {
 export interface ScannerSummary {
   _id: string;
   name: string;
-  type: "rfps" | "meetings" | "buyers";
+  type: "rfps" | "meetings" | "buyers" | "schools";
   description: string;
   lastScoredAt: Date | null;
   updatedAt: Date;

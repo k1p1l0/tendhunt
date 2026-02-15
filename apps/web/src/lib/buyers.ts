@@ -173,14 +173,24 @@ export async function fetchBuyerById(buyerId: string) {
     childrenPromise,
     parentBuyerPromise,
     OfstedSchool.find({ buyerId: buyer._id })
+      .select(
+        "urn name phase schoolType overallEffectiveness qualityOfEducation " +
+        "behaviourAndAttitudes personalDevelopment leadershipAndManagement " +
+        "safeguarding inspectionDate totalPupils idaciQuintile reportUrl " +
+        "postcode ratingDirection lastDowngradeDate inspectionHistory"
+      )
       .sort({ overallEffectiveness: -1 })
       .lean(),
   ]);
 
+  // Destructure to explicitly exclude the cached contractCount field
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { contractCount: _, ...buyerWithoutCount } = buyer;
+
   return {
-    ...buyer,
+    ...buyerWithoutCount,
     contracts,
-    contractCount,
+    contractCount, // Live count from query (includes parent + children aggregation)
     signals,
     boardDocuments,
     keyPersonnel,

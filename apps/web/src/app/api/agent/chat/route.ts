@@ -9,6 +9,7 @@ import { executeToolHandler } from "@/lib/agent/tool-handlers";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { AgentPageContext } from "@/lib/agent/system-prompt";
+import type { ConversationSettings } from "@/stores/agent-store";
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -16,16 +17,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { messages, context, conversationId } = (await request.json()) as {
+  const { messages, context, conversationId, settings } = (await request.json()) as {
     messages: Array<{ role: string; content: string }>;
     context: AgentPageContext;
     conversationId?: string;
+    settings?: ConversationSettings;
   };
 
   await dbConnect();
 
   const profile = await CompanyProfile.findOne({ userId }).lean();
-  const systemPrompt = buildSystemPrompt(context, profile);
+  const systemPrompt = buildSystemPrompt(context, profile, settings);
   const tools = getToolDefinitions();
 
   const encoder = new TextEncoder();

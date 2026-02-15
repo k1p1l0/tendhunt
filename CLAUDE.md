@@ -6,8 +6,11 @@
 |--------|------|-------|
 | `main` | `/Users/kirillkozak/Projects/tendhunt.com` | Main development |
 | `feat/phase-32-contract-enrichment` | `/Users/kirillkozak/Projects/tendhunt-contract-enrichment` | Phase 32: Contract Enrichment |
+| `feat/ofsted-timeline` | `/Users/kirillkozak/Projects/tendhunt-ofsted-timeline` | Ofsted Timeline Intelligence (PR #13) |
+| `feat/competitor-analysis` | `/Users/kirillkozak/Projects/tendhunt-competitor-analysis` | Competitor Contract Intelligence (PR #14) |
+| `feat/notifications-platform` | `/Users/kirillkozak/Projects/tendhunt-notifications` | Platform Notifications (building) |
 
-When working on Phase 32, use the worktree path. Merge back to main via PR when complete.
+Merge back to main via PR when complete.
 
 ## Source of Truth
 
@@ -145,6 +148,11 @@ feat(scope): Add new feature
 feat(scope): add new feature
 ```
 
+**Allowed scopes** (enforced by `action-semantic-pull-request` in CI):
+`web`, `landing`, `workers`, `deps`, `deps-dev`, `release`
+
+Do NOT use feature-specific scopes like `ofsted`, `competitors`, `sculptor` — they will fail CI. Use `web` for app changes, `workers` for worker changes.
+
 ## UI/UX & Animation Guidelines
 
 **Every UI/UX implementation MUST include animations and follow design engineering principles.**
@@ -169,6 +177,17 @@ feat(scope): add new feature
 pnpm typecheck
 cd apps/web && bun run lint
 ```
+
+## Testing
+
+- **Framework:** Vitest (shared across `apps/web` and `apps/workers/*`)
+- **Run:** `cd apps/web && bun run test` or `bun run --cwd apps/web test`
+- **Config:** `apps/web/vitest.config.mts` with `@` path alias pointing to `./src`
+- **Convention:** Co-locate tests next to source files as `*.test.ts` (e.g. `scanner-store.test.ts` beside `scanner-store.ts`)
+- **What to test:** Pure functions, Zustand store logic, system prompt builders — anything that doesn't need a DOM or real DB
+- **What NOT to test:** React components (no testing-library set up), API routes (need real MongoDB)
+- **Existing pattern:** See `contract-mechanism.test.ts` for fake timers usage
+- **Rule:** Every bug fix MUST include a regression test
 
 ## CI Lint Rules (React Compiler + ESLint)
 

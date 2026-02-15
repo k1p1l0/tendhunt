@@ -126,8 +126,21 @@ export function ToolCallChain({ toolCalls }: { toolCalls: ToolCall[] }) {
   const workingTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const prefersReducedMotion = useReducedMotion();
 
-  const isAnyLoading = toolCalls.some((tc) => tc.isLoading);
-  const completedCount = toolCalls.filter((tc) => !tc.isLoading).length;
+  // Filter out failed tool calls (error messages like "Buyer not found", "Invalid ID")
+  const successfulToolCalls = toolCalls.filter((tc) => {
+    // Show loading tools
+    if (tc.isLoading) return true;
+    // Hide tools with error/not-found summaries
+    const summary = tc.summary?.toLowerCase() ?? "";
+    const isError =
+      summary.includes("not found") ||
+      summary.includes("invalid") ||
+      summary.includes("error");
+    return !isError;
+  });
+
+  const isAnyLoading = successfulToolCalls.some((tc) => tc.isLoading);
+  const completedCount = successfulToolCalls.filter((tc) => !tc.isLoading).length;
 
   useEffect(() => {
     if (isAnyLoading) {
@@ -145,70 +158,27 @@ export function ToolCallChain({ toolCalls }: { toolCalls: ToolCall[] }) {
     if (showWorking) requestAnimationFrame(() => setExpanded(true));
   }, [showWorking]);
 
-  if (toolCalls.length === 0) return null;
+  // Don't render if all tool calls failed
+  if (successfulToolCalls.length === 0) return null;
 
   const displayWorking = isAnyLoading || showWorking;
+
+  // Hide tool execution details from users - only show "Working" during active loading
+  // Once complete, the indicator disappears entirely (no "Completed N steps")
+  if (!displayWorking) return null;
 
   return (
     <motion.div
       initial={prefersReducedMotion ? {} : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
+      className="flex items-center gap-2 mb-1.5"
     >
-      <Collapsible open={expanded} onOpenChange={setExpanded}>
-        <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            className="flex items-center gap-2 mb-1.5 group cursor-pointer"
-          >
-            {displayWorking ? (
-              <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-            )}
-            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-              {displayWorking
-                ? "Working"
-                : `Completed ${completedCount} steps`}
-            </span>
-            <ChevronRight
-              className={`h-3 w-3 text-muted-foreground/40 transition-transform duration-150 ${
-                expanded ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <motion.div
-            initial={prefersReducedMotion ? {} : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="rounded-lg border bg-background/50 px-3 py-2"
-          >
-            <div className="relative">
-              {toolCalls.length > 1 && (
-                <div
-                  className="absolute left-[0.4375rem] top-[1rem] bottom-[0.5rem] w-px bg-border"
-                  aria-hidden="true"
-                />
-              )}
-              <AnimatePresence mode="popLayout">
-                {toolCalls.map((tc, i) => (
-                  <motion.div
-                    key={`${tc.toolName}-${i}`}
-                    initial={
-                      prefersReducedMotion ? {} : { opacity: 0, x: -4 }
-                    }
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.15, delay: i * 0.05 }}
-                  >
-                    <StepDetail toolCall={tc} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        </CollapsibleContent>
-      </Collapsible>
+      <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
+      <span className="text-xs font-medium text-muted-foreground">
+        Working
+      </span>
     </motion.div>
   );
 }

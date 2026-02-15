@@ -124,7 +124,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
 
       const response = await worker.default.fetch(request, env);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown>;
       expect(body.error).toBe("Missing ?id= parameter");
     });
 
@@ -134,7 +134,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
 
       const response = await worker.default.fetch(request, env);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown>;
       expect(body.error).toBe("Invalid ObjectId");
     });
 
@@ -147,7 +147,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
 
       const response = await worker.default.fetch(request, env);
       expect(response.status).toBe(404);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown>;
       expect(body.error).toBe("Buyer not found");
     });
   });
@@ -328,7 +328,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
 
       const response = await worker.default.fetch(request, env);
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown>;
 
       expect(body.buyerId).toBe(buyerId);
       expect(body.buyerName).toBe(testBuyerName);
@@ -353,7 +353,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
 
       const response = await worker.default.fetch(request, env);
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, Record<string, Record<string, unknown>>>;
 
       // The classify stage should show an error
       expect(body.enrichment.classify.errors).toBe(1);
@@ -374,7 +374,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
 
       const response = await worker.default.fetch(request, env);
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, Record<string, unknown>>;
 
       // Should have error info in spend and boardMinutes
       expect(body.spend.error).toBeDefined();
@@ -387,7 +387,7 @@ describe("single-buyer enrichment (/run-buyer endpoint)", () => {
       const request = new Request("https://worker.dev/health");
       const env = makeEnv();
       const response = await worker.default.fetch(request, env);
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown>;
       expect(body.status).toBe("ok");
       expect(body.worker).toBe("tendhunt-enrichment");
     });

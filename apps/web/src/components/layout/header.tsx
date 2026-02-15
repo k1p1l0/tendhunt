@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { useBreadcrumb } from "./breadcrumb-context";
 import { useAgentStore } from "@/stores/agent-store";
 import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
+import { NotificationBell } from "./notification-bell";
 
 export function Header() {
   const { breadcrumb } = useBreadcrumb();
@@ -21,6 +22,7 @@ export function Header() {
           </span>
         )}
       </div>
+      <NotificationBell />
       {!panelOpen && (
         <button
           type="button"

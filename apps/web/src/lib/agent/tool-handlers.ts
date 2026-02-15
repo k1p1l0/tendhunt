@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { dbConnect } from "@/lib/mongodb";
 import { fetchBuyerById } from "@/lib/buyers";
 import { fetchContracts, fetchContractById } from "@/lib/contracts";
+import { searchSuppliers } from "@/lib/competitors";
 import Buyer from "@/models/buyer";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
@@ -51,6 +52,8 @@ export async function executeToolHandler(
         return await handleQuerySpendData(input);
       case "query_board_documents":
         return await handleQueryBoardDocuments(input);
+      case "search_competitor":
+        return await handleSearchCompetitor(input);
       case "web_search":
         return handleWebSearch();
       case "create_scanner":
@@ -360,6 +363,51 @@ async function handleQueryBoardDocuments(
   };
 }
 
+async function handleSearchCompetitor(
+  input: Record<string, unknown>
+): Promise<ToolResult> {
+  const companyName = String(input.companyName || "");
+  const limit = Math.min(Number(input.limit) || 5, 10);
+
+  if (!companyName || companyName.trim().length < 2) {
+    return { summary: "Company name must be at least 2 characters", data: null };
+  }
+
+  const results = await searchSuppliers(companyName.trim(), limit);
+
+  if (results.length === 0) {
+    return {
+      summary: `No suppliers found matching "${companyName}"`,
+      data: { query: companyName, results: [] },
+    };
+  }
+
+  const formatted = results.map((r) => ({
+    name: r.name,
+    contractCount: r.contractCount,
+    totalValue: r.totalValue,
+    activeBuyerCount: r.activeBuyerCount,
+    latestAwardDate: r.latestAwardDate,
+    sectors: r.sectors,
+    profileUrl: `/competitors/${encodeURIComponent(r.name)}`,
+  }));
+
+  const topResult = formatted[0];
+  const summaryText =
+    results.length === 1
+      ? `Found **${topResult.name}**: ${topResult.contractCount} contracts, GBP ${topResult.totalValue.toLocaleString()}, ${topResult.activeBuyerCount} buyers`
+      : `Found ${results.length} suppliers matching "${companyName}". Top match: **${topResult.name}** (${topResult.contractCount} contracts, GBP ${topResult.totalValue.toLocaleString()})`;
+
+  return {
+    summary: summaryText,
+    data: { query: companyName, results: formatted },
+    action:
+      results.length === 1
+        ? { type: "navigate", url: topResult.profileUrl }
+        : undefined,
+  };
+}
+
 function handleWebSearch(): ToolResult {
   return {
     summary:
@@ -373,9 +421,9 @@ async function handleCreateScanner(
   userId: string
 ): Promise<ToolResult> {
   const name = String(input.name);
-  const type = String(input.type) as "rfps" | "meetings" | "buyers";
+  const type = String(input.type) as "rfps" | "meetings" | "buyers" | "schools";
 
-  if (!["rfps", "meetings", "buyers"].includes(type)) {
+  if (!["rfps", "meetings", "buyers", "schools"].includes(type)) {
     return { summary: `Invalid scanner type: ${type}`, data: null };
   }
 
