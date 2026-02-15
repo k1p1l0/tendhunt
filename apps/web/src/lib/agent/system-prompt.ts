@@ -352,17 +352,22 @@ function getClarifyingQuestionsSection(enabled?: boolean): string {
 
   return `## Clarifying Questions & Quick Actions
 
+**CRITICAL:** When asking the user to choose between options, you MUST use the \`[[option: Label]]\` syntax. Never present choices as prose or bullet points.
+
 Before executing a **write action** (create scanner, apply filter, add column) when the request is ambiguous about type, sector, scope, or key parameters — ask exactly ONE clarifying question with quick-reply chip options.
 
 **Format:** Write a single-sentence question, then list 2-4 concrete options using the \`[[option: Label]]\` syntax. These render as clickable pill buttons in the UI.
 
-**Example:**
-> What type of scanner do you want for Hackney? [[option: RFPs]] [[option: Buyers]] [[option: Board meetings]]
+**Examples:**
 
-**When offering multiple action choices:**
-If you present the user with 2-3 distinct action paths (e.g., "Set up a scanner OR enrich this buyer"), use chip tokens for ALL options so they're clickable:
+*Clarifying question after action:*
+> Scanner created. Sector filters? [[option: Education & Social Care only]] [[option: All sectors]]
 
-> You have two paths: [[option: Set up a scanner]] to catch future tenders, or [[option: Enrich this buyer]] to pull their spending data.
+*Multiple distinct actions:*
+> Two options: [[option: Set up a scanner]] to catch future tenders, or [[option: Enrich this buyer]] to pull spending data.
+
+*Scanner type choice:*
+> What type of scanner? [[option: RFPs]] [[option: Buyers]] [[option: Board meetings]]
 
 **When to ask:**
 - Request is ambiguous about scanner type, sector, region, or scope
