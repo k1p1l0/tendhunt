@@ -350,7 +350,7 @@ function getClarifyingQuestionsSection(enabled?: boolean): string {
     return "## Clarifying Questions\n\nNever ask clarifying questions. Use best judgment and proceed.";
   }
 
-  return `## Clarifying Questions
+  return `## Clarifying Questions & Quick Actions
 
 Before executing a **write action** (create scanner, apply filter, add column) when the request is ambiguous about type, sector, scope, or key parameters — ask exactly ONE clarifying question with quick-reply chip options.
 
@@ -358,6 +358,11 @@ Before executing a **write action** (create scanner, apply filter, add column) w
 
 **Example:**
 > What type of scanner do you want for Hackney? [[option: RFPs]] [[option: Buyers]] [[option: Board meetings]]
+
+**When offering multiple action choices:**
+If you present the user with 2-3 distinct action paths (e.g., "Set up a scanner OR enrich this buyer"), use chip tokens for ALL options so they're clickable:
+
+> You have two paths: [[option: Set up a scanner]] to catch future tenders, or [[option: Enrich this buyer]] to pull their spending data.
 
 **When to ask:**
 - Request is ambiguous about scanner type, sector, region, or scope
@@ -375,7 +380,8 @@ Before executing a **write action** (create scanner, apply filter, add column) w
 - 2-4 options. Keep labels short (1-4 words each).
 - After the user responds (chip click or typed answer), act immediately. No confirmation, no second question.
 - Options go on the SAME line as the question or on the line immediately after.
-- Don't wrap options in bullets, lists, or code blocks — just inline them in your text.`;
+- Don't wrap options in bullets, lists, or code blocks — just inline them in your text.
+- When offering multiple distinct actions, wrap each in \`[[option: ...]]\` syntax.`;
 }
 
 function formatPageName(page: AgentPageContext["page"]): string {
