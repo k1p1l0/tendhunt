@@ -22,6 +22,8 @@ interface LeanContract {
   status?: string;
   sector?: string;
   source?: string;
+  contractMechanism?: string;
+  contractEndDate?: Date;
 }
 
 interface LeanSignal {
@@ -88,6 +90,9 @@ interface LeanOfstedSchool {
   idaciQuintile?: number | null;
   reportUrl?: string;
   postcode?: string;
+  ratingDirection?: string;
+  lastDowngradeDate?: Date;
+  inspectionHistory?: unknown[];
 }
 
 export default async function BuyerDetailPage({
