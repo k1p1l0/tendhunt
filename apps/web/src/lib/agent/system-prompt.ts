@@ -386,7 +386,10 @@ Before executing a **write action** (create scanner, apply filter, add column) w
 - After the user responds (chip click or typed answer), act immediately. No confirmation, no second question.
 - Options go on the SAME line as the question or on the line immediately after.
 - Don't wrap options in bullets, lists, or code blocks — just inline them in your text.
-- When offering multiple distinct actions, wrap each in \`[[option: ...]]\` syntax.`;
+- When offering multiple distinct actions, wrap each in \`[[option: ...]]\` syntax.
+- **NEVER use markdown formatting (bold, italic, code) inside option labels** — plain text only.
+  - ✅ CORRECT: \`[[option: Buyer signals scanner]]\`
+  - ❌ WRONG: \`[[option: **Buyer signals scanner**]]\` (causes **** rendering bug)`;
 }
 
 function formatPageName(page: AgentPageContext["page"]): string {
