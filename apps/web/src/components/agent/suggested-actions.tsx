@@ -40,6 +40,26 @@ function getPrompts(context: AgentPageContext): string[] {
         "Are there similar contracts?",
         "What signals suggest active procurement?",
       ];
+    case "competitors":
+      return [
+        "Search for Capita contracts",
+        "Who are the biggest IT suppliers in government?",
+        "Find contracts for Serco",
+        "Which suppliers work with NHS trusts?",
+      ];
+    case "competitor_detail":
+      return [
+        context.competitorName
+          ? `Which buyers work most with ${context.competitorName}?`
+          : "Which buyers work with this supplier?",
+        context.competitorName
+          ? `What sectors does ${context.competitorName} operate in?`
+          : "What sectors does this supplier operate in?",
+        context.competitorName
+          ? `Show me spend data for ${context.competitorName}`
+          : "Show me spend data for this supplier",
+        "Find similar suppliers",
+      ];
     default:
       return [
         "Find NHS trusts with high enrichment scores",

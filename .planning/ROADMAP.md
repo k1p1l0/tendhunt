@@ -1,197 +1,256 @@
-# Roadmap: Ofsted Timeline Intelligence
+# Roadmap: Competitor Contract Intelligence
 
-## Overview
+**Created:** 2026-02-14
+**Total phases:** 5
+**Total requirements:** 36
 
-This feature adds Ofsted grading timeline intelligence to TendHunt, enabling tuition companies to discover recently-downgraded schools as sales targets. The build follows a data-first order: historical inspection data ingestion first (foundation for everything), then the schools scanner type with filters (discovery UI), then downgrade detection logic (the core intelligence), then the school detail page with timeline visualization (deep-dive), AI report analysis columns (the differentiator), and finally automated data sync as an enrichment worker stage (keeping it all fresh). Six phases, each delivering testable capability.
+## Phase Overview
 
-**6 phases** | **27 requirements** | **Depth: standard**
-
-## Phase 1: Inspection History Data Foundation
-
-**Goal:** Ingest full historical Ofsted inspection data so every school has a complete inspection timeline in MongoDB.
-
-**Requirements:** DATA-01, DATA-02, DATA-03, DATA-04, DATA-05
-
-**What we build:**
-1. Extend the OfstedSchool model with `inspectionHistory[]` array and computed fields (`lastDowngradeDate`, `ratingDirection`, `downgradeType`)
-2. Create `ingest-ofsted-history.ts` script that downloads and parses historical "all inspections" CSVs from GOV.UK (2005-2015 consolidated, 2015-2019 consolidated, yearly files after)
-3. Map CSV column names across eras (pre-2019 used different field names than post-2019)
-4. Deduplicate inspections by `inspectionNumber` across overlapping CSV files
-5. Compute downgrade detection by comparing consecutive inspections per school
-6. Index `lastDowngradeDate` for fast filtering
-
-**Key files to create/modify:**
-- `apps/web/src/models/ofsted-school.ts` -- add inspectionHistory schema, computed fields, indexes
-- `apps/web/scripts/ingest-ofsted-history.ts` -- new script for historical CSV ingestion
-
-**Success criteria:**
-- [x] Running `ingest-ofsted-history.ts` populates inspectionHistory for schools with historical data
-- [x] Each school's inspectionHistory is sorted by date, deduplicated by inspectionNumber
-- [x] `lastDowngradeDate` is computed and indexed for schools that have experienced a downgrade
-- [x] Schools with post-Sep-2024 inspections have downgrade detection using sub-judgement grades (not overall effectiveness)
-- [x] Database query `{ lastDowngradeDate: { $gte: 3_months_ago } }` returns results in <100ms
+| # | Phase | Requirements | Status |
+|---|-------|-------------|--------|
+| 1 | Search & Data Foundation | 7 (SRCH-01..04, DATA-01..03) | Done |
+| 2 | Competitor Profile & Relationships | 12 (DATA-04, PROF-01..04, CONT-01..04, BUYR-01..04) | Done |
+| 3 | Spend Intelligence | 4 (SPND-01..04) | Done |
+| 4 | Navigation & AI Integration | 6 (NAV-01..03, AI-01..03) | Done |
+| 5 | Competitor Monitoring & Alerts | 6 (WATCH-01..06) | Done |
 
 ---
 
-## Phase 2: Schools Scanner Type
+## Phase 1: Search & Data Foundation
 
-**Goal:** Users can create a "schools" scanner that lists and filters schools with Ofsted-specific columns, matching the existing scanner pattern.
+**Goal:** Users can search for a supplier/competitor by name and see matching results. The data layer supports efficient querying.
 
-**Requirements:** SCAN-01, SCAN-02, SCAN-03, SCAN-04, SCAN-05, SCAN-06
+**Requirements:**
+- [x] SRCH-01 — Search bar with autocomplete suggestions
+- [x] SRCH-02 — Handle name variations (Ltd vs Limited, case insensitive)
+- [x] SRCH-03 — Search results show supplier name, contract count, total value
+- [x] SRCH-04 — Click result to navigate to competitor profile page
+- [x] DATA-01 — MongoDB index on `awardedSuppliers.name`
+- [x] DATA-02 — Supplier name normalization utility
+- [x] DATA-03 — Search API route (contracts + spend data)
 
-**What we build:**
-1. Add `"schools"` to the `ScannerType` union and all related switch/case statements across the codebase
-2. Define schools-specific column definitions in `table-columns.ts` (School name, Rating, Quality of Education, Inspection Date, Previous Rating, Rating Change, Region, School Phase, Pupils, LA)
-3. Add schools-specific filter fields to the scanner filters schema (downgradeWithin, ofstedRating, schoolPhase, localAuthority)
-4. Create API endpoint for querying ofstedschools with pagination, search, and Ofsted filters
-5. Update scanner creation form/modal to allow "schools" type
-6. Ensure AI column support works for schools entities (same pattern as existing types)
+**Key deliverables:**
+1. `lib/supplier-normalize.ts` — Name normalization (strip Ltd/Limited/PLC/LLP/CIC, lowercase, trim)
+2. MongoDB index on `contracts.awardedSuppliers.name` (script or migration)
+3. `/api/competitors/search` API route — regex-based search with Atlas Search fallback
+4. `/competitors` page — Search bar UI with debounced autocomplete, result cards
+5. URL routing: `/competitors/[name]` dynamic route (placeholder for Phase 2)
 
-**Key files to create/modify:**
-- `apps/web/src/models/scanner.ts` -- add "schools" to type enum, extend filters
-- `apps/web/src/components/scanners/table-columns.ts` -- schools column definitions
-- `apps/web/src/components/scanners/scanner-creation-form.tsx` -- schools option
-- `apps/web/src/components/scanners/create-scanner-modal.tsx` -- schools option
-- `apps/web/src/app/api/scanners/route.ts` -- schools query builder
-- `apps/web/src/app/api/scanners/[id]/score-column/route.ts` -- schools entity scoring
-- ~10 more files with scanner type switch statements
+**Dependencies:** None (first phase)
 
-**Success criteria:**
-- [x] User can create a new scanner with type "schools" from the scanners page
-- [x] Schools scanner grid displays columns with correct Ofsted data (ratings, dates, region)
-- [x] "Downgraded in last N months" filter returns only schools with recent downgrades
-- [x] Filters for rating, region, school phase, and local authority work correctly
-- [x] Search by school name returns matching results
-- [x] AI column can be added to schools scanner (scoring infrastructure connected)
+**Risks:**
+- Atlas Search may not be available on free tier — mitigated by regex fallback
+- Name normalization heuristics may miss edge cases — iterate based on real data
 
 ---
 
-## Phase 3: Downgrade Detection & Sorting
+## Phase 2: Competitor Profile & Relationships
 
-**Goal:** Robust downgrade detection that works for both pre-2024 (overall effectiveness) and post-2024 (sub-judgement only) inspections, with sorting by recency.
+**Goal:** Users see a complete profile for a searched supplier — overview stats, contract list, and buyer relationships.
 
-**Requirements:** DOWN-01, DOWN-02, DOWN-03
+**Requirements:**
+- [x] DATA-04 — Aggregation pipeline for competitor profile
+- [x] PROF-01 — Company name header with key stats (contracts, value, active, buyers)
+- [x] PROF-02 — Sector breakdown
+- [x] PROF-03 — Geographic breakdown (buyer regions)
+- [x] PROF-04 — Timeline of contract activity
+- [x] CONT-01 — Contract list table (title, buyer, value, dates, status)
+- [x] CONT-02 — Server-side pagination
+- [x] CONT-03 — Sortable by value, date, buyer name
+- [x] CONT-04 — Contract rows link to contract detail pages
+- [x] BUYR-01 — Buyer list with contract count and total value
+- [x] BUYR-02 — Sorted by total value (highest first)
+- [x] BUYR-03 — Buyer rows link to buyer detail pages
+- [x] BUYR-04 — Buyer entries show sector, region, relationship duration
 
-**What we build:**
-1. Downgrade detection logic comparing current vs previous inspection sub-judgement grades
-2. Handle post-Sep-2024 inspections where overall effectiveness is NULL
-3. Sort option in scanner: "Most recent downgrades first" using pre-computed `lastDowngradeDate`
-4. Rating change badge rendering in the grid (red for downgrade, green for improvement, neutral for unchanged)
-5. Update the "Rating Change" column to show direction with color coding
+**Key deliverables:**
+1. `lib/competitors.ts` — `getCompetitorProfile()`, `getCompetitorContracts()`, `getCompetitorBuyers()` aggregation functions
+2. `/competitors/[name]/page.tsx` — Profile page with tabbed layout (Overview, Contracts, Buyers)
+3. Overview tab: stat cards + sector donut chart + region breakdown + contract timeline
+4. Contracts tab: paginated sortable table with links to `/contracts/[id]`
+5. Buyers tab: grouped buyer list with links to `/buyers/[id]`
+6. Breadcrumb component for profile page
 
-**Key files to create/modify:**
-- `apps/web/src/lib/ofsted-downgrade.ts` -- new utility for downgrade detection logic
-- `apps/web/src/components/scanners/grid/cell-content.ts` -- rating change cell rendering
-- `apps/web/src/components/scanners/grid/custom-renderers.ts` -- rating change badge renderer
-- `apps/web/src/app/api/scanners/route.ts` -- add sort by lastDowngradeDate
+**Dependencies:** Phase 1 (search + indexing + normalization)
 
-**Success criteria:**
-- [x] Schools with a rating that dropped between consecutive inspections are flagged as "downgraded"
-- [x] Post-Sep-2024 inspections (no overall grade) detect downgrades via sub-judgement comparison
-- [x] Scanner can be sorted by "most recent downgrade first"
-- [x] Rating Change column shows colored badges (red/green/amber) indicating direction
-
----
-
-## Phase 4: School Detail Page & Timeline
-
-**Goal:** Users can deep-dive into a specific school's full inspection history with a visual timeline and links to reports.
-
-**Requirements:** DETL-01, DETL-02, DETL-03, DETL-04, DETL-05
-
-**What we build:**
-1. New route `/schools/[urn]` with server component fetching school data + inspectionHistory
-2. School header with current ratings, school info, and buyer link (if connected)
-3. Timeline visualization component showing inspection ratings over time, color-coded by direction
-4. Each inspection entry links to the Ofsted report PDF
-5. Update buyer detail page Ofsted tab to show inspection history (not just current snapshot)
-6. Breadcrumb integration following existing pattern
-
-**Key files to create/modify:**
-- `apps/web/src/app/(dashboard)/schools/[urn]/page.tsx` -- new school detail page
-- `apps/web/src/app/(dashboard)/schools/[urn]/breadcrumb.tsx` -- breadcrumb component
-- `apps/web/src/components/schools/school-header.tsx` -- school info header
-- `apps/web/src/components/schools/inspection-timeline.tsx` -- timeline visualization
-- `apps/web/src/components/buyers/ofsted-tab.tsx` -- upgrade to show history
-- `apps/web/src/app/api/schools/[urn]/route.ts` -- API for school detail data
-
-**Success criteria:**
-- [x] Navigating to `/schools/[urn]` shows a school detail page with full inspection history
-- [x] Timeline visualization displays ratings over time with color coding (red=downgrade, green=improvement)
-- [x] Each inspection in the timeline links to the corresponding Ofsted report PDF
-- [x] School detail page links to the buyer page when buyerId exists
-- [x] Buyer Ofsted tab shows inspection history for linked schools (not just current ratings)
+**Risks:**
+- Aggregation performance for large suppliers (Capita, Serco) — mitigate with $limit and caching
+- Supplier name in URL may need encoding edge case handling
 
 ---
 
-## Phase 5: AI Report Analysis Column
+## Phase 3: Spend Intelligence
 
-**Goal:** Users can add an AI column to the schools scanner that reads Ofsted report PDFs and scores "tuition relevance."
+**Goal:** Users see actual payment data for a supplier, showing which buyers pay them and how much (beyond formal contract awards).
 
-**Requirements:** AI-01, AI-02, AI-03, AI-04
+**Requirements:**
+- [x] SPND-01 — Spend tab on profile page
+- [x] SPND-02 — Total spend amount and transaction count
+- [x] SPND-03 — Breakdown by buyer (which buyers pay this supplier)
+- [x] SPND-04 — Clear labeling distinguishing spend from contract data
 
-**What we build:**
-1. Report fetch + text extraction API endpoint: given a school URN, fetch PDF from `files.ofsted.gov.uk`, extract text with `pdf-parse`
-2. Integrate with existing AI column scoring: when scoring a schools entity, fetch report text and include in Claude prompt
-3. Default "Tuition Relevance" prompt that looks for literacy, numeracy, catch-up, pupil premium, attainment gaps themes
-4. Score (0-10) + reasoning returned to scanner grid
-5. PDF caching to avoid re-downloading the same report
+**Key deliverables:**
+1. `lib/competitors.ts` — `getCompetitorSpend()` aggregation on spend transactions
+2. Spend tab on profile page — summary stats + buyer-level spend table
+3. Data source indicator on profile page ("Contract data from CF/FaT, Spend data from transparency reports")
+4. Cross-reference indicator showing overlap between contract buyers and spend buyers
 
-**Key files to create/modify:**
-- `apps/web/src/app/api/schools/[urn]/report/route.ts` -- PDF fetch + text extraction endpoint
-- `apps/web/src/lib/ofsted-report.ts` -- PDF download, text extraction, caching logic
-- `apps/web/src/app/api/scanners/[id]/score-column/route.ts` -- extend for schools entity type
-- `apps/web/src/lib/scoring-engine.ts` -- add schools context builder (include report text)
+**Dependencies:** Phase 2 (profile page with tabs)
 
-**Success criteria:**
-- [x] User can add an AI column to a schools scanner and run scoring
-- [x] Scoring fetches the Ofsted report PDF and extracts text for Claude analysis
-- [x] "Tuition Relevance" prompt returns a 0-10 score with reasoning referencing report content
-- [x] Results include specific quotes/themes from the report (literacy, numeracy, catch-up, etc.)
-- [x] Report PDFs are cached to prevent redundant downloads on re-scoring
+**Risks:**
+- Spend vendor names may not match contract supplier names exactly — use normalized matching
+- Not all buyers have spend data ingested — show "No spend data available" gracefully
 
 ---
 
-## Phase 6: Ofsted Data Sync (Enrichment Stage)
+## Phase 4: Navigation & AI Integration
 
-**Goal:** Keep Ofsted inspection data fresh by adding a new stage to the existing enrichment worker that downloads latest CSVs, diffs against stored data, and auto-detects new downgrades.
+**Goal:** Competitor analysis is discoverable in the app navigation and accessible through the Sculptor AI agent.
 
-**Requirements:** SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
+**Requirements:**
+- [x] NAV-01 — "Competitors" sidebar entry with icon
+- [x] NAV-02 — Breadcrumb integration (list + detail)
+- [x] NAV-03 — Page animations (enter/exit, tab switches)
+- [x] AI-01 — `search_competitor` Sculptor tool
+- [x] AI-02 — AI answers "show me contracts for [company]"
+- [x] AI-03 — AI links to competitor profile pages
 
-**What we build:**
-1. New enrichment stage (`09-ofsted-sync.ts`) that downloads the latest Ofsted management information CSVs from GOV.UK
-2. Diff logic comparing downloaded inspections against each school's existing `inspectionHistory` by `inspectionNumber` — only new inspections are processed
-3. Automatic downgrade detection on newly ingested inspections using the existing `ofsted-downgrade.ts` utility
-4. Recomputation of `lastDowngradeDate` and `ratingDirection` for any school that received new inspections
-5. Sync progress logging in enrichment job output: schools updated count, new inspections found, new downgrades detected
-6. Weekly cron scheduling (enrichment worker already runs on a cron; this stage gates itself to run once per week via a last-sync timestamp)
+**Key deliverables:**
+1. Sidebar entry in `app-sidebar.tsx` — "Competitors" with `Swords` or `Users` icon
+2. Breadcrumb components following TendHunt patterns
+3. `motion.div` entrance animations on search results and profile tabs
+4. `search_competitor` tool definition in `lib/agent/tools.ts`
+5. Tool handler in `lib/agent/tool-handlers.ts` — calls search + formats results
+6. System prompt update in `lib/agent/system-prompt.ts` — competitor context
 
-**Key files to create/modify:**
-- `apps/workers/enrichment/src/stages/09-ofsted-sync.ts` -- new enrichment stage for Ofsted CSV sync
-- `apps/workers/enrichment/src/index.ts` -- register stage 09 in the enrichment pipeline
-- `apps/web/src/models/ofsted-school.ts` -- add `lastSyncedAt` field for tracking sync freshness
-- `apps/web/src/lib/ofsted-downgrade.ts` -- reuse existing downgrade detection (no changes expected)
+**Dependencies:** Phase 2 (profile pages exist to link to), Phase 3 (spend data available)
 
-**Success criteria:**
-- [x] Enrichment worker runs stage 09 on its regular cron, gated to execute Ofsted sync at most once per week
-- [x] Only new inspections (not already in inspectionHistory by inspectionNumber) are inserted
-- [x] Schools receiving new inspections have lastDowngradeDate and ratingDirection recomputed
-- [x] New downgrades are detected and flagged automatically without manual re-ingestion
-- [x] Enrichment job logs include sync summary (schools updated, new downgrades found)
+**Risks:**
+- AI tool needs to handle ambiguous names (multiple matches) — return top results with clarification
+- Sidebar navigation space is limited — verify icon choice fits visually
 
 ---
 
-## Phase Summary
+## Phase 5: Competitor Monitoring & Alerts
 
-| # | Phase | Goal | Requirements | Plans |
-|---|-------|------|--------------|-------|
-| 1 | Inspection History Data Foundation | Full inspection timeline in MongoDB | DATA-01..05 | 3-4 |
-| 2 | Schools Scanner Type | Discovery UI with Ofsted filters | SCAN-01..06 | 4-5 |
-| 3 | Downgrade Detection & Sorting | Core intelligence logic | DOWN-01..03 | 2-3 |
-| 4 | School Detail Page & Timeline | Deep-dive with timeline visualization | DETL-01..05 | 3-4 |
-| 5 | AI Report Analysis Column | PDF analysis differentiator | AI-01..04 | 3-4 |
-| 6 | Ofsted Data Sync (Enrichment Stage) | Automated weekly Ofsted data refresh | SYNC-01..05 | 2-3 |
+**Goal:** Users can watch competitors and receive proactive alerts when those competitors win new contracts, expand into new regions or sectors, with an activity feed on the dashboard and optional email digests.
+
+**Requirements:**
+- [x] WATCH-01 — User can save competitors to a watchlist from the profile page
+- [x] WATCH-02 — Background job detects new contract awards matching watched suppliers (piggybacks on existing data-sync worker)
+- [x] WATCH-03 — In-app notification when a watched competitor wins a new contract
+- [x] WATCH-04 — Competitor activity feed on dashboard showing recent wins by watched competitors
+- [x] WATCH-05 — Change detection — alert when competitor enters a new region or sector
+- [x] WATCH-06 — Email digest (optional) summarizing watched competitor activity
+
+**Key deliverables:**
+1. `apps/web/src/models/watchlist.ts` — Mongoose schema for user watchlist entries (userId, supplierName, normalizedName, createdAt, notifyEmail flag)
+2. `apps/web/src/app/api/watchlist/route.ts` — CRUD endpoints for managing watched competitors
+3. `apps/web/src/components/competitors/watch-button.tsx` — Toggle button on profile page to add/remove from watchlist
+4. `apps/web/src/components/dashboard/competitor-feed.tsx` — Activity feed card showing recent wins by watched competitors
+5. `apps/web/src/models/notification.ts` — Notification schema (userId, type, title, body, entityLink, read, createdAt)
+6. `apps/web/src/components/layout/notification-bell.tsx` — Header notification icon with unread count badge
+7. Detection logic in data-sync worker post-sync hook — compare new contract awards against watchlist entries
+8. `apps/web/src/app/api/notifications/route.ts` — Notification list + mark-as-read endpoints
+9. Change detection job — snapshot supplier region/sector set, diff on each sync cycle
+10. Email digest worker or cron — aggregate unread notifications per user, send via Resend/SES
+
+**Dependencies:** Phase 4 (competitor profiles and search exist, AI integration established)
+
+**Risks:**
+- Data-sync worker frequency (hourly) limits alert freshness — acceptable for v1, real-time can come later
+- Watchlist scale — each sync must check new awards against all watchlists; mitigate with normalized name index on watchlist collection
+- Email delivery requires a transactional email provider (Resend or AWS SES) — new infrastructure dependency
+- Change detection (region/sector) needs a baseline snapshot per supplier; first run won't detect changes until second sync cycle
+
+---
+
+## Dependency Graph
+
+```
+Phase 1 (Search Foundation)
+    │
+    ▼
+Phase 2 (Profile & Relationships)
+    │
+    ▼
+Phase 3 (Spend Intelligence)
+    │
+    ▼
+Phase 4 (Navigation & AI)
+    │
+    ▼
+Phase 5 (Competitor Monitoring & Alerts)
+```
+
+All phases are sequential. Each builds on the previous.
+
+---
+
+## Files Created/Modified Per Phase
+
+### Phase 1
+| Action | File |
+|--------|------|
+| Create | `apps/web/src/lib/supplier-normalize.ts` |
+| Create | `apps/web/src/app/api/competitors/search/route.ts` |
+| Create | `apps/web/src/app/(dashboard)/competitors/page.tsx` |
+| Create | `apps/web/src/app/(dashboard)/competitors/[name]/page.tsx` (placeholder) |
+| Create | `apps/web/src/components/competitors/search-bar.tsx` |
+| Create | `apps/web/src/components/competitors/search-result-card.tsx` |
+| Create | `apps/web/scripts/add-supplier-index.ts` (one-time migration) |
+
+### Phase 2
+| Action | File |
+|--------|------|
+| Create | `apps/web/src/lib/competitors.ts` |
+| Create | `apps/web/src/app/(dashboard)/competitors/[name]/page.tsx` (full implementation) |
+| Create | `apps/web/src/components/competitors/profile-header.tsx` |
+| Create | `apps/web/src/components/competitors/profile-stats.tsx` |
+| Create | `apps/web/src/components/competitors/profile-tabs.tsx` |
+| Create | `apps/web/src/components/competitors/contracts-tab.tsx` |
+| Create | `apps/web/src/components/competitors/buyers-tab.tsx` |
+| Create | `apps/web/src/components/competitors/sector-chart.tsx` |
+| Create | `apps/web/src/components/competitors/timeline-chart.tsx` |
+| Create | `apps/web/src/app/(dashboard)/competitors/[name]/breadcrumb.tsx` |
+| Create | `apps/web/src/app/(dashboard)/competitors/breadcrumb.tsx` |
+| Create | `apps/web/src/app/api/competitors/[name]/profile/route.ts` |
+| Create | `apps/web/src/app/api/competitors/[name]/contracts/route.ts` |
+| Create | `apps/web/src/app/api/competitors/[name]/buyers/route.ts` |
+
+### Phase 3
+| Action | File |
+|--------|------|
+| Modify | `apps/web/src/lib/competitors.ts` (add spend functions) |
+| Create | `apps/web/src/components/competitors/spend-tab.tsx` |
+| Create | `apps/web/src/app/api/competitors/[name]/spend/route.ts` |
+| Modify | `apps/web/src/components/competitors/profile-tabs.tsx` (add spend tab) |
+
+### Phase 4
+| Action | File |
+|--------|------|
+| Modify | `apps/web/src/components/layout/app-sidebar.tsx` (add Competitors nav) |
+| Modify | `apps/web/src/lib/agent/tools.ts` (add search_competitor tool) |
+| Modify | `apps/web/src/lib/agent/tool-handlers.ts` (add handler) |
+| Modify | `apps/web/src/lib/agent/system-prompt.ts` (add competitor context) |
+| Modify | `apps/web/src/components/competitors/search-bar.tsx` (add animations) |
+| Modify | `apps/web/src/components/competitors/profile-tabs.tsx` (add animations) |
+
+### Phase 5
+| Action | File |
+|--------|------|
+| Create | `apps/web/src/models/watchlist.ts` |
+| Create | `apps/web/src/models/notification.ts` |
+| Create | `apps/web/src/app/api/watchlist/route.ts` |
+| Create | `apps/web/src/app/api/notifications/route.ts` |
+| Create | `apps/web/src/components/competitors/watch-button.tsx` |
+| Create | `apps/web/src/components/dashboard/competitor-feed.tsx` |
+| Create | `apps/web/src/components/layout/notification-bell.tsx` |
+| Modify | `apps/web/src/app/(dashboard)/competitors/[name]/page.tsx` (add watch button) |
+| Modify | `apps/web/src/app/(dashboard)/page.tsx` (add competitor activity feed) |
+| Modify | `apps/web/src/components/layout/header.tsx` (add notification bell) |
+| Modify | `apps/workers/data-sync/src/index.ts` (add post-sync watchlist check) |
 
 ---
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 — added Phase 6 Ofsted Data Sync*
+*Last updated: 2026-02-14 — Phase 5 completed (Competitor Monitoring & Alerts)*

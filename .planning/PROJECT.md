@@ -1,69 +1,82 @@
-# Ofsted Timeline Intelligence
+# Competitor Contract Intelligence
 
 ## What This Is
 
-A feature for TendHunt that lets tuition companies (like Tutors Green) discover schools recently downgraded by Ofsted and assess whether those schools need tuition services. It adds Ofsted grading timeline filters to TendHunt's scanner system, shows inspection history on school/buyer detail pages, and provides AI analysis of Ofsted reports to score "tuition relevance" -- turning Ofsted inspection data into actionable sales intelligence for education SMEs.
+A feature for TendHunt that lets users search for competitor companies by name and see all their public contracts — which buyers (schools, local authorities, NHS trusts) they work with, how much they're winning, and where gaps exist. It transforms publicly available UK procurement data into competitive intelligence, helping suppliers like tutoring companies discover where their competitors are selling and identify untapped opportunities.
 
 ## Core Value
 
-Suppliers can instantly find schools downgraded by Ofsted in the last N months and assess whether each school's inspection report suggests a need for their services -- so they target schools with fresh remediation funding, not ones that already spent it.
+Users can search any company name and instantly see every public contract they've won and every buyer that pays them — revealing the competitor's market footprint and the user's opportunities.
 
 ## Requirements
 
 ### Validated
 
-- Ofsted school data ingested from GOV.UK monthly CSV (~22,000 schools) -- `apps/web/scripts/ingest-ofsted.ts`
-- Schools matched to buyer organisations by MAT name and Local Authority
-- Basic Ofsted tab on buyer detail pages showing school ratings -- `apps/web/src/components/buyers/ofsted-tab.tsx`
-- Ofsted signals generated for below-Good schools -- `apps/web/scripts/generate-ofsted-signals.ts`
-- OfstedSchool model with current + previous rating fields -- `apps/web/src/models/ofsted-school.ts`
+- Awarded supplier names and IDs already extracted from OCDS data into `awardedSuppliers[]` on contracts
+- Spend transaction data already tracks vendor names (`vendor`, `vendorNormalized`) per buyer
+- Scanner grid system (Glide Data Grid) supports multiple entity types (rfps, meetings, buyers)
+- Buyer pages already show contract lists and spend breakdowns
 
 ### Active
 
-- [ ] Full grading timeline per school (history of inspections, not just latest + previous)
-- [ ] Scanner type "schools" with Ofsted-specific filters (downgrade recency, rating, region, school phase)
-- [ ] "Downgraded in last N months" as the primary filter for the schools scanner
-- [ ] Timeline visualization of inspection history (when downgrades happened)
-- [ ] AI column in scanner grid for "Tuition Relevance" scoring from Ofsted report PDFs
-- [ ] Ofsted history on buyer/school detail pages showing rating changes over time
-- [ ] Automated ingestion of inspection history data (not just latest snapshot)
+- [ ] User can search for a competitor company by name and get a profile of their contracts
+- [ ] User can see which buyers a competitor works with (schools, LAs, NHS trusts)
+- [ ] User can see the total contract value a competitor has won
+- [ ] User can see spend data (transparency CSV data) for a competitor across all buyers
+- [ ] User can compare their own coverage against a competitor's buyer footprint
+- [ ] User can discover market opportunities — buyers the competitor works with that they don't
 
 ### Out of Scope
 
-- FE colleges, children's homes, early years providers -- schools only for MVP, other Ofsted-inspected entities can follow
-- Fully automated AI analysis during enrichment -- burns API credits for reports never viewed; on-demand via scanner AI column only
-- Sculptor on-demand report analysis -- nice-to-have after scanner AI column ships
-- Companies House integration for school/MAT financial data -- separate workstream
-- Ofsted notification alerts (email/push when a school gets downgraded) -- post-MVP
-- Real-time Ofsted data feed -- monthly CSV refresh is sufficient for sales intelligence use case
+- Companies House integration / company registration lookup — not needed for v1, supplier names from OCDS are sufficient
+- Real-time competitor monitoring / alerts — build search and display first, alerts later
+- Multi-competitor comparison views — start with single competitor analysis
+- Supplier financial health or credit scoring — out of domain for TendHunt
+- Scraping competitor websites — only use publicly available procurement data
 
 ## Context
 
-- **User:** Matt from Tutors Green, a tuition company. His workflow: find recently-downgraded schools -> pitch tuition services -> schools have earmarked funding to address Ofsted concerns
-- **Key insight:** Schools downgraded recently (last 1-3 months) still have remediation funding. Schools downgraded 3 years ago have already spent it. Recency is the critical filter.
-- **Existing data:** ~22,000 schools already ingested from GOV.UK monthly management information CSV. Schools linked to buyers by MAT/LA matching.
-- **Existing model:** `OfstedSchool` has `overallEffectiveness`, `previousOverallEffectiveness`, `inspectionDate`, `previousInspectionDate`, `reportUrl` -- captures current and one-previous rating but not full history.
-- **Ofsted reports:** Published as HTML/PDF at report URLs. Reports contain detailed narrative about what the school is doing well/poorly, specific to curriculum areas.
-- **Scanner system:** TendHunt already has scanner types "rfps", "meetings", "buyers" with AI columns. Need to add "schools" scanner type.
-- **Post-Sep-2024 change:** Ofsted removed single-word overall grades; now uses sub-judgements only. This affects how we display and filter ratings.
+### Data Sources Already Available
+
+1. **Contract awards** (`contracts` collection): `awardedSuppliers[].name` and `awardedSuppliers[].supplierId` on awarded contracts. This is the primary source — every contract in Contracts Finder and Find a Tender that has been awarded includes the winning supplier name.
+
+2. **Spend transactions** (`spendtransactions` collection): `vendor` / `vendorNormalized` fields on individual spend line items. UK councils publish 25k+ and 500+ spending data as CSVs. TendHunt already ingests these. A search on vendor name reveals actual payments to a company.
+
+3. **Spend summaries** (`spendsummaries` collection): Pre-aggregated `vendorBreakdown[]` per buyer with total spend and transaction count per vendor.
+
+### Name Matching Challenge
+
+Supplier names are inconsistent across data sources:
+- "Tutors Green Ltd" vs "TUTORS GREEN LTD" vs "Tutors Green Limited"
+- Same company may appear with different legal suffixes or abbreviations
+- Need fuzzy/normalized matching — the `vendorNormalized` field on spend data already lowercases and trims, but contract `awardedSuppliers.name` is raw
+
+### No Existing Index
+
+Currently no index on `awardedSuppliers.name`. Need to add one for efficient search. Text search or regex on supplier names will be needed.
+
+### Existing Architecture to Build On
+
+- Scanner system: Could add a "competitors" scanner type, or build a standalone page
+- Buyer pages: Already show contracts and spend — competitor view is the inverse (supplier-centric instead of buyer-centric)
+- Sculptor AI agent: Could gain a `search_competitor` tool for conversational competitor analysis
 
 ## Constraints
 
-- **Tech stack**: Must use existing TendHunt stack (Next.js, MongoDB, Glide Data Grid scanners, Claude AI for scoring)
-- **Data source**: GOV.UK Management Information CSV is the primary source. Ofsted Inspection Data Summary CSV provides historical data.
-- **Scanner pattern**: New "schools" scanner type must follow existing scanner architecture (model, table-columns, grid rendering, AI column scoring)
-- **API credits**: AI report analysis is on-demand only (scanner AI column), not bulk-processed during enrichment
-- **No lint**: Do NOT run `bun run lint` -- memory exhaustion issue on this machine
+- **Data completeness**: Only contracts that have been awarded and published include supplier names — open tenders don't have suppliers yet
+- **Name normalization**: No universal company ID across contract awards and spend data — must rely on name matching heuristics
+- **Existing stack**: Must use Next.js + MongoDB + Tailwind + shadcn/ui (existing TendHunt stack)
+- **No new external APIs**: Use only data already in the database (contracts + spend), no Companies House API or similar
+- **Performance**: Supplier name search across all contracts must be fast — need proper indexing
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Schools only for MVP | Core market for tuition companies; FE/early years can follow | -- Pending |
-| Full inspection history | Track all inspections, not just latest + previous, to show downgrade trajectory | -- Pending |
-| Scanner AI column for report analysis | Matches existing TendHunt pattern; user triggers analysis per-school, not bulk | -- Pending |
-| "Downgraded in last N months" as primary filter | This is THE insight: recent downgrades = fresh funding = best targets | -- Pending |
-| On-demand report analysis only | Avoid burning API credits on ~22,000 reports that may never be viewed | -- Pending |
+| Build as dedicated page, not scanner type | Competitor analysis is supplier-centric (inverse of existing buyer-centric scanners). A `/competitors` page with search fits better than forcing it into the scanner grid paradigm | -- Pending |
+| Use MongoDB text search + regex for supplier name matching | Already have `$text` search patterns in the codebase. Regex fallback handles partial matches. No need for external search engine | -- Pending |
+| Normalize supplier names on query, not at ingest time | Avoid schema migrations. Build a query-time normalization function that strips Ltd/Limited/PLC etc. | -- Pending |
+| Aggregate from both contracts and spend data | Contracts show formal awards (higher value, competitive tenders). Spend shows actual payments (including small purchases). Together they give the full picture | -- Pending |
 
 ---
 *Last updated: 2026-02-14 after initialization*

@@ -7,6 +7,7 @@ import { SculptorHeroInput } from "@/components/sculptor/sculptor-hero-input";
 import { RecentConversations } from "@/components/sculptor/recent-conversations";
 import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { AccountManagerCard } from "@/components/dashboard/account-manager-card";
+import { CompetitorFeed } from "@/components/dashboard/competitor-feed";
 import { useAgent } from "@/hooks/use-agent";
 import { useAgentStore } from "@/stores/agent-store";
 
@@ -122,6 +123,8 @@ export function SculptorHomepage({
 
       {/* Below-the-fold content */}
       <div className="w-full max-w-5xl px-4 pb-8 space-y-8">
+        <CompetitorFeed />
+
         {recentConversations.length > 0 && (
           <RecentConversations conversations={recentConversations} />
         )}

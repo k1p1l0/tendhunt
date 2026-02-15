@@ -1,114 +1,88 @@
-# Stack Research: Ofsted Timeline Intelligence
+# Stack Research: Competitor Contract Intelligence
 
-## Existing Stack (Validated)
+## Existing Stack (No Changes Needed)
 
-This is a brownfield feature addition. The stack is already established:
+This is a feature addition to TendHunt, not a greenfield project. The entire stack is already in place:
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| Framework | Next.js 16.1 (TypeScript) | App router, server components |
-| Database | MongoDB Atlas | Mongoose ODM |
-| UI | shadcn/ui + Tailwind CSS 4.1 | Dark mode, responsive |
-| Data Grid | Glide Data Grid | Custom renderers, AI columns |
-| AI | Claude API (Haiku/Sonnet) | SSE streaming, tool use |
-| Animation | Motion (Framer Motion) | Required for all state transitions |
-| Auth | Clerk | Already integrated |
-| Workers | Cloudflare Workers | Data-sync, enrichment, spend-ingest |
+- **Framework**: Next.js 16.1 (TypeScript) on Cloudflare Pages
+- **Database**: MongoDB Atlas (free tier) with Mongoose ODM
+- **UI**: shadcn/ui + Tailwind CSS 4.1 + Glide Data Grid
+- **AI**: Claude API (Haiku) for scoring via Sculptor agent
+- **Workers**: Cloudflare Workers for data ingestion pipelines
 
-## New Stack Additions Needed
+## New Stack Components Needed
 
-### 1. PDF Processing for Ofsted Reports
+### 1. MongoDB Atlas Search Index (HIGH CONFIDENCE)
 
-**Recommended: `pdf-parse` (already in project scripts dependencies)**
+**What**: Atlas Search index on `awardedSuppliers.name` field in the contracts collection, plus on `vendorNormalized` in spend transactions.
 
-Ofsted report PDFs are typically 5-15 pages. `pdf-parse` extracts text from PDFs in Node.js. Already used elsewhere in the TendHunt codebase (scripts/).
+**Why**: Regular MongoDB `$text` index doesn't support fuzzy matching well. Atlas Search provides:
+- Autocomplete as-you-type
+- Fuzzy matching (Levenshtein distance, `maxEdits: 2`)
+- Custom analyzers for company name normalization (strip "Ltd", "Limited", "PLC" etc.)
+- No additional infrastructure — it's built into Atlas
 
-Alternative considered: `@anthropic-ai/sdk` direct PDF support -- Claude can process PDFs natively via the API, but this is expensive for batch processing. Better to extract text first, then send to Claude.
+**Alternative considered**: Client-side fuzzy search with Fuse.js — rejected because it requires loading all supplier names into memory. With 100k+ contracts, this doesn't scale.
 
-**Approach:** Fetch PDF from `files.ofsted.gov.uk`, extract text with `pdf-parse`, send text to Claude for analysis.
+**Alternative considered**: Regular `$regex` search — works for exact prefix matching but doesn't handle typos or name variations.
 
-### 2. CSV Parsing for Historical Data
+### 2. MongoDB Aggregation Pipeline (HIGH CONFIDENCE)
 
-**Already in use: `csv-parse`**
+**What**: `$aggregate` pipelines to build competitor profiles from contract + spend data.
 
-The existing `ingest-ofsted.ts` script uses `csv-parse` for the management information CSV. The same library works for the "all inspections" historical CSVs.
+**Why**: Need to:
+- Group contracts by supplier name (fuzzy-matched)
+- Aggregate total value, buyer count, sector breakdown
+- Join with spend data for actual payment figures
+- Compute time-series (contracts won per year)
 
-### 3. Timeline Visualization
+This is pure MongoDB — no new dependencies.
 
-**Recommended: Custom canvas rendering in Glide Data Grid OR React component**
+### 3. Company Name Normalization Utility (HIGH CONFIDENCE)
 
-Two options:
-- **For scanner grid:** Add a custom cell renderer for timeline visualization (mini chart in a cell)
-- **For detail pages:** Use a React timeline component with Motion animations
+**What**: A TypeScript utility function that normalizes UK company names for matching.
 
-No external charting library needed -- the existing pattern of custom Glide Data Grid renderers + React components with Motion covers both use cases.
+**Why**: UK company names have many variations:
+- Legal suffixes: "Ltd", "Limited", "PLC", "LLP", "CIC"
+- Trading names vs registered names
+- Abbreviations: "Dept" vs "Department"
+- Punctuation: "St." vs "St" vs "Saint"
 
-### 4. Report URL Structure
+**Implementation**: Simple string manipulation — no external library needed:
+```
+lowercase → strip legal suffixes → normalize whitespace → strip punctuation → trim
+```
 
-Ofsted reports are accessible at:
-- **Provider page:** `https://reports.ofsted.gov.uk/provider/{type}/{URN}` (lists all inspections)
-- **PDF download:** `https://files.ofsted.gov.uk/v1/file/{fileId}` (direct PDF)
-- **Report URL in CSV:** Points to the report page on GOV.UK
+The spend-ingest worker already does basic normalization (`vendorNormalized`). Extend this pattern.
 
-The `reportUrl` field in the existing OfstedSchool model may point to the GOV.UK page. For PDF extraction, we need the `files.ofsted.gov.uk` URL which requires scraping the provider page or mapping from inspection numbers.
+### 4. No New NPM Dependencies
 
-## Data Sources
+Everything needed is already in the project:
+- `mongoose` for MongoDB queries
+- `next` for API routes and pages
+- `@glideapps/glide-data-grid` if we want grid views
+- `recharts` for charts (already used in spend analytics)
+- `lucide-react` for icons
+- `motion` for animations
 
-### Primary: Monthly Management Information CSV
+## What NOT to Use
 
-- **URL:** `https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes`
-- **Format:** CSV, ~16MB, ~22,000 rows
-- **Content:** Latest inspection for each school (one row per school)
-- **Key fields:** URN, School name, Region, Overall effectiveness, Quality of education, Behaviour and attitudes, Personal development, Leadership and management, Inspection date, Previous inspection date, Previous overall effectiveness
-- **Already ingested:** Yes, via `apps/web/scripts/ingest-ofsted.ts`
-
-### Secondary: "All Inspections" Year-to-Date CSV
-
-- **URL:** Same GOV.UK page, separate files per academic year
-- **Format:** CSV with MULTIPLE rows per school (one per inspection)
-- **Content:** Every inspection published in a given year-to-date period
-- **Key fields:** Same as management info + inspection number, inspection type
-- **Covers:** Files available from 2005-2015 (consolidated), 2015-2019 (consolidated), then yearly
-- **Critical for timeline:** This is the source for full inspection history
-
-### Tertiary: Five-Year Inspection Data
-
-- **URL:** `https://www.gov.uk/government/publications/five-year-ofsted-inspection-data`
-- **Format:** ODS spreadsheet
-- **Content:** Most recent inspection for all open providers over 5 years
-- **Limitation:** Single row per school (latest only), NOT multiple inspections
-- **Note:** Publication postponed while Ofsted updates format
-
-### Report PDFs
-
-- **Access:** `https://files.ofsted.gov.uk/v1/file/{fileId}`
-- **Discovery:** Via provider page at `reports.ofsted.gov.uk/provider/{type}/{URN}`
-- **Format:** PDF, 5-20 pages
-- **Content:** Full narrative report with sections on each judgement area
-
-## Post-September 2024 Change
-
-Since September 2024, Ofsted no longer assigns an "Overall Effectiveness" grade (1-4) for state-funded schools. Instead, schools receive individual sub-judgement grades only:
-- Quality of education
-- Behaviour and attitudes
-- Personal development
-- Leadership and management
-
-**Impact on our feature:**
-- New inspections (post Sep 2024) will have NULL overall effectiveness
-- Must filter by sub-judgement grades, not just overall
-- "Downgrade" detection needs to compare individual sub-judgements when overall is missing
-- Timeline visualization needs to handle mixed data (old inspections with overall grade, new ones without)
+| Technology | Why Not |
+|-----------|---------|
+| Elasticsearch | Overkill — Atlas Search does what we need within MongoDB |
+| Fuse.js | Doesn't scale to 100k+ supplier names in-browser |
+| Companies House API | Adds external dependency, rate limits, and complexity for v1 |
+| Dedicated search service (Algolia, Meilisearch) | Atlas Search is sufficient and already available |
+| GraphQL | TendHunt uses REST API routes — maintain consistency |
 
 ## Confidence Levels
 
-| Decision | Confidence | Notes |
-|----------|-----------|-------|
-| Use "all inspections" CSVs for history | High | Multiple rows per school, exact data needed |
-| pdf-parse for report text extraction | High | Already in project, lightweight |
-| Claude Haiku for report analysis | High | Matches existing AI column pattern |
-| Custom Glide renderer for timeline | Medium | May be complex; could start with simpler approach |
-| No external charting library | Medium | Timeline could benefit from a light chart lib later |
+| Component | Confidence | Notes |
+|-----------|------------|-------|
+| Atlas Search for fuzzy matching | HIGH | Standard Atlas feature, well-documented |
+| MongoDB aggregation for profiles | HIGH | Already used extensively in spend analytics |
+| Name normalization utility | HIGH | Simple string ops, proven pattern in codebase |
+| No new dependencies needed | HIGH | Feature builds on existing stack |
 
 ---
 *Researched: 2026-02-14*

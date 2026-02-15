@@ -1,149 +1,138 @@
-# Pitfalls Research: Ofsted Timeline Intelligence
+# Pitfalls Research: Competitor Contract Intelligence
 
-## 1. Post-September 2024 Overall Grade Removal
+## Pitfall 1: Supplier Name Fragmentation (CRITICAL)
 
-**Risk:** High
-**Phase impact:** Data ingestion, downgrade detection, filtering
+**The problem**: The same company appears under many names across contracts and spend data. "Capita PLC" might also be "Capita Business Services Ltd", "Capita Property Infrastructure", "Capita Managed IT Solutions", etc. These are all the same parent company but appear as separate suppliers.
 
-Since September 2024, Ofsted no longer assigns an "Overall Effectiveness" grade for state-funded schools. The `overallEffectiveness` field will be NULL for any inspection after this date. This means:
+**Warning signs**: Search returns too many partial matches. Users search "Capita" and get 50 different entries instead of one consolidated view.
 
-- "Downgrade" cannot be defined as "overall grade went from 2 to 3" for new inspections
-- Must compare individual sub-judgement grades instead
-- Timeline visualization needs to handle mixed data (old inspections with overall, new without)
-- Filters that say "Requires Improvement" need to work on sub-judgements
+**Prevention strategy**:
+1. Build a normalization function that strips legal suffixes and common variations
+2. For v1, show all name variants as separate results — let the user pick
+3. For v2, consider a "Supplier Group" concept (like Tussell's) that links related entities
+4. DO NOT try to auto-merge suppliers — false positives are worse than showing duplicates
 
-**Warning signs:** Queries returning 0 results for recent inspections when filtering on overallEffectiveness.
+**Phase impact**: Phase 1 (search) and Phase 2 (profile display)
 
-**Prevention:**
-- Define "downgrade" as: any sub-judgement grade increased (worse) compared to previous inspection's corresponding sub-judgement
-- Compute a synthetic "worst rating" field (max of all sub-judgements) for simplified filtering
-- Show sub-judgement breakdown in UI, not just overall
-- Test with post-Sep-2024 inspection data specifically
+## Pitfall 2: Incomplete Award Data
 
-## 2. CSV Column Name Inconsistency Across Years
+**The problem**: Not all contracts have `awardedSuppliers` populated. Many contracts are in OPEN or TENDER status (no award yet). Contracts Finder has better award data than Find a Tender for older contracts. Some awarded contracts have the supplier name in the `rawData` but not extracted into `awardedSuppliers`.
 
-**Risk:** Medium
-**Phase impact:** History ingestion
+**Warning signs**: Competitor profile shows suspiciously few contracts for a major supplier.
 
-GOV.UK CSV column names have changed over the years:
-- Old: "Achievement", "Quality of teaching", "Overall effectiveness"
-- New: "Quality of education", "Behaviour and attitudes", "Overall effectiveness" (then removed)
-- Some columns added/removed between years
+**Prevention strategy**:
+1. Query scope: Only search contracts with `status: "AWARDED"` and non-empty `awardedSuppliers`
+2. Show data completeness indicator: "Based on X awarded contracts from Contracts Finder and Find a Tender"
+3. Supplement with spend data — spend transactions have vendor names for actual payments
+4. Consider a future enrichment stage that backfills missing supplier names from `rawData.awards`
 
-Different CSV files (2005-2015 consolidated vs yearly files) may use different column names for the same data.
+**Phase impact**: Phase 1 (search) and Phase 2 (profile accuracy)
 
-**Warning signs:** Ingestion script silently producing NULL values for fields that should have data.
+## Pitfall 3: Atlas Search on Free Tier
 
-**Prevention:**
-- Map column names per CSV file/era (pre-2019, 2019-2024, post-2024)
-- Log unmapped columns during ingestion
-- Validate that key fields (URN, inspection date, at least one rating) are present per row
-- Test with one file from each era before running full ingestion
+**The problem**: MongoDB Atlas M0 (free tier) supports Atlas Search but with restrictions:
+- Maximum 3 search indexes
+- No custom analyzers
+- Limited to 512 MB storage for search indexes
+- Performance may be slower than paid tiers
 
-## 3. PDF Report Access Failures
+TendHunt might already be using search indexes for other features (contract text search).
 
-**Risk:** Medium
-**Phase impact:** AI report analysis
+**Warning signs**: "Search index creation failed" errors. Slow search responses (>2s).
 
-Ofsted report PDFs are hosted at `files.ofsted.gov.uk`. Potential issues:
-- Rate limiting on PDF downloads
-- Old reports may have moved or been removed
-- Some reports are HTML-only (no PDF)
-- PDF text extraction may fail on scanned/image-based PDFs (rare for Ofsted)
-- `reportUrl` in the CSV may point to GOV.UK page, not direct PDF
+**Prevention strategy**:
+1. Check how many Atlas Search indexes are already in use
+2. If at capacity, fall back to MongoDB `$regex` with a regular index
+3. `$regex` with `^prefix` on an indexed field is still fast — it's just not fuzzy
+4. Build the search API to support both Atlas Search and regex fallback
+5. Consider upgrading to M2/M5 if search quality matters ($9-25/month)
 
-**Warning signs:** 403/404 errors fetching PDFs, empty text after extraction.
+**Phase impact**: Phase 1 (search implementation)
 
-**Prevention:**
-- Cache downloaded PDFs (R2 or local .cache/)
-- Implement retry with backoff for failed downloads
-- Fallback: if PDF unavailable, score based on available metadata only
-- Map from URN to `reports.ofsted.gov.uk/provider/{type}/{URN}` page to discover PDF links
-- Store `reportFileId` in inspectionHistory for direct `files.ofsted.gov.uk` access
+## Pitfall 4: Query Performance on Large Collections
 
-## 4. Duplicate Inspections in History
+**The problem**: Aggregation pipelines that scan all contracts matching a supplier name can be slow if the supplier has hundreds of contracts (think Capita, Serco, G4S). Cross-collection joins with spend data add latency.
 
-**Risk:** Medium
-**Phase impact:** History ingestion
+**Warning signs**: Profile page takes >3s to load. Timeouts on Cloudflare Pages (30s limit on serverless functions).
 
-When ingesting from multiple CSV files spanning overlapping periods, the same inspection may appear in multiple files. Without deduplication, a school could show the same inspection twice in its timeline.
+**Prevention strategy**:
+1. Add proper compound indexes: `{ "awardedSuppliers.name": 1, status: 1, publishedDate: -1 }`
+2. Limit aggregation results (top 100 contracts, top 20 buyers)
+3. Use `$facet` to run multiple aggregations in a single pipeline
+4. Cache competitor profiles in memory or a `competitorProfiles` collection (TTL: 24h)
+5. Paginate contract lists (don't load all at once)
 
-**Warning signs:** Timeline showing duplicate entries on the same date.
+**Phase impact**: Phase 2 (profile aggregation)
 
-**Prevention:**
-- Deduplicate by `inspectionNumber` (unique per inspection in the CSV data)
-- If inspectionNumber unavailable, deduplicate by URN + inspectionDate
-- Sort inspectionHistory by date descending after merge
-- Add a uniqueness check before pushing to the array
+## Pitfall 5: URL Encoding of Supplier Names
 
-## 5. Scanner Type Registration Cascade
+**The problem**: Supplier names contain spaces, ampersands, apostrophes, and other special characters. URL encoding/decoding must be handled consistently. "Marks & Spencer" becomes `Marks%20%26%20Spencer`.
 
-**Risk:** Medium
-**Phase impact:** Scanner integration
+**Warning signs**: 404 errors on profile pages. Double-encoding issues. Browser URL bar looks ugly.
 
-Adding a new scanner type ("schools") touches many files in the existing codebase:
-- `models/scanner.ts` -- type union
-- `table-columns.ts` -- column definitions
-- `glide-columns.ts` -- column conversion
-- `cell-content.ts` -- cell rendering
-- Scanner page -- filter controls
-- Scanner API routes -- query builders
-- Sculptor tools -- may reference scanner types
+**Prevention strategy**:
+1. Use `encodeURIComponent()` / `decodeURIComponent()` consistently
+2. Use Next.js dynamic routes `[name]` which auto-decode
+3. Consider slugifying for URL display while keeping original name for search
+4. Test with edge cases: "O'Brien & Partners Ltd", "St. John's", "ABC (UK) Limited"
 
-Missing any one of these creates a runtime error or silent failure.
+**Phase impact**: Phase 1 (routing)
 
-**Warning signs:** TypeScript errors about missing case in switch statements (if exhaustive checks exist), or "unknown scanner type" at runtime.
+## Pitfall 6: Spend Data vs Contract Data Mismatch
 
-**Prevention:**
-- Search codebase for all references to existing scanner types ("rfps", "meetings", "buyers") before starting
-- Create a checklist of every file that needs updating
-- Use TypeScript exhaustive switch checks so the compiler catches missing cases
+**The problem**: A supplier might appear in spend data but not in contract awards (below threshold for formal procurement), or in contracts but not spend data (contract awarded but no transparency data from that buyer). Users might be confused by discrepancies.
 
-## 6. Downgrade Window Query Performance
+**Warning signs**: "But I know they have a contract with X council" — user sees gaps.
 
-**Risk:** Low-Medium
-**Phase impact:** Scanner filtering
+**Prevention strategy**:
+1. Show contracts and spend as separate tabs with clear labeling
+2. Explain data sources: "Contract awards from Contracts Finder/Find a Tender" vs "Payment data from council transparency reports"
+3. Show a "Data Sources" section on the profile explaining coverage
+4. Don't try to reconcile — just show both views
 
-The primary use case is "show me schools downgraded in the last N months." If we compute this dynamically (comparing current vs previous ratings per query), it's expensive on 22k schools. If we pre-compute `lastDowngradeDate`, the index makes it fast.
+**Phase impact**: Phase 3 (spend integration)
 
-**Warning signs:** Scanner page loading slowly (>2s) with downgrade filters.
+## Pitfall 7: Confusing "Competitor" with "Any Supplier"
 
-**Prevention:**
-- Pre-compute `lastDowngradeDate`, `ratingDirection` during ingestion
-- Index `lastDowngradeDate` in MongoDB
-- Avoid runtime comparison of ratings arrays in aggregation pipelines
-- Test query performance with `explain()` on the actual collection
+**The problem**: The feature is called "Competitor Analysis" but technically it searches any supplier. A user might search their own company name, a partner, or a random company. The UX shouldn't assume the searched entity is always a competitor.
 
-## 7. Inspection History Array Size
+**Warning signs**: UI copy says "Your competitor's contracts" when the user searched their own company.
 
-**Risk:** Low
-**Phase impact:** Data model
+**Prevention strategy**:
+1. Use neutral language: "Supplier Profile" or "Company Contracts" instead of "Competitor"
+2. The page title should be the company name, not "Competitor: [name]"
+3. Navigation label can be "Competitors" (that's the use case) but page content should be neutral
+4. This is actually a feature — users searching their own name validates data quality
 
-Most schools have 2-6 inspections over 20 years. But some long-running schools could have 8-10+ inspections. The embedded array approach works fine for this size, but:
+**Phase impact**: Phase 2 (UI/UX copy)
 
-**Warning signs:** Document size approaching 16MB MongoDB limit (extremely unlikely with inspection data).
+## Pitfall 8: No Supplier Identity Resolution
 
-**Prevention:**
-- Monitor max array length during ingestion
-- Each inspection entry is ~200 bytes, so even 20 inspections = ~4KB -- negligible
-- No action needed unless a school somehow has 100+ inspections
+**The problem**: Without Companies House integration, we can't reliably group subsidiaries. "Serco Group PLC", "Serco Ltd", and "Serco Leisure Operating Ltd" are all the same parent company. A user searching "Serco" might miss contracts under subsidiary names.
 
-## 8. Ofsted Report Card Format Change (November 2025)
+**Warning signs**: Major suppliers show surprisingly low contract counts.
 
-**Risk:** Low
-**Phase impact:** AI report analysis, timeline
+**Prevention strategy**:
+1. For v1: Return all matching names from search, not just exact matches
+2. Show "Related suppliers" section if search returns similar names
+3. Let users manually add to a "competitor watch list" that tracks multiple name variants
+4. v2: Add Companies House API to resolve parent-subsidiary relationships
+5. v2: Build a "Supplier Group" entity that links related names
 
-From November 2025, Ofsted is introducing "report cards" with a new format. This may change:
-- Report structure (sections, headings)
-- Rating categories (new areas like "achievement", "inclusion")
-- PDF format/layout
+**Phase impact**: Phase 1 (search results display)
 
-**Warning signs:** AI analysis scoring dropping in quality, reports not matching expected structure.
+## Summary: Risk Matrix
 
-**Prevention:**
-- Keep AI prompts flexible (don't hardcode section names)
-- Monitor report structure changes in Ofsted's published guidance
-- The AI column approach naturally adapts since prompts can be updated by users
+| Pitfall | Severity | Likelihood | Phase |
+|---------|----------|------------|-------|
+| Name fragmentation | HIGH | CERTAIN | 1-2 |
+| Incomplete award data | MEDIUM | HIGH | 1-2 |
+| Atlas Search limits | MEDIUM | MEDIUM | 1 |
+| Query performance | MEDIUM | MEDIUM | 2 |
+| URL encoding | LOW | MEDIUM | 1 |
+| Spend/contract mismatch | LOW | HIGH | 3 |
+| "Competitor" labeling | LOW | HIGH | 2 |
+| No identity resolution | MEDIUM | CERTAIN | 1 |
 
 ---
 *Researched: 2026-02-14*

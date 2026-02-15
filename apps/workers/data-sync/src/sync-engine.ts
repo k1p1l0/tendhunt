@@ -9,6 +9,7 @@ import {
   markSyncComplete,
   markSyncError,
 } from "./db/sync-jobs";
+import { checkWatchlistMatches } from "./db/watchlist";
 
 // ---------------------------------------------------------------------------
 // Types for dependency injection (API clients implement these)
@@ -114,6 +115,11 @@ export async function processSyncJob(
               .catch((err) => console.warn(`Enrichment trigger failed for ${buyerId}:`, err));
           }
         }
+
+        // WATCH-02 + WATCH-05: Check new contracts against competitor watchlists
+        checkWatchlistMatches(db, batch).catch((err) =>
+          console.warn("Watchlist check failed:", err)
+        );
       }
 
       fetched += pageResult.releases.length;

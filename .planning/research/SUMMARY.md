@@ -1,54 +1,50 @@
-# Research Summary: Ofsted Timeline Intelligence
+# Research Summary: Competitor Contract Intelligence
 
-## Stack
+## Stack Recommendation
 
-**No new major dependencies.** This is a brownfield feature addition using the existing TendHunt stack (Next.js, MongoDB, Glide Data Grid, Claude API). The only additions are:
-- `pdf-parse` for Ofsted report text extraction (already available in the project)
-- `csv-parse` for historical CSV parsing (already in use by existing ingestion script)
+**No new dependencies needed.** This feature builds entirely on the existing TendHunt stack:
+- MongoDB Atlas Search (or regex fallback) for supplier name search
+- MongoDB aggregation pipelines for competitor profiles
+- Next.js server components for data-heavy pages
+- Existing UI components (shadcn/ui, Tailwind, recharts)
 
-## Key Data Sources
+The only new infrastructure is a MongoDB index on `awardedSuppliers.name` and potentially an Atlas Search index for fuzzy autocomplete.
 
-| Source | What | Format | Rows per School |
-|--------|------|--------|-----------------|
-| Monthly Management Info CSV | Latest inspection snapshot | CSV, ~22k rows | 1 (latest only) |
-| "All Inspections" Year-to-Date CSVs | Every inspection in a period | CSV, multiple files | Multiple |
-| Historical consolidated CSVs (2005-2015, 2015-2019) | All older inspections | CSV | Multiple |
-| `files.ofsted.gov.uk` | PDF reports | PDF, 5-20 pages | N/A |
+## Table Stakes Features
 
-**Critical insight:** The "All Inspections" CSVs are the key data source for building the grading timeline. The monthly CSV (already ingested) only shows the latest + one previous inspection. The historical CSVs contain every inspection a school has ever had.
+1. **Supplier Search** — Autocomplete search by company name with fuzzy matching
+2. **Competitor Profile** — Aggregated overview (total contracts, value, top buyers, sectors)
+3. **Contract List** — All awarded contracts for this supplier with filters
+4. **Buyer Relationships** — Which buyers work with this supplier, ranked by value
 
-## Table Stakes
+## Key Differentiators
 
-1. **Inspection history ingestion** -- download and parse historical CSVs, build per-school timeline
-2. **Schools scanner type** -- new scanner with Ofsted-specific columns and filters
-3. **Downgrade detection & filtering** -- "downgraded in last N months" as primary filter
-4. **Current rating filters** -- filter by grade, region, school phase, local authority
-5. **School detail page** -- full inspection history with links to reports
+5. **Spend Intelligence** — Actual payment data from transparency CSVs (beyond just contract awards)
+6. **Market Gaps** — Buyers the competitor works with that the user doesn't (v2)
+7. **Sculptor AI** — Conversational competitor analysis via existing AI agent
 
-## Differentiators
+## Critical Pitfalls to Address
 
-1. **AI report analysis column** (PRIMARY) -- Claude reads Ofsted report PDF, scores "tuition relevance"
-2. **Timeline visualization** -- visual rating history on detail pages
-3. **Downgrade recency signal** -- "Downgraded 2 months ago" badge
-4. **MAT-level aggregation** -- downgrade patterns across Multi-Academy Trusts
+1. **Name fragmentation** (CERTAIN): Same company appears under many names. Show all variants; don't auto-merge.
+2. **Incomplete data** (HIGH): Not all contracts have award data. Supplement with spend transactions. Show data source indicators.
+3. **Atlas Search limits** (MEDIUM): Free tier has 3 index max. Build with regex fallback.
+4. **No identity resolution** (CERTAIN): Can't group subsidiaries without Companies House. Show "related suppliers" instead.
 
-## Critical Pitfalls
+## Architecture Highlights
 
-1. **Post-Sep-2024 grade removal:** Overall Effectiveness no longer assigned. Must use sub-judgements for downgrade detection and filtering. All queries and UI must handle NULL overall grades.
-2. **CSV column name changes across years:** Column names differ between CSV eras (pre-2019, 2019-2024, post-2024). Ingestion script must map columns per era.
-3. **Scanner type cascade:** Adding "schools" scanner type touches 10+ files. Must systematically update all switch statements, column definitions, and API routes.
+- **No new collection** in v1 — query by supplier name across existing collections
+- **URL structure**: `/competitors` (search) and `/competitors/[encodedName]` (profile)
+- **Server-side aggregation** with tab-based UI (overview, contracts, buyers, spend)
+- **Build order**: Search -> Profile -> Spend -> AI integration
 
-## Architecture Decision
+## Build Phases (Recommended)
 
-**Embedded array** for inspection history (add `inspectionHistory[]` to OfstedSchool model). Pre-compute `lastDowngradeDate` and `ratingDirection` during ingestion for fast filtering. Index `lastDowngradeDate` for the primary "downgraded in last N months" query.
-
-## Build Order Recommendation
-
-1. Schema + history ingestion (data foundation)
-2. Scanner type + columns + filters (discovery UI)
-3. Downgrade detection + filtering (core intelligence)
-4. Detail page + timeline (deep dive)
-5. AI report analysis column (differentiator)
+| Phase | Focus | Complexity |
+|-------|-------|------------|
+| 1 | Search + indexing + name normalization | Medium |
+| 2 | Profile page + contract/buyer tabs | Medium |
+| 3 | Spend data integration | Medium |
+| 4 | AI integration + navigation polish | Low |
 
 ---
 *Synthesized: 2026-02-14*
