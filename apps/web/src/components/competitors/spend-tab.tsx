@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   Building2,
   ExternalLink,
   Loader2,
   PoundSterling,
   Receipt,
+  RefreshCw,
   CalendarDays,
   Info,
   ArrowRightLeft,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -154,31 +157,58 @@ function renderBuyerCard(buyer: CompetitorSpendBuyer, index: number) {
 export function SpendTab({ supplierName }: SpendTabProps) {
   const [spend, setSpend] = useState<CompetitorSpendResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSpend = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/competitors/${encodeURIComponent(supplierName)}/spend`
+      );
+      if (!res.ok) throw new Error("Failed to fetch spend data");
+      const data = await res.json();
+      setSpend(data.spend ?? null);
+    } catch {
+      setSpend(null);
+      setError("Failed to load spend data. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supplierName]);
 
   useEffect(() => {
-    async function fetchSpend() {
-      setIsLoading(true);
-      try {
-        const res = await fetch(
-          `/api/competitors/${encodeURIComponent(supplierName)}/spend`
-        );
-        if (!res.ok) throw new Error("Failed to fetch spend data");
-        const data = await res.json();
-        setSpend(data.spend ?? null);
-      } catch {
-        setSpend(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchSpend();
-  }, [supplierName]);
+  }, [fetchSpend]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="flex flex-col items-center justify-center py-16 text-center"
+      >
+        <AlertCircle className="h-8 w-8 text-destructive/60 mb-3" />
+        <p className="text-sm text-muted-foreground mb-3">{error}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchSpend}
+          className="gap-1.5"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Retry
+        </Button>
+      </motion.div>
     );
   }
 

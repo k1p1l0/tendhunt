@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Building2, ExternalLink, Loader2, CalendarDays } from "lucide-react";
+import { AlertCircle, Building2, ExternalLink, Loader2, CalendarDays, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import type { CompetitorBuyer } from "@/lib/competitors";
 
@@ -47,31 +48,58 @@ function relationshipDuration(
 export function BuyersTab({ supplierName }: BuyersTabProps) {
   const [buyers, setBuyers] = useState<CompetitorBuyer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBuyers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/competitors/${encodeURIComponent(supplierName)}/buyers`
+      );
+      if (!res.ok) throw new Error("Failed to fetch buyers");
+      const data = await res.json();
+      setBuyers(data.buyers ?? []);
+    } catch {
+      setBuyers([]);
+      setError("Failed to load buyer relationships. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supplierName]);
 
   useEffect(() => {
-    async function fetchBuyers() {
-      setIsLoading(true);
-      try {
-        const res = await fetch(
-          `/api/competitors/${encodeURIComponent(supplierName)}/buyers`
-        );
-        if (!res.ok) throw new Error("Failed to fetch buyers");
-        const data = await res.json();
-        setBuyers(data.buyers ?? []);
-      } catch {
-        setBuyers([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchBuyers();
-  }, [supplierName]);
+  }, [fetchBuyers]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="flex flex-col items-center justify-center py-16 text-center"
+      >
+        <AlertCircle className="h-8 w-8 text-destructive/60 mb-3" />
+        <p className="text-sm text-muted-foreground mb-3">{error}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchBuyers}
+          className="gap-1.5"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Retry
+        </Button>
+      </motion.div>
     );
   }
 

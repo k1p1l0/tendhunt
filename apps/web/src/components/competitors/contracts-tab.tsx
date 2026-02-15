@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -74,10 +76,12 @@ export function ContractsTab({ supplierName }: ContractsTabProps) {
   const [total, setTotal] = useState(0);
   const [sortBy, setSortBy] = useState<ContractSortField>("awardDate");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [error, setError] = useState<string | null>(null);
   const pageSize = 20;
 
   const fetchContracts = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -95,6 +99,7 @@ export function ContractsTab({ supplierName }: ContractsTabProps) {
       setTotal(data.total ?? 0);
     } catch {
       setContracts([]);
+      setError("Failed to load contracts. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -161,7 +166,26 @@ export function ContractsTab({ supplierName }: ContractsTabProps) {
         </Select>
       </div>
 
-      {isLoading ? (
+      {error ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="flex flex-col items-center justify-center py-16 text-center"
+        >
+          <AlertCircle className="h-8 w-8 text-destructive/60 mb-3" />
+          <p className="text-sm text-muted-foreground mb-3">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchContracts}
+            className="gap-1.5"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry
+          </Button>
+        </motion.div>
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>

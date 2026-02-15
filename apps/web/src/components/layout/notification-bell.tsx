@@ -74,11 +74,49 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Poll every 60s for new notifications
+  // Poll every 5 minutes, only when tab is visible. Also fetch on window focus.
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60_000);
-    return () => clearInterval(interval);
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    function startPolling() {
+      if (interval) return;
+      interval = setInterval(fetchNotifications, 300_000);
+    }
+
+    function stopPolling() {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        fetchNotifications();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    }
+
+    function handleWindowFocus() {
+      fetchNotifications();
+    }
+
+    if (document.visibilityState === "visible") {
+      startPolling();
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
   }, [fetchNotifications]);
 
   // Refresh when popover opens

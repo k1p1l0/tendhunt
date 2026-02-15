@@ -187,6 +187,55 @@ export async function checkWatchlistMatches(
     return { notificationsCreated: 0 };
   }
 
+  // Deduplicate: skip NEW_CONTRACT notifications if one already exists
+  // for the same userId + supplierName + contractTitle within last 24h
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const contractNotifications = notifications.filter(
+    (n) => n.type === "NEW_CONTRACT"
+  );
+
+  if (contractNotifications.length > 0) {
+    const dedupeChecks = contractNotifications.map((n) => ({
+      userId: n.userId,
+      supplierName: n.supplierName,
+      title: n.title,
+    }));
+
+    const existingDupes = await db
+      .collection("notifications")
+      .find({
+        type: "NEW_CONTRACT",
+        createdAt: { $gte: twentyFourHoursAgo },
+        $or: dedupeChecks.map((c) => ({
+          userId: c.userId,
+          supplierName: c.supplierName,
+          title: c.title,
+        })),
+      })
+      .project({ userId: 1, supplierName: 1, title: 1 })
+      .toArray();
+
+    const dupeKeys = new Set(
+      existingDupes.map(
+        (d) => `${d.userId}::${d.supplierName}::${d.title}`
+      )
+    );
+
+    // Filter out duplicates
+    const deduped = notifications.filter((n) => {
+      if (n.type !== "NEW_CONTRACT") return true;
+      const key = `${n.userId}::${n.supplierName}::${n.title}`;
+      return !dupeKeys.has(key);
+    });
+
+    if (deduped.length === 0) {
+      return { notificationsCreated: 0 };
+    }
+
+    notifications.length = 0;
+    notifications.push(...deduped);
+  }
+
   // Batch insert notifications
   await db.collection("notifications").insertMany(notifications, {
     ordered: false,
@@ -224,18 +273,18 @@ export async function checkWatchlistMatches(
       );
 
       if (regionsToAdd.length > 0 || sectorsToAdd.length > 0) {
-        const pushFields: Record<string, unknown> = {};
+        const addToSetFields: Record<string, unknown> = {};
         if (regionsToAdd.length > 0) {
-          pushFields["lastSnapshot.regions"] = { $each: regionsToAdd };
+          addToSetFields["lastSnapshot.regions"] = { $each: regionsToAdd };
         }
         if (sectorsToAdd.length > 0) {
-          pushFields["lastSnapshot.sectors"] = { $each: sectorsToAdd };
+          addToSetFields["lastSnapshot.sectors"] = { $each: sectorsToAdd };
         }
 
         snapshotUpdates.push({
           filter: { _id: entry._id },
           update: {
-            $push: pushFields,
+            $addToSet: addToSetFields,
             $set: { "lastSnapshot.snapshotAt": now },
           },
         });
