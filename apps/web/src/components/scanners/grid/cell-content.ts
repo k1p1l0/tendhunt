@@ -3,9 +3,10 @@ import type { GridCell } from "@glideapps/glide-data-grid";
 import type { ColumnMeta } from "./glide-columns";
 import {
   createScoreBadgeCell,
-  createTextShimmerCell,
+  createTextStatusCell,
   createCategoryBadgeCell,
   createEntityNameCell,
+  createRatingChangeCell,
 } from "./custom-renderers";
 import {
   resolveAccessor,
@@ -13,6 +14,14 @@ import {
   formatCurrency,
   formatNumber,
 } from "./format-utils";
+
+const MECHANISM_LABELS: Record<string, string> = {
+  standard: "Standard",
+  dps: "DPS",
+  framework: "Framework",
+  call_off_dps: "DPS Call-off",
+  call_off_framework: "FW Call-off",
+};
 
 const ORG_TYPE_LABELS: Record<string, string> = {
   local_council_london: "London Borough",
@@ -56,8 +65,7 @@ export function createGetCellContent(
     scores: Record<string, ScoreEntry>,
     columnId: string,
     entityId: string
-  ) => ScoreEntry | undefined,
-  isScoringActive?: boolean
+  ) => ScoreEntry | undefined
 ) {
   return function getCellContent([col, row]: readonly [
     number,
@@ -81,17 +89,11 @@ export function createGetCellContent(
       const entry = getScore(scores, meta.aiColumnId, entityId);
 
       if (isTextUseCase(meta.aiUseCase)) {
-        // Text mode: show text shimmer skeleton while loading
-        if (entry?.isLoading || entry?.isQueued) {
-          return createTextShimmerCell();
-        }
-        const text = entry?.response || "";
-        return {
-          kind: GridCellKind.Text,
-          data: text,
-          displayData: text || "--",
-          allowOverlay: false,
-        };
+        if (entry?.isQueued) return createTextStatusCell("", "queued");
+        if (entry?.isLoading) return createTextStatusCell("", "loading");
+        if (entry?.error) return createTextStatusCell("", "error", entry.error);
+        if (entry?.response) return createTextStatusCell(entry.response, "success");
+        return createTextStatusCell("", "empty");
       }
 
       // Score mode: queued shows shimmer bar, active shows spinner
@@ -104,8 +106,7 @@ export function createGetCellContent(
       if (entry?.score != null) {
         return createScoreBadgeCell(entry.score, false, false, `${meta.aiColumnId}:${entityId}`);
       }
-      // No score — show queued shimmer when scoring is active, dashed circle otherwise
-      return createScoreBadgeCell(null, false, isScoringActive);
+      return createScoreBadgeCell(null, false, false);
     }
 
     // Entity name with logo
@@ -162,6 +163,11 @@ export function createGetCellContent(
         };
       }
 
+      case "rating-change": {
+        const direction = value != null ? String(value) : "";
+        return createRatingChangeCell(direction || null);
+      }
+
       case "badge": {
         let label = value != null ? String(value) : "";
         if (!label) {
@@ -172,9 +178,11 @@ export function createGetCellContent(
             allowOverlay: false,
           };
         }
-        // Human-readable labels for orgType values
+        // Human-readable labels for enum badge values
         if (meta.id === "orgType" && label in ORG_TYPE_LABELS) {
           label = ORG_TYPE_LABELS[label];
+        } else if (meta.accessor === "contractMechanism" && label in MECHANISM_LABELS) {
+          label = MECHANISM_LABELS[label];
         }
         return createCategoryBadgeCell(label);
       }

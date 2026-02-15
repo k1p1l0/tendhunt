@@ -51,6 +51,12 @@ const contractSchema = new Schema(
     // Procurement method
     procurementMethod: { type: String },
     procurementMethodDetails: { type: String },
+    contractMechanism: {
+      type: String,
+      enum: ["standard", "dps", "framework", "call_off_dps", "call_off_framework"],
+      default: "standard",
+      index: true,
+    },
     submissionMethod: [{ type: String }],
     submissionPortalUrl: { type: String },
 

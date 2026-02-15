@@ -122,10 +122,9 @@ interface BuyerData {
 
 interface BuyerDetailClientProps {
   buyer: BuyerData;
-  initialTab?: string;
 }
 
-export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps) {
+export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <BuyerHeader
@@ -172,7 +171,6 @@ export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps)
         spendTransactionCount={buyer.spendTransactionCount}
         departments={buyer.children}
         ofstedSchools={buyer.ofstedSchools}
-        initialTab={initialTab}
       />
     </div>
   );

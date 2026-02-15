@@ -8,7 +8,7 @@ import {
   Building2,
   Radar,
   Inbox,
-  Search,
+  Swords,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,11 +23,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAgentStore } from "@/stores/agent-store";
+import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
 import type { NavItem } from "@/types";
 import { SidebarCompanyHeader } from "./sidebar-company-header";
 import { SidebarFooterContent } from "./sidebar-footer";
 
-const dashboardItems: NavItem[] = [
+const featureItems: NavItem[] = [
   {
     title: "Home",
     href: "/dashboard",
@@ -45,7 +46,7 @@ const dashboardItems: NavItem[] = [
   },
 ];
 
-const platformItems: NavItem[] = [
+const dataItems: NavItem[] = [
   {
     title: "Buyers",
     href: "/buyers",
@@ -55,6 +56,11 @@ const platformItems: NavItem[] = [
     title: "Contracts",
     href: "/contracts",
     icon: FileText,
+  },
+  {
+    title: "Competitors",
+    href: "/competitors",
+    icon: Swords,
   },
 ];
 
@@ -69,10 +75,31 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+          <SidebarGroupLabel>Features</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {dashboardItems.map((item) => (
+              {featureItems.slice(0, 1).map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(item.href)}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => useAgentStore.getState().setPanelOpen(true)}
+                >
+                  <SculptorIcon size={16} className="shrink-0" />
+                  <span>Sculptor</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {featureItems.slice(1).map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
@@ -90,18 +117,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel>Data</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => useAgentStore.getState().setPanelOpen(true)}
-                >
-                  <Search className="h-4 w-4" />
-                  <span>Sculptor</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {platformItems.map((item) => (
+              {dataItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

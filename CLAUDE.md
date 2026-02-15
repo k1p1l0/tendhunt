@@ -6,8 +6,11 @@
 |--------|------|-------|
 | `main` | `/Users/kirillkozak/Projects/tendhunt.com` | Main development |
 | `feat/phase-32-contract-enrichment` | `/Users/kirillkozak/Projects/tendhunt-contract-enrichment` | Phase 32: Contract Enrichment |
+| `feat/ofsted-timeline` | `/Users/kirillkozak/Projects/tendhunt-ofsted-timeline` | Ofsted Timeline Intelligence (PR #13) |
+| `feat/competitor-analysis` | `/Users/kirillkozak/Projects/tendhunt-competitor-analysis` | Competitor Contract Intelligence (PR #14) |
+| `feat/notifications-platform` | `/Users/kirillkozak/Projects/tendhunt-notifications` | Platform Notifications (building) |
 
-When working on Phase 32, use the worktree path. Merge back to main via PR when complete.
+Merge back to main via PR when complete.
 
 ## Source of Truth
 
@@ -145,6 +148,11 @@ feat(scope): Add new feature
 feat(scope): add new feature
 ```
 
+**Allowed scopes** (enforced by `action-semantic-pull-request` in CI):
+`web`, `landing`, `workers`, `deps`, `deps-dev`, `release`
+
+Do NOT use feature-specific scopes like `ofsted`, `competitors`, `sculptor` — they will fail CI. Use `web` for app changes, `workers` for worker changes.
+
 ## UI/UX & Animation Guidelines
 
 **Every UI/UX implementation MUST include animations and follow design engineering principles.**
@@ -169,6 +177,17 @@ feat(scope): add new feature
 pnpm typecheck
 cd apps/web && bun run lint
 ```
+
+## Testing
+
+- **Framework:** Vitest (shared across `apps/web` and `apps/workers/*`)
+- **Run:** `cd apps/web && bun run test` or `bun run --cwd apps/web test`
+- **Config:** `apps/web/vitest.config.mts` with `@` path alias pointing to `./src`
+- **Convention:** Co-locate tests next to source files as `*.test.ts` (e.g. `scanner-store.test.ts` beside `scanner-store.ts`)
+- **What to test:** Pure functions, Zustand store logic, system prompt builders — anything that doesn't need a DOM or real DB
+- **What NOT to test:** React components (no testing-library set up), API routes (need real MongoDB)
+- **Existing pattern:** See `contract-mechanism.test.ts` for fake timers usage
+- **Rule:** Every bug fix MUST include a regression test
 
 ## CI Lint Rules (React Compiler + ESLint)
 
@@ -427,23 +446,26 @@ Every column has a `type` field in `ColumnDef` (`apps/web/src/components/scanner
 - Stroke-based icons (date, badge, entity-name) use `lineWidth: 1.1`, `lineCap: "round"`
 - Text-based icons (T, #, £) use `600 weight`, `11px` font, `textAlign: "center"`, `textBaseline: "middle"`
 - Icon color: `theme.textMedium` (muted, not as dark as title text)
-- AI columns skip type icon — use sparkle stars + tinted lime background instead
+- AI columns use **per-use-case icons** drawn by `drawAiUseCaseIcon()` — sparkle for score, magnifying glass for research, people for decision-makers, shield+check for bid-recommendation, contact card for find-contacts. All lime `#E5FF00`.
 - Core column headers: call `drawContent()` first (Glide default), then overdraw left portion with icon + title, preserving the right menu arrow zone
 
 ### Custom Cell Renderers
 
 Four renderers registered in `customRenderers` array:
 1. **`score-badge`** — Circle with score number. Colors: red `#ef4444` (<4), yellow `#eab308` (4-7), green `#22c55e` (>=7). Loading: spinning arc. Queued: shimmer bar with "queued" label. Empty: dashed border.
-2. **`text-shimmer`** — Skeleton loader for text-mode AI columns during loading. Draws 2 horizontal gray bars (70%/50% width) with animated shimmer gradient sweep.
+2. **`text-status`** — Status indicator for text-mode AI columns. 5 states: queued (shimmer bars + "queued" label), loading (fast shimmer), success (green checkmark pill + truncated text), error (red X pill + "Failed"), empty ("--" text). Replaces the old `text-shimmer` renderer.
 3. **`category-badge`** — Rounded-rect pill with label text. Background from `theme.bgCellMedium`.
 4. **`entity-name`** — Logo image (18px, rounded corners, cached in Map) + text. Fallback: initials circle. Uses `setLogoRedrawCallback` for async image load → grid repaint.
 
 ### AI Column Loading States
 
-AI columns have a 3-phase loading state machine managed via `ScoreEntry` in `apps/web/src/stores/scanner-store.ts`:
-- **Queued** (`isQueued: true`): All rows start here. Score-mode shows shimmer bar, text-mode shows text skeleton.
-- **Active** (`isLoading: true`, no `isQueued`): Max 2 concurrent (matches `pLimit(2)` in scoring engine). Score-mode shows spinning circle, text-mode shows text skeleton.
-- **Complete** (neither flag): Shows actual score badge or text result.
+AI columns have a 4-phase loading state machine managed via `ScoreEntry` in `apps/web/src/stores/scanner-store.ts`:
+- **Queued** (`isQueued: true`): Only rows that will actually be scored start here. Score-mode shows shimmer bar, text-mode shows shimmer bars with "queued" label.
+- **Active** (`isLoading: true`, no `isQueued`): Max 2 concurrent (matches `pLimit(2)` in scoring engine). Score-mode shows spinning circle, text-mode shows fast shimmer.
+- **Complete** (neither flag): Shows actual score badge or text result (green checkmark + text for text-mode).
+- **Error** (`error` field set): Red X pill + "Failed" text. Per-entity errors captured from SSE stream.
+
+Shimmer animation is driven by an `animTick` counter (via `useReducer`) included in the `getCellContent` memo deps. A 60ms `setInterval` during `isScoring` forces redraws so shimmer bars sweep smoothly.
 
 Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on `column_start` SSE event, first 2 queued entities promote to active. On each `progress` event (entity scored), next queued entity promotes.
 
@@ -455,7 +477,27 @@ Promotion logic lives in `scoreSingleColumn` and `handleScore` in `page.tsx`: on
 - `onScoreColumn` (inline play button callback)
 - Any future scoring trigger
 
-`getVisibleEntityIds()` always returns an array of IDs from the currently loaded rows, respecting both row pagination AND column filters. **Never pass `entityIds` as undefined/null** — the backend interprets missing `entityIds` as "score ALL entities in the database", which ignores pagination. This was a bug caught on 2026-02-11 (column filters) and 2026-02-12 (row pagination).
+`getVisibleEntityIds()` returns entity IDs in **display order** (sorted + filtered as shown in the grid) via `displayRowIdsRef`. The grid component populates this ref in a `useEffect` whenever `displayRows` changes. The backend's `score-column` API re-sorts entities to match the client's order using an `orderMap`. This ensures scoring starts from row 1 (top of grid) and works downward. **Never pass `entityIds` as undefined/null** — the backend interprets missing `entityIds` as "score ALL entities in the database", which ignores pagination. This was a bug caught on 2026-02-11 (column filters) and 2026-02-12 (row pagination).
+
+### Queued State Scoping Rule
+
+`scoreSingleColumn()` only sets `isQueued: true` on rows that will **actually** be scored — matching the backend's logic:
+- Respects `limit` option (e.g., "Run 1 row" only marks 1 row as queued)
+- Respects `force` flag (when false, skips rows with existing results)
+- After scoring completes, `clearStaleLoadingStates()` removes any leftover `isQueued`/`isLoading` flags
+
+### Text-Mode Scoring Rules
+
+Text-mode use cases (`research`, `decision-makers`, `bid-recommendation`, `find-contacts`) differ from score-mode:
+- **Prompt**: `buildScoringSystemPrompt()` strips the scoring rubric from the base prompt for text-mode, keeping only company profile context. Explicitly instructs "Do NOT provide a numeric score."
+- **Tokens**: `resolveMaxTokens()` doubles the limit for text-mode (2048 vs 1024) since text analyses are longer.
+- **JSON schema**: Text-mode uses `{response: string}` only (no score/reasoning fields).
+- **Safety parsing**: If the model returns score-mode JSON inside the response field, the engine extracts the useful text.
+- **AI cell drawer**: Shows "Not yet analyzed" (not "Not yet scored") for empty text-mode cells. Error state shows red-tinted error box.
+
+### Sculptor Column ID Resolution
+
+`test_score_column` tool resolves columns by **fuzzy name matching** when the exact UUID doesn't match. It normalizes both strings by stripping all non-alphanumeric chars (`/[^a-z0-9]/g`), so `"engagement-strategy"`, `"engagement_strategy"`, and `"Engagement Strategy"` all match. If still not found, the error message lists available columns with their IDs.
 
 ### Adding a New Column Type
 
@@ -477,14 +519,19 @@ Sculptor is TendHunt's inline AI assistant panel. It lives as a 420px panel on t
 | Panel | `components/agent/agent-panel.tsx` | Inline panel (desktop) / Sheet overlay (mobile) |
 | Store | `stores/agent-store.ts` | Zustand + persist middleware — conversations survive refresh |
 | SSE Hook | `hooks/use-agent.ts` | Chat streaming, tool action handling, enrichment stream |
-| System Prompt | `lib/agent/system-prompt.ts` | Personality, tools, context, guidelines |
-| Tools Schema | `lib/agent/tools.ts` | Claude tool definitions |
+| System Prompt | `lib/agent/system-prompt.ts` | Personality, tools, context, guidelines, clarifying questions |
+| Tools Schema | `lib/agent/tools.ts` | Claude tool definitions (11 tools: 8 read, 3 write, 1 enrichment) |
 | Tool Handlers | `lib/agent/tool-handlers.ts` | Server-side tool execution |
-| Chat API | `app/api/agent/chat/route.ts` | SSE streaming endpoint |
+| Chat API | `app/api/agent/chat/route.ts` | SSE streaming endpoint (max 5 agentic loops) |
 | Messages | `components/agent/agent-message.tsx` | Markdown rendering, entity links, buyer logo hydration |
+| Quick Reply | `components/agent/quick-reply-chips.tsx` | `[[option: Label]]` token parser + pill buttons |
 | Tool Chain | `components/agent/tool-call-indicator.tsx` | Collapsible "Working" / "Completed N steps" UI |
 | Input | `components/agent/agent-input.tsx` | Textarea with context chips bar |
-| Enrichment | `components/agent/enrichment-progress.tsx` | Animated stage-by-stage enrichment progress |
+| Enrichment Confirm | `components/agent/enrichment-confirm.tsx` | Text-detection fallback for "Yes, enrich" / "Skip" buttons |
+| Enrichment Progress | `components/agent/enrichment-progress.tsx` | Animated stage-by-stage enrichment progress |
+| Suggested Actions | `components/agent/suggested-actions.tsx` | Context-aware prompt suggestions on empty state |
+| Context Provider | `components/agent/agent-provider.tsx` | React Context for page context (buyer/contract/scanner) |
+| Context Setter | `components/agent/agent-context-setter.tsx` | Client component to set context from server components |
 
 ### Sculptor Personality
 
@@ -521,6 +568,30 @@ Sculptor can trigger the full enrichment pipeline (9 stages + 4 spend stages) fo
 **Confirmation buttons** appear via two paths:
 1. **Tool-triggered:** AI calls `enrich_buyer` without `confirmed` → `enrich_confirm` action → store state
 2. **Text-detection fallback:** Regex patterns detect enrichment mentions in AI text → buttons auto-show
+
+### Quick Reply Chips (Clarifying Questions)
+
+Before ambiguous write actions (create scanner, apply filter, add column), Sculptor asks one clarifying question with clickable option chips instead of guessing.
+
+**How it works:**
+1. System prompt instructs Sculptor to include `[[option: Label]]` tokens in its response text
+2. `renderMarkdown()` in `agent-message.tsx` calls `stripChipTokens()` to remove tokens before rendering — they're never visible as raw text
+3. `QuickReplyChips` component in `agent-message-list.tsx` extracts tokens from last assistant message and renders pill buttons
+4. Clicking a chip sends the label as a regular user message via `onSend()`
+5. Chips auto-dismiss after click or when a new message is sent
+
+**Key design:** Zero protocol changes — tokens live in the raw message text (persisted in MongoDB as-is). The client handles extraction and rendering. If the AI forgets the syntax, it degrades gracefully to plain text.
+
+**System prompt rules:**
+- Only ask before write actions when ambiguous (not for reads, not when context fills gaps)
+- Max ONE question per response, 2-4 options
+- After user responds, act immediately — no follow-up questions
+
+### Page Context
+
+Server components inject page context via `<AgentContextSetter context={{...}} />`. The context flows through `AgentProvider` → `useAgentContext()` → system prompt builder. Pages set context in `useEffect` and clean up on unmount (`setBreadcrumb(null)` pattern).
+
+Context fields vary by page: `page` (always present), `buyerId/Name/Sector/Region/OrgType` (buyer detail), `contractId/Title/BuyerName/Sector/Value/Mechanism` (contract detail), `scannerId/Type/Name/Query/Filters` (scanner), `selectedRow` (scanner with row selection).
 
 ### Conversation Persistence
 
@@ -593,3 +664,70 @@ Initial backfill (2026-02-14): 227 children → 119 parents. Top parents: Minist
 ### Gotcha: `children` is a reserved React prop
 
 Never pass `children` as an explicit JSX prop name — ESLint `react/no-children-prop` will error. Use `departments` instead when passing child buyer arrays between components.
+
+## Spend Intelligence — SME Openness & Vendor Churn (Phase 11-07)
+
+**Origin:** Matt's Tussle.com interview (2026-02-14). Tussle has spend data but forces users to manually eyeball each council to assess SME vs large vendor split. TendHunt automates this signal across all buyers.
+
+### Two Intelligence Signals
+
+| Signal | What it measures | How suppliers use it |
+|--------|-----------------|---------------------|
+| **SME Openness** (0-100) | % of buyer spend going to SMEs vs large vendors | High score = buyer works with lots of SMEs → "go pitch them". Low score = "locked in" with large orgs → harder to break in |
+| **Vendor Stability** (0-100) | How much vendors change year-over-year | Low stability (high churn) = they change providers regularly → open to new suppliers. High stability = same vendors every year → harder to win |
+
+### Vendor Size Heuristic
+
+No external API (Companies House etc.) — heuristic classification from spend patterns:
+- **Large vendor**: Total spend from this buyer > £500k OR > 50 transactions
+- **SME vendor**: Everything else
+
+Works because UK transparency data is £25k+ or £500+ payments — frequent large payments indicate a major contractor.
+
+### Schema Additions (SpendSummary)
+
+```
+vendorSizeBreakdown: { sme: { totalSpend, vendorCount, transactionCount }, large: { ... } }
+yearlyVendorSets: [{ year, vendors: [string], totalSpend }]
+smeOpennessScore: Number (0-100)
+vendorStabilityScore: Number (0-100)
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/workers/spend-ingest/src/stages/04-aggregate.ts` | Computes vendor mix + yearly sets during aggregation |
+| `apps/web/src/lib/spend-analytics.ts` | `computeVendorMixAnalysis()` + `computeVendorChurnAnalysis()` |
+| `apps/web/src/components/buyers/spend-vendor-mix.tsx` | SME vs Large donut chart + signal badge |
+| `apps/web/src/components/buyers/spend-vendor-churn.tsx` | Year-over-year vendor change bar chart |
+| `apps/web/src/components/buyers/spend-opportunities.tsx` | Two new opportunity cards (SME Openness, Vendor Stability) |
+
+### Competitive Edge vs Tussle
+
+Tussle: "Go into each council manually, look at invoices, figure out SME split yourself"
+TendHunt: Automated SME Openness score + Vendor Stability score computed across all buyers, surfaced proactively on buyer pages and in scanners
+
+## Admin Panel — Worker Budget Controls
+
+The admin panel (`apps/admin/`) includes a Settings page (`/settings`) for controlling worker budget limits.
+
+### How It Works
+
+- **Budget enabled** (default): Workers process up to configured `maxItems` per cron run (enrichment=500, data-sync=9000, spend=200, board-minutes=100)
+- **Budget disabled**: Workers process all remaining items in one invocation (passes `max=999999` to worker URL)
+- Settings stored in MongoDB `adminsettings` collection with key `"worker_budgets"`
+- When admin clicks "Run Now" on Workers page, the API reads budget settings and passes `?max=N` to the Cloudflare Worker
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/admin/src/lib/settings.ts` | `getWorkerBudgets()` / `updateWorkerBudgets()` — reads/writes adminsettings |
+| `apps/admin/src/app/api/settings/route.ts` | GET + PATCH endpoints for budget settings |
+| `apps/admin/src/app/(dashboard)/settings/page.tsx` | Settings page with per-worker toggle + limit input |
+| `apps/admin/src/app/api/workers/run/route.ts` | Reads budget before triggering worker run |
+
+### Single-Buyer Enrichment Priority Fix
+
+The `/run-buyer` endpoint (Sculptor enrichment) uses `enrichmentPriority: 10` to ensure the target buyer is processed first. Before setting priority, it resets all stale priority-10 entries from previous failed runs to prevent the wrong buyer from being processed.

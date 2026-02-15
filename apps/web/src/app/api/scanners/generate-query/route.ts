@@ -28,6 +28,14 @@ Based on the company profile below, generate:
 3. A search query as OR-joined conditions that describe the types of organizations most likely to buy from this company. Each condition should describe an org characteristic or procurement pattern. Generate 5-8 conditions.
 
 Example search query format: "NHS trust with IT procurement needs OR local authority digital services OR central government technology department OR defence contractor requiring cybersecurity"`,
+
+  schools: `You are generating a scanner configuration for a UK Ofsted school monitoring tool used by tuition companies.
+Based on the company profile below, generate:
+1. A short scanner name (3-5 words, like "Recently Downgraded Schools" or "Literacy Catch-up Targets")
+2. A one-sentence description of what schools this scanner finds
+3. A search query as OR-joined conditions that describe school characteristics most relevant to this company's tuition/education services. Each condition should describe a school need or characteristic. Generate 5-8 conditions.
+
+Example search query format: "recently downgraded Ofsted rating OR requires improvement in quality of education OR literacy catch-up needed OR pupil premium attainment gaps OR secondary school numeracy support"`,
 };
 
 export async function POST(request: Request) {
@@ -39,7 +47,7 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as { type?: ScannerType };
 
-    if (!body.type || !["rfps", "meetings", "buyers"].includes(body.type)) {
+    if (!body.type || !["rfps", "meetings", "buyers", "schools"].includes(body.type)) {
       return Response.json(
         { error: "Valid scanner type is required" },
         { status: 400 }
@@ -103,9 +111,21 @@ Ideal Contract: ${profile.idealContractDescription || "Not specified"}`;
     }
 
     // Fallback if AI fails
+    const fallbackNames: Record<string, string> = {
+      rfps: "Contract",
+      meetings: "Meeting Signal",
+      buyers: "Buyer",
+      schools: "Schools",
+    };
+    const fallbackDescs: Record<string, string> = {
+      rfps: "government contracts",
+      meetings: "board meeting signals",
+      buyers: "buyer organizations",
+      schools: "Ofsted-inspected schools",
+    };
     return Response.json({
-      name: `${body.type === "rfps" ? "Contract" : body.type === "meetings" ? "Meeting Signal" : "Buyer"} Scanner`,
-      description: `Monitors ${body.type === "rfps" ? "government contracts" : body.type === "meetings" ? "board meeting signals" : "buyer organizations"} relevant to your company`,
+      name: `${fallbackNames[body.type] || "Entity"} Scanner`,
+      description: `Monitors ${fallbackDescs[body.type] || "entities"} relevant to your company`,
       searchQuery: (profile.keywords as string[] || []).join(" OR ") || (profile.capabilities as string[] || []).join(" OR ") || "",
     });
   } catch (error) {

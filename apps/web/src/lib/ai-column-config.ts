@@ -77,9 +77,10 @@ export function resolveModelId(model: AIModel): string {
   return found ? found.modelId : AI_MODELS[0].modelId;
 }
 
-export function resolveMaxTokens(model: AIModel): number {
+export function resolveMaxTokens(model: AIModel, useCase?: string): number {
   const found = AI_MODELS.find((m) => m.value === model);
-  return found ? found.maxTokens : AI_MODELS[0].maxTokens;
+  const base = found ? found.maxTokens : AI_MODELS[0].maxTokens;
+  return isTextUseCase(useCase) ? base * 2 : base;
 }
 
 // ---------------------------------------------------------------------------

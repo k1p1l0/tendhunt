@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { dbConnect } from "@/lib/mongodb";
 import SpendSummary from "@/models/spend-summary";
 import CompanyProfile from "@/models/company-profile";
+import Contract from "@/models/contract";
 import {
   computeSpendOpportunities,
   computeSpendMetrics,
@@ -26,9 +27,13 @@ export async function GET(
 
     await dbConnect();
 
-    const [summary, userProfile] = await Promise.all([
+    const [summary, userProfile, contractSectors] = await Promise.all([
       SpendSummary.findOne({ buyerId }).lean(),
       CompanyProfile.findOne({ userId }).lean(),
+      Contract.distinct("sector", {
+        buyerId: new mongoose.Types.ObjectId(buyerId),
+        sector: { $ne: null },
+      }) as Promise<string[]>,
     ]);
 
     if (!summary) {
@@ -36,7 +41,7 @@ export async function GET(
     }
 
     const metrics = computeSpendMetrics(summary);
-    const opportunities = computeSpendOpportunities(summary, userProfile);
+    const opportunities = computeSpendOpportunities(summary, userProfile, contractSectors);
 
     // Serialize the summary — convert ObjectIds to strings and Dates to ISO
     const serialized = {

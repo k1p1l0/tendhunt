@@ -60,21 +60,29 @@ export function buildScoringSystemPrompt(
   columnPrompt: string,
   useCase?: string
 ): string {
-  const jsonInstruction = isTextUseCase(useCase)
-    ? `Respond with valid JSON:
+  if (isTextUseCase(useCase)) {
+    // Text-mode: strip the scoring rubric from the base prompt and use company
+    // profile as context only. The base prompt includes scoring instructions
+    // ("score from 1-10", rubric tables) that pollute text analysis responses.
+    const profileSection = baseScoringPrompt.split("## Scoring Rubric")[0] || baseScoringPrompt;
+
+    return `${profileSection.trim()}
+
+---
+
+## Current Analysis Task
+
+${columnPrompt}
+
+IMPORTANT: Do NOT provide a numeric score. Do NOT format your response as a score with reasoning. Instead, provide a thorough qualitative analysis as plain text.
+
+Respond with valid JSON:
 {
   "response": "<your full analysis text>"
 }
 
-Provide a thorough, detailed analysis in the "response" field.`
-    : `Respond with valid JSON:
-{
-  "score": <number 1.0-10.0 or null if not applicable>,
-  "reasoning": "<1-2 sentence explanation>",
-  "response": "<full analysis text>"
-}
-
-The "score" field should be a number between 1.0 and 10.0 for relevance/scoring columns. Set it to null for columns that produce text responses (like identifying key contacts). The "response" field contains the full analysis text.`;
+Put your entire analysis in the "response" field as plain text (not JSON, not a score).`;
+  }
 
   return `${baseScoringPrompt}
 
@@ -84,16 +92,25 @@ The "score" field should be a number between 1.0 and 10.0 for relevance/scoring 
 
 ${columnPrompt}
 
-${jsonInstruction}`;
+Respond with valid JSON:
+{
+  "score": <number 1.0-10.0 or null if not applicable>,
+  "reasoning": "<1-2 sentence explanation>",
+  "response": "<full analysis text>"
+}
+
+The "score" field should be a number between 1.0 and 10.0 for relevance/scoring columns. Set it to null for columns that produce text responses (like identifying key contacts). The "response" field contains the full analysis text.`;
 }
 
 /**
  * Constructs the user message from entity data depending on scanner type.
+ * Optional additionalContext is appended (e.g. Ofsted report text for schools).
  */
 export function buildEntityUserPrompt(
   entity: Record<string, unknown>,
   scannerType: ScannerType,
-  searchQuery?: string
+  searchQuery?: string,
+  additionalContext?: string
 ): string {
   const queryContext = searchQuery
     ? `\nSearch Query Context: ${searchQuery}`
@@ -135,6 +152,35 @@ Contract Count: ${entity.contractCount || 0}
 Website: ${entity.website || "Not available"}
 ${queryContext}`;
 
+    case "schools": {
+      const ratingLabels: Record<number, string> = { 1: "Outstanding", 2: "Good", 3: "Requires Improvement", 4: "Inadequate" };
+      const currentRating = entity.overallEffectiveness as number | undefined;
+      const prevRating = entity.previousOverallEffectiveness as number | undefined;
+      const reportSection = additionalContext
+        ? `\n\n---\n\n## Ofsted Report Content (extracted from PDF)\n\n${additionalContext}`
+        : "\n\n(No Ofsted report PDF available for this school)";
+      return `Analyze this Ofsted-inspected school:
+
+School: ${entity.name || "Unknown"}
+URN: ${entity.urn || "N/A"}
+Phase: ${entity.phase || "Unknown"}
+Type: ${entity.schoolType || "Unknown"}
+Region: ${entity.region || "Unknown"}
+Local Authority: ${entity.localAuthority || "Unknown"}
+Pupils: ${entity.totalPupils || "Unknown"}
+Current Overall Rating: ${currentRating ? `${currentRating} (${ratingLabels[currentRating] || "Unknown"})` : "Not rated"}
+Quality of Education: ${entity.qualityOfEducation || "N/A"}
+Behaviour & Attitudes: ${entity.behaviourAndAttitudes || "N/A"}
+Personal Development: ${entity.personalDevelopment || "N/A"}
+Leadership & Management: ${entity.leadershipAndManagement || "N/A"}
+Previous Rating: ${prevRating ? `${prevRating} (${ratingLabels[prevRating] || "Unknown"})` : "N/A"}
+Rating Direction: ${entity.ratingDirection || "Unknown"}
+Last Downgrade Date: ${entity.lastDowngradeDate || "None"}
+Downgrade Type: ${entity.downgradeType || "None"}
+Last Inspection: ${entity.inspectionDate || "Unknown"}
+${queryContext}${reportSection}`;
+    }
+
     default:
       return `Analyze this entity:\n${JSON.stringify(entity, null, 2)}${queryContext}`;
   }
@@ -148,6 +194,7 @@ ${queryContext}`;
  * Scores a single entity against a specific AI column using the configured Claude model.
  *
  * Uses cache_control on the system prompt for prompt caching (>4096 tokens).
+ * Optional additionalContext is appended to the user message (e.g. Ofsted report text).
  */
 export async function scoreOneEntity(
   entity: Record<string, unknown>,
@@ -155,9 +202,10 @@ export async function scoreOneEntity(
   systemPrompt: string,
   searchQuery?: string,
   model: AIModel = "haiku",
-  useCase?: string
+  useCase?: string,
+  additionalContext?: string
 ): Promise<{ score: number | null; reasoning: string; response: string }> {
-  const userMessage = buildEntityUserPrompt(entity, scannerType, searchQuery);
+  const userMessage = buildEntityUserPrompt(entity, scannerType, searchQuery, additionalContext);
   const maxRetries = 4;
   const textMode = isTextUseCase(useCase);
 
@@ -198,7 +246,7 @@ export async function scoreOneEntity(
     try {
       const response = await anthropic.messages.create({
         model: resolveModelId(model),
-        max_tokens: resolveMaxTokens(model),
+        max_tokens: resolveMaxTokens(model, useCase),
         system: [
           {
             type: "text",
@@ -240,7 +288,17 @@ export async function scoreOneEntity(
         }
 
         if (textMode) {
-          return { score: null, reasoning: "", response: parsed.response || "" };
+          let textResponse = parsed.response || "";
+          // Safety: if model returned score-mode JSON inside the response field, extract useful text
+          if (textResponse.startsWith("{") && textResponse.includes('"score"')) {
+            try {
+              const inner = JSON.parse(textResponse) as { response?: string; reasoning?: string };
+              textResponse = inner.response || inner.reasoning || textResponse;
+            } catch {
+              // keep original
+            }
+          }
+          return { score: null, reasoning: "", response: textResponse };
         }
 
         return {

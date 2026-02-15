@@ -52,6 +52,7 @@ const TYPE_LABELS: Record<ScannerType, string> = {
   rfps: "RFPs / Contracts",
   meetings: "Meetings",
   buyers: "Buyers",
+  schools: "Schools (Ofsted)",
 };
 
 const REGIONS: Record<string, string> = {
@@ -88,6 +89,11 @@ interface Filters {
   signalType?: string;
   dateFrom?: string;
   dateTo?: string;
+  downgradeWithin?: string;
+  ofstedRating?: string;
+  schoolPhase?: string;
+  localAuthority?: string;
+  sortBy?: string;
 }
 
 export function EditScannerDialog({
@@ -123,6 +129,11 @@ export function EditScannerDialog({
         signalType: (scanner.filters?.signalType as string) || undefined,
         dateFrom: (scanner.filters?.dateFrom as string) || undefined,
         dateTo: (scanner.filters?.dateTo as string) || undefined,
+        downgradeWithin: (scanner.filters?.downgradeWithin as string) || undefined,
+        ofstedRating: (scanner.filters?.ofstedRating as string) || undefined,
+        schoolPhase: (scanner.filters?.schoolPhase as string) || undefined,
+        localAuthority: (scanner.filters?.localAuthority as string) || undefined,
+        sortBy: (scanner.filters?.sortBy as string) || undefined,
       });
       setError(null);
     }
@@ -154,6 +165,11 @@ export function EditScannerDialog({
     if (filters.signalType) cleanFilters.signalType = filters.signalType;
     if (filters.dateFrom) cleanFilters.dateFrom = filters.dateFrom;
     if (filters.dateTo) cleanFilters.dateTo = filters.dateTo;
+    if (filters.downgradeWithin) cleanFilters.downgradeWithin = filters.downgradeWithin;
+    if (filters.ofstedRating) cleanFilters.ofstedRating = filters.ofstedRating;
+    if (filters.schoolPhase) cleanFilters.schoolPhase = filters.schoolPhase;
+    if (filters.localAuthority) cleanFilters.localAuthority = filters.localAuthority;
+    if (filters.sortBy) cleanFilters.sortBy = filters.sortBy;
 
     try {
       const res = await fetch(`/api/scanners/${scanner._id}`, {
@@ -293,6 +309,9 @@ export function EditScannerDialog({
                 )}
                 {scanner.type === "buyers" && (
                   <BuyersFilters filters={filters} onChange={updateFilter} />
+                )}
+                {scanner.type === "schools" && (
+                  <SchoolsFilters filters={filters} onChange={updateFilter} />
                 )}
               </div>
             </CollapsibleContent>
@@ -534,5 +553,154 @@ function BuyersFilters({
         </Select>
       </div>
     </div>
+  );
+}
+
+const OFSTED_RATINGS = [
+  { value: "1", label: "Outstanding" },
+  { value: "2", label: "Good" },
+  { value: "3", label: "Requires Improvement" },
+  { value: "4", label: "Inadequate" },
+];
+
+const DOWNGRADE_PERIODS = [
+  { value: "1m", label: "Last 1 month" },
+  { value: "3m", label: "Last 3 months" },
+  { value: "6m", label: "Last 6 months" },
+  { value: "1y", label: "Last 1 year" },
+  { value: "any", label: "Any downgrade" },
+];
+
+const SCHOOL_SORT_OPTIONS = [
+  { value: "downgrade_recent", label: "Most recent downgrades" },
+  { value: "inspection_recent", label: "Most recent inspection" },
+  { value: "name_asc", label: "Name A-Z" },
+  { value: "name_desc", label: "Name Z-A" },
+  { value: "rating_asc", label: "Rating (best first)" },
+  { value: "rating_desc", label: "Rating (worst first)" },
+] as const;
+
+const SCHOOL_PHASES = [
+  "Primary",
+  "Secondary",
+  "All-through",
+  "Nursery",
+  "Special",
+  "Pupil referral unit",
+  "16 plus",
+] as const;
+
+function SchoolsFilters({
+  filters,
+  onChange,
+}: {
+  filters: Filters;
+  onChange: (key: keyof Filters, value: string) => void;
+}) {
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Downgraded Within</Label>
+          <Select
+            value={filters.downgradeWithin || "all"}
+            onValueChange={(v) => onChange("downgradeWithin", v)}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Any time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">No filter</SelectItem>
+              {DOWNGRADE_PERIODS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Current Rating</Label>
+          <Select
+            value={filters.ofstedRating || "all"}
+            onValueChange={(v) => onChange("ofstedRating", v)}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="All Ratings" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Ratings</SelectItem>
+              {OFSTED_RATINGS.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Region</Label>
+          <Select
+            value={filters.region || "all"}
+            onValueChange={(v) => onChange("region", v)}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="All Regions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Regions</SelectItem>
+              {Object.entries(REGIONS).map(([code, regName]) => (
+                <SelectItem key={code} value={code}>
+                  {regName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">School Phase</Label>
+          <Select
+            value={filters.schoolPhase || "all"}
+            onValueChange={(v) => onChange("schoolPhase", v)}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="All Phases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Phases</SelectItem>
+              {SCHOOL_PHASES.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Sort By</Label>
+        <Select
+          value={filters.sortBy || "downgrade_recent"}
+          onValueChange={(v) => onChange("sortBy", v)}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Most recent downgrades" />
+          </SelectTrigger>
+          <SelectContent>
+            {SCHOOL_SORT_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
   );
 }

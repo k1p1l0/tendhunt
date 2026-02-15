@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       : 1;
     const pageSize = searchParams.get("pageSize")
       ? parseInt(searchParams.get("pageSize")!, 10)
-      : 0;
+      : 100;
 
     const query = conditions.length > 0 ? { $and: conditions } : {};
 

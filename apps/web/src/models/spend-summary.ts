@@ -27,6 +27,24 @@ const monthlyTotalSchema = new Schema(
   { _id: false }
 );
 
+const vendorSizeBucketSchema = new Schema(
+  {
+    totalSpend: { type: Number, default: 0 },
+    vendorCount: { type: Number, default: 0 },
+    transactionCount: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const yearlyVendorSetSchema = new Schema(
+  {
+    year: { type: Number, required: true },
+    vendors: [{ type: String }],
+    totalSpend: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 const spendSummarySchema = new Schema(
   {
     buyerId: {
@@ -46,6 +64,13 @@ const spendSummarySchema = new Schema(
     monthlyTotals: [monthlyTotalSchema],
     csvFilesProcessed: [{ type: String }],
     lastComputedAt: { type: Date },
+    vendorSizeBreakdown: {
+      sme: { type: vendorSizeBucketSchema },
+      large: { type: vendorSizeBucketSchema },
+    },
+    yearlyVendorSets: [yearlyVendorSetSchema],
+    smeOpennessScore: { type: Number, min: 0, max: 100 },
+    vendorStabilityScore: { type: Number, min: 0, max: 100 },
   },
   { timestamps: true }
 );

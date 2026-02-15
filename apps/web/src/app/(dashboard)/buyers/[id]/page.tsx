@@ -92,15 +92,13 @@ interface LeanOfstedSchool {
 
 export default async function BuyerDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
+  const { id } = await params;
   const buyer = await fetchBuyerById(id);
 
   if (!buyer) {
@@ -119,6 +117,8 @@ export default async function BuyerDetailPage({
     status: c.status ?? undefined,
     sector: c.sector ?? null,
     source: c.source ?? undefined,
+    contractMechanism: c.contractMechanism ?? null,
+    contractEndDate: c.contractEndDate ? String(c.contractEndDate) : null,
   }));
 
   const signals = ((buyer.signals ?? []) as LeanSignal[]).map((s) => ({
@@ -185,6 +185,22 @@ export default async function BuyerDetailPage({
     idaciQuintile: s.idaciQuintile ?? null,
     reportUrl: s.reportUrl ?? null,
     postcode: s.postcode ?? null,
+    ratingDirection: s.ratingDirection ?? null,
+    lastDowngradeDate: s.lastDowngradeDate ? String(s.lastDowngradeDate) : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    inspectionHistory: (s.inspectionHistory ?? []).map((entry: any) => ({
+      inspectionNumber: entry.inspectionNumber ?? "",
+      inspectionDate: entry.inspectionDate ? String(entry.inspectionDate) : "",
+      publicationDate: entry.publicationDate ? String(entry.publicationDate) : null,
+      inspectionType: entry.inspectionType ?? undefined,
+      reportUrl: entry.reportUrl ?? null,
+      overallEffectiveness: entry.overallEffectiveness ?? null,
+      qualityOfEducation: entry.qualityOfEducation ?? null,
+      behaviourAndAttitudes: entry.behaviourAndAttitudes ?? null,
+      personalDevelopment: entry.personalDevelopment ?? null,
+      leadershipAndManagement: entry.leadershipAndManagement ?? null,
+      era: entry.era ?? undefined,
+    })),
   }));
 
   const parentBuyer = buyer.parentBuyer
@@ -210,6 +226,11 @@ export default async function BuyerDetailPage({
           buyerSector: buyer.sector ?? undefined,
           buyerRegion: buyer.region ?? undefined,
           buyerOrgType: buyer.orgType ?? undefined,
+          buyerContractCount: buyer.contractCount ?? 0,
+          buyerContactCount: contacts.length,
+          buyerSignalCount: signals.length,
+          buyerBoardDocCount: boardDocuments.length,
+          buyerKeyPersonnelNames: keyPersonnel.slice(0, 3).map((p: { name: string }) => p.name).join(", ") || undefined,
         }}
       />
       <EnrichmentRefresh buyerId={buyerId} />
@@ -254,7 +275,6 @@ export default async function BuyerDetailPage({
       <div className="flex-1 overflow-y-auto">
         <div className="p-6">
           <BuyerDetailClient
-            initialTab={tab}
             buyer={{
               _id: buyerId,
               name: buyerName,

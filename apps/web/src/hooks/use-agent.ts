@@ -102,6 +102,36 @@ export function useAgent(): UseAgentReturn {
             }
           }
 
+          if (event.action?.type === "column_added") {
+            window.dispatchEvent(
+              new CustomEvent("scanner-column-added", {
+                detail: {
+                  scannerId: event.action.scannerId as string,
+                  columnId: event.action.columnId as string,
+                  name: event.action.name as string,
+                  prompt: event.action.prompt as string,
+                  useCase: (event.action.useCase as string) || "score",
+                  model: (event.action.model as string) || "haiku",
+                },
+              })
+            );
+          }
+
+          if (event.action?.type === "score_updated") {
+            window.dispatchEvent(
+              new CustomEvent("scanner-score-updated", {
+                detail: {
+                  scannerId: event.action.scannerId as string,
+                  columnId: event.action.columnId as string,
+                  entityId: event.action.entityId as string,
+                  score: event.action.score as number | null,
+                  value: event.action.value as string,
+                  reasoning: event.action.reasoning as string,
+                },
+              })
+            );
+          }
+
           if (event.action?.type === "enrich_confirm") {
             useAgentStore.getState().setEnrichmentConfirmation({
               buyerId: event.action.buyerId as string,
@@ -189,6 +219,7 @@ export function useAgent(): UseAgentReturn {
             messages: apiMessages,
             context,
             conversationId: conversationIdRef.current,
+            settings: useAgentStore.getState().conversationSettings,
           }),
           signal: abortController.signal,
         });

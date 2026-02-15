@@ -1,15 +1,11 @@
 "use client";
 
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Search, Plus, X, ArrowUpDown } from "lucide-react";
+import { Search, X, ArrowUpDown } from "lucide-react";
+import { FilterChip } from "@/components/filters/filter-chip";
 
 const SECTORS = [
   "Health & Social",
@@ -51,6 +47,14 @@ const REGIONS: Record<string, string> = {
   UNSPECIFIED: "Nationwide / Unspecified",
 };
 
+const MECHANISMS = [
+  { value: "standard", label: "Standard Tender" },
+  { value: "dps", label: "DPS (Dynamic Purchasing)" },
+  { value: "framework", label: "Framework Agreement" },
+  { value: "call_off_dps", label: "DPS Call-off" },
+  { value: "call_off_framework", label: "Framework Call-off" },
+] as const;
+
 const CONTRACT_TYPES = [
   { value: "services", label: "Services" },
   { value: "goods", label: "Goods" },
@@ -65,93 +69,6 @@ const VALUE_RANGES = [
   { label: "10M - 100M", min: 10000000, max: 100000000 },
   { label: "Over 100M", min: 100000000, max: undefined },
 ] as const;
-
-function FilterChip({
-  label,
-  value,
-  displayValue,
-  onSelect,
-  onClear,
-  options,
-}: {
-  label: string;
-  value: string | null;
-  displayValue?: string;
-  onSelect: (value: string) => void;
-  onClear: () => void;
-  options: { value: string; label: string }[];
-}) {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (nextOpen) {
-      setTimeout(() => inputRef.current?.focus(), 0);
-    } else {
-      setSearch("");
-    }
-  }, []);
-
-  const filtered = options.filter((o) =>
-    o.label.toLowerCase().includes(search.toLowerCase())
-  );
-
-  if (value) {
-    return (
-      <button
-        onClick={onClear}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted"
-      >
-        <span className="text-muted-foreground">{label}:</span>
-        <span className="font-medium">{displayValue ?? value}</span>
-        <X className="h-3 w-3 text-muted-foreground" />
-      </button>
-    );
-  }
-
-  return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <button className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-muted-foreground/30 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground">
-          <Plus className="h-3 w-3" />
-          {label}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
-        <div className="p-2 border-b border-border">
-          <Input
-            ref={inputRef}
-            placeholder={`Search ${label.toLowerCase()}...`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-7 text-xs"
-          />
-        </div>
-        <div className="max-h-60 overflow-y-auto p-1">
-          {filtered.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => {
-                onSelect(option.value);
-                setOpen(false);
-              }}
-              className="w-full rounded-sm px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted"
-            >
-              {option.label}
-            </button>
-          ))}
-          {filtered.length === 0 && (
-            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-              No results
-            </p>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 export function ContractsToolbar({
   total,
@@ -190,7 +107,11 @@ export function ContractsToolbar({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleSearch = useDebouncedCallback((term: string) => {
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("query")?.toString() ?? ""
+  );
+
+  const syncSearchToUrl = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", "1");
     if (term) {
@@ -200,6 +121,11 @@ export function ContractsToolbar({
     }
     replace(`${pathname}?${params.toString()}`);
   }, 300);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    syncSearchToUrl(term);
+  };
 
   const currentSort = searchParams.get("sort") ?? "date";
   const currentSector = searchParams.get("sector");
@@ -214,6 +140,8 @@ export function ContractsToolbar({
       ? `${currentMinValue}-${currentMaxValue}`
       : `${currentMinValue}-`
     : null;
+
+  const currentMechanism = searchParams.get("mechanism");
 
   const currentValueLabel = currentValueRange
     ? VALUE_RANGES.find((r) => {
@@ -235,8 +163,9 @@ export function ContractsToolbar({
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              data-search-input
               placeholder="Search contracts, buyers, or CPV codes..."
-              defaultValue={searchParams.get("query")?.toString()}
+              value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-9 h-8 text-sm"
             />
@@ -279,6 +208,14 @@ export function ContractsToolbar({
             />
             <FilterChip
               label="Type"
+              value={currentMechanism}
+              displayValue={MECHANISMS.find((m) => m.value === currentMechanism)?.label}
+              onSelect={(v) => updateFilter("mechanism", v)}
+              onClear={() => updateFilter("mechanism", null)}
+              options={MECHANISMS.map((m) => ({ value: m.value, label: m.label }))}
+            />
+            <FilterChip
+              label="Category"
               value={currentContractType}
               displayValue={
                 currentContractType

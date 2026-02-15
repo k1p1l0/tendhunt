@@ -46,7 +46,24 @@ export const KNOWN_SCHEMAS: ColumnMapping[] = [
     },
   },
 
-  // 0b. GOV.UK central government spending-over-25k (HMRC uses "Date", "Amount", "Supplier")
+  // 0b. GOV.UK NHS ICB spending-over-25k (uses "AP Amount" instead of "Amount")
+  // NHS ICBs publish monthly CSVs with "AP Amount" column name
+  {
+    name: "govuk_nhs_spending_25k",
+    detect: (headers) =>
+      hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number", "ap amount"]),
+    map: {
+      date: "Date",
+      amount: "AP Amount",
+      vendor: "Supplier",
+      category: "Expense Type",
+      subcategory: "Expense Area",
+      department: "Entity",
+      reference: "Transaction Number",
+    },
+  },
+
+  // 0c. GOV.UK central government spending-over-25k (HMRC uses "Date", "Amount", "Supplier")
   // "Expense Type" = descriptive category (education, legal, maintenance)
   // "Expense Area" = organisational division (department name) → use as department
   {

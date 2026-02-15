@@ -6,10 +6,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ScannerType } from "@/models/scanner";
+import Link from "next/link";
 import {
   ExternalLink,
   Calendar,
@@ -20,8 +20,15 @@ import {
   Globe,
   Users,
   TrendingUp,
+  ArrowUpRight,
+  FileText,
+  PoundSterling,
+  Linkedin,
+  Shield,
+  Layers,
 } from "lucide-react";
 import { isTextUseCase } from "@/lib/ai-column-config";
+import { MECHANISM_LABELS } from "@/lib/contract-mechanism";
 import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
 
 import type { PipelineEntityType } from "@/lib/constants/pipeline-stages";
@@ -30,6 +37,7 @@ const SCANNER_TO_ENTITY: Record<ScannerType, PipelineEntityType> = {
   rfps: "contract",
   meetings: "signal",
   buyers: "buyer",
+  schools: "contract",
 };
 
 interface EntityDetailSheetProps {
@@ -122,6 +130,26 @@ function formatCurrency(val: unknown): string {
   }).format(n);
 }
 
+function formatCompactNumber(val: unknown): string {
+  if (val == null) return "";
+  const n = Number(val);
+  if (isNaN(n) || n === 0) return "";
+  return new Intl.NumberFormat("en-GB", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(n);
+}
+
+function formatOrgType(val: unknown): string {
+  if (!val) return "";
+  const s = String(val);
+  return s
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/Nhs/g, "NHS")
+    .replace(/Icb/g, "ICB");
+}
+
 // ── Type-specific detail sections ────────────────────────────
 
 function ContractDetails({ row }: { row: Record<string, unknown> }) {
@@ -131,6 +159,15 @@ function ContractDetails({ row }: { row: Record<string, unknown> }) {
     valueMin && valueMax
       ? `${formatCurrency(valueMin)} – ${formatCurrency(valueMax)}`
       : formatCurrency(valueMax ?? valueMin) || undefined;
+
+  const mechanism = row.contractMechanism as string | undefined;
+  const mechanismLabel = mechanism && mechanism in MECHANISM_LABELS
+    ? MECHANISM_LABELS[mechanism as keyof typeof MECHANISM_LABELS]
+    : undefined;
+
+  const lotCount = row.lotCount as number | undefined;
+  const docs = row.documents as Array<unknown> | undefined;
+  const docCount = docs?.length;
 
   return (
     <>
@@ -147,10 +184,36 @@ function ContractDetails({ row }: { row: Record<string, unknown> }) {
         label="Published"
         value={formatDate(row.publishedDate)}
       />
+      {row.contractEndDate && (
+        <DetailRow
+          icon={Calendar}
+          label="Contract End"
+          value={formatDate(row.contractEndDate)}
+        />
+      )}
       {valueStr && (
         <DetailRow icon={TrendingUp} label="Value" value={valueStr} />
       )}
       <DetailRow icon={Tag} label="Status" value={row.status as string} />
+      {mechanismLabel && mechanismLabel !== "Standard Tender" && (
+        <DetailRow icon={Shield} label="Mechanism" value={mechanismLabel} />
+      )}
+      {row.contractType && (
+        <DetailRow
+          icon={Tag}
+          label="Type"
+          value={String(row.contractType).charAt(0).toUpperCase() + String(row.contractType).slice(1)}
+        />
+      )}
+      {row.suitableForSme && (
+        <DetailRow icon={Users} label="SME Friendly" value="Yes" />
+      )}
+      {lotCount != null && lotCount > 1 && (
+        <DetailRow icon={Layers} label="Lots" value={String(lotCount)} />
+      )}
+      {docCount != null && docCount > 0 && (
+        <DetailRow icon={FileText} label="Documents" value={String(docCount)} />
+      )}
       {row.sourceUrl && (
         <DetailRow
           icon={ExternalLink}
@@ -190,31 +253,128 @@ function SignalDetails({ row }: { row: Record<string, unknown> }) {
   );
 }
 
-function BuyerDetails({ row }: { row: Record<string, unknown> }) {
+function SchoolDetails({ row }: { row: Record<string, unknown> }) {
+  const ratingLabels: Record<number, string> = {
+    1: "Outstanding",
+    2: "Good",
+    3: "Requires Improvement",
+    4: "Inadequate",
+  };
+  const currentRating = row.overallEffectiveness as number | undefined;
+  const prevRating = row.previousOverallEffectiveness as number | undefined;
+  const qoe = row.qualityOfEducation as number | undefined;
+
   return (
     <>
+      {currentRating != null && (
+        <DetailRow
+          icon={Tag}
+          label="Overall Rating"
+          value={`${currentRating} - ${ratingLabels[currentRating] || "Unknown"}`}
+        />
+      )}
+      {qoe != null && (
+        <DetailRow icon={Tag} label="Quality of Education" value={String(qoe)} />
+      )}
+      {prevRating != null && (
+        <DetailRow
+          icon={Tag}
+          label="Previous Rating"
+          value={`${prevRating} - ${ratingLabels[prevRating] || "Unknown"}`}
+        />
+      )}
+      {row.ratingDirection && (
+        <DetailRow icon={TrendingUp} label="Rating Change" value={String(row.ratingDirection)} />
+      )}
+      <DetailRow
+        icon={Calendar}
+        label="Last Inspection"
+        value={formatDate(row.inspectionDate)}
+      />
+      {row.lastDowngradeDate && (
+        <DetailRow
+          icon={Calendar}
+          label="Last Downgrade"
+          value={formatDate(row.lastDowngradeDate)}
+        />
+      )}
+      {row.downgradeType && (
+        <DetailRow icon={Tag} label="Downgrade Type" value={String(row.downgradeType)} />
+      )}
+      <DetailRow icon={Building2} label="Phase" value={row.phase as string} />
+      <DetailRow icon={MapPin} label="Region" value={row.region as string} />
+      <DetailRow icon={MapPin} label="Local Authority" value={row.localAuthority as string} />
+      {row.totalPupils != null && Number(row.totalPupils) > 0 && (
+        <DetailRow icon={Users} label="Pupils" value={String(row.totalPupils)} />
+      )}
+      {row.schoolType && (
+        <DetailRow icon={Tag} label="School Type" value={String(row.schoolType)} />
+      )}
+      {row.reportUrl && (
+        <DetailRow
+          icon={ExternalLink}
+          label="Ofsted Report"
+          value="View report"
+          href={row.reportUrl as string}
+        />
+      )}
+    </>
+  );
+}
+
+function BuyerDetails({ row }: { row: Record<string, unknown> }) {
+  const staffStr = formatCompactNumber(row.staffCount);
+  const budgetStr = row.annualBudget ? formatCurrency(row.annualBudget) : "";
+  const enrichScore = row.enrichmentScore as number | undefined;
+
+  return (
+    <>
+      {row.orgType && (
+        <DetailRow icon={Building2} label="Org Type" value={formatOrgType(row.orgType)} />
+      )}
       <DetailRow icon={Tag} label="Sector" value={row.sector as string} />
       <DetailRow icon={MapPin} label="Region" value={row.region as string} />
+      {staffStr && (
+        <DetailRow icon={Users} label="Staff" value={staffStr} />
+      )}
+      {budgetStr && (
+        <DetailRow icon={PoundSterling} label="Annual Budget" value={budgetStr} />
+      )}
+      <DetailRow
+        icon={FileText}
+        label="Contracts"
+        value={
+          row.contractCount != null && Number(row.contractCount) > 0
+            ? String(row.contractCount)
+            : undefined
+        }
+      />
+      <DetailRow
+        icon={Users}
+        label="Contacts"
+        value={
+          row.contactCount != null && Number(row.contactCount) > 0
+            ? String(row.contactCount)
+            : undefined
+        }
+      />
+      {enrichScore != null && enrichScore > 0 && (
+        <DetailRow icon={TrendingUp} label="Enrichment" value={`${enrichScore}/100`} />
+      )}
       <DetailRow
         icon={Globe}
         label="Website"
         value={row.website as string}
         href={row.website as string}
       />
-      <DetailRow
-        icon={Users}
-        label="Contacts"
-        value={
-          row.contactCount != null ? String(row.contactCount) : undefined
-        }
-      />
-      <DetailRow
-        icon={TrendingUp}
-        label="Contracts"
-        value={
-          row.contractCount != null ? String(row.contractCount) : undefined
-        }
-      />
+      {row.linkedinUrl && (
+        <DetailRow
+          icon={Linkedin}
+          label="LinkedIn"
+          value="View profile"
+          href={row.linkedinUrl as string}
+        />
+      )}
     </>
   );
 }
@@ -282,6 +442,7 @@ export function EntityDetailSheet({
             {scannerType === "rfps" && <ContractDetails row={row} />}
             {scannerType === "meetings" && <SignalDetails row={row} />}
             {scannerType === "buyers" && <BuyerDetails row={row} />}
+            {scannerType === "schools" && <SchoolDetails row={row} />}
           </div>
 
           {/* AI Scores section */}
@@ -332,6 +493,30 @@ export function EntityDetailSheet({
                   );
                 })}
               </div>
+            </>
+          )}
+
+          {/* View full profile link */}
+          {(scannerType === "rfps" || scannerType === "buyers" || scannerType === "schools") && (
+            <>
+              <Separator />
+              <Link
+                href={
+                  scannerType === "rfps"
+                    ? `/contracts/${entityId}`
+                    : scannerType === "buyers"
+                      ? `/buyers/${entityId}`
+                      : `/schools/${row.urn ?? entityId}`
+                }
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
+              >
+                {scannerType === "rfps"
+                  ? "View full contract"
+                  : scannerType === "buyers"
+                    ? "View full buyer profile"
+                    : "View school detail & timeline"}
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
             </>
           )}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Landmark, Building2 } from "lucide-react";
+import { FileText, Landmark, Building2, GraduationCap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,13 @@ const SCANNER_TYPES: Array<{
     description: "Score buyer organizations as potential accounts",
     icon: Building2,
   },
+  {
+    type: "schools",
+    title: "Schools (Ofsted)",
+    description:
+      "Find recently downgraded schools and assess tuition needs from Ofsted data",
+    icon: GraduationCap,
+  },
 ];
 
 export function CreateScannerModal({
@@ -85,7 +92,7 @@ export function CreateScannerModal({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {SCANNER_TYPES.map((item) => (
                 <button
                   key={item.type}

@@ -13,6 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { AgentPanelHeader } from "./agent-panel-header";
 import { AgentMessageList } from "./agent-message-list";
 import { AgentInput } from "./agent-input";
+import { NotificationSummary } from "./notification-summary";
 
 const PANEL_WIDTH = 420;
 
@@ -27,6 +28,7 @@ function PanelContent({
   return (
     <>
       <AgentPanelHeader onNewChat={startNewConversation} />
+      <NotificationSummary />
       <AgentMessageList
         messages={messages}
         onSend={sendMessage}

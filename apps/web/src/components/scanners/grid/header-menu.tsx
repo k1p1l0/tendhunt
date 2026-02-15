@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ArrowUp,
   ArrowDown,
@@ -84,10 +84,19 @@ export function HeaderMenu({
   const [showRunSubmenu, setShowRunSubmenu] = useState(false);
   const [customRowCount, setCustomRowCount] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [submenuSide, setSubmenuSide] = useState<"right" | "left">("right");
   const inputRef = useRef<HTMLInputElement>(null);
   const customInputRef = useRef<HTMLInputElement>(null);
+  const runBtnRef = useRef<HTMLButtonElement>(null);
 
   const unscoredRows = (totalRows ?? 0) - (scoredRows ?? 0);
+
+  const computeSubmenuSide = useCallback(() => {
+    if (!runBtnRef.current) return;
+    const rect = runBtnRef.current.getBoundingClientRect();
+    const submenuWidth = 228;
+    setSubmenuSide(rect.right + submenuWidth > window.innerWidth ? "left" : "right");
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -146,11 +155,13 @@ export function HeaderMenu({
 
   const isDeletable = isAiColumn || isCustomColumn;
 
+  const clampedLeft = Math.min(position.x, window.innerWidth - 228);
+
   return (
     <div
       ref={ref}
       className="fixed z-50 overflow-visible rounded-md border bg-popover p-1 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
-      style={{ left: position.x, top: position.y, width: 220, maxWidth: 220 }}
+      style={{ left: clampedLeft, top: position.y, width: 220, maxWidth: 220 }}
     >
       {/* Column name — click to rename */}
       {isRenaming ? (
@@ -212,9 +223,16 @@ export function HeaderMenu({
       {isAiColumn && onRunColumn && (
         <div className="relative">
           <button
+            ref={runBtnRef}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-            onMouseEnter={() => setShowRunSubmenu(true)}
-            onClick={() => setShowRunSubmenu(!showRunSubmenu)}
+            onMouseEnter={() => {
+              computeSubmenuSide();
+              setShowRunSubmenu(true);
+            }}
+            onClick={() => {
+              computeSubmenuSide();
+              setShowRunSubmenu(!showRunSubmenu);
+            }}
             disabled={isScoring}
           >
             <Play className="h-3.5 w-3.5 text-muted-foreground" />
@@ -224,7 +242,9 @@ export function HeaderMenu({
 
           {showRunSubmenu && (
             <div
-              className="absolute left-full top-0 z-50 ml-1 w-[220px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
+              className={`absolute top-0 z-50 w-[220px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 ${
+                submenuSide === "right" ? "left-full ml-1" : "right-full mr-1"
+              }`}
               onMouseLeave={() => {
                 if (!showCustomInput) setShowRunSubmenu(false);
               }}

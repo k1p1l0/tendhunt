@@ -12,6 +12,7 @@ async function ContractFeed({
   region,
   minValue,
   maxValue,
+  mechanism,
   contractType,
   smeOnly,
   vcoOnly,
@@ -23,6 +24,7 @@ async function ContractFeed({
   region?: string;
   minValue?: number;
   maxValue?: number;
+  mechanism?: string;
   contractType?: string;
   smeOnly?: boolean;
   vcoOnly?: boolean;
@@ -36,6 +38,7 @@ async function ContractFeed({
     region,
     minValue,
     maxValue,
+    mechanism,
     contractType,
     smeOnly,
     vcoOnly,
@@ -64,6 +67,8 @@ async function ContractFeed({
           source: contract.source,
           sector: contract.sector,
           status: contract.status,
+          contractMechanism: contract.contractMechanism,
+          contractEndDate: contract.contractEndDate,
         }))}
       />
 
@@ -94,6 +99,9 @@ export default async function ContractsPage({
     typeof params.page === "string" ? params.page : undefined;
   const page = pageStr ? Math.max(1, parseInt(pageStr, 10) || 1) : 1;
 
+  const mechanism =
+    typeof params.mechanism === "string" ? params.mechanism : undefined;
+
   const minValueStr =
     typeof params.minValue === "string" ? params.minValue : undefined;
   const maxValueStr =
@@ -107,9 +115,9 @@ export default async function ContractsPage({
   const vcoOnly = params.vcoOnly === "true" ? true : undefined;
 
   const suspenseKey = JSON.stringify({
-    query,
     sector,
     region,
+    mechanism,
     minValue,
     maxValue,
     contractType,
@@ -129,6 +137,7 @@ export default async function ContractsPage({
           region={region}
           minValue={minValue}
           maxValue={maxValue}
+          mechanism={mechanism}
           contractType={contractType}
           smeOnly={smeOnly}
           vcoOnly={vcoOnly}

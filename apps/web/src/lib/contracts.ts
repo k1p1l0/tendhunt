@@ -13,6 +13,7 @@ export interface ContractFilters {
   maxValue?: number;
   stage?: string;
   status?: string;
+  mechanism?: string;
   contractType?: string;
   smeOnly?: boolean;
   vcoOnly?: boolean;
@@ -20,6 +21,23 @@ export interface ContractFilters {
   page?: number;
   pageSize?: number;
 }
+
+// Contracts store NUTS codes in buyerRegion (from OCDS data), but filters
+// use human-readable region names (from buyer dropdown). Map names → NUTS1 prefix.
+const REGION_TO_NUTS: Record<string, string> = {
+  "North East": "UKC",
+  "North West": "UKD",
+  "Yorkshire and the Humber": "UKE",
+  "East Midlands": "UKF",
+  "West Midlands": "UKG",
+  "East of England": "UKH",
+  "London": "UKI",
+  "South East": "UKJ",
+  "South West": "UKK",
+  "Wales": "UKL",
+  "Scotland": "UKM",
+  "Northern Ireland": "UKN",
+};
 
 export async function fetchContracts(filters: ContractFilters) {
   await dbConnect();
@@ -48,9 +66,16 @@ export async function fetchContracts(filters: ContractFilters) {
         $or: [{ buyerRegion: null }, { buyerRegion: { $exists: false } }],
       });
     } else {
-      conditions.push({
-        buyerRegion: { $regex: new RegExp("^" + filters.region, "i") },
-      });
+      const nutsPrefix = REGION_TO_NUTS[filters.region];
+      if (nutsPrefix) {
+        conditions.push({
+          buyerRegion: { $regex: new RegExp("^" + nutsPrefix, "i") },
+        });
+      } else {
+        conditions.push({
+          buyerRegion: { $regex: new RegExp("^" + filters.region, "i") },
+        });
+      }
     }
   }
 
@@ -68,6 +93,10 @@ export async function fetchContracts(filters: ContractFilters) {
 
   if (filters.status) {
     conditions.push({ status: filters.status });
+  }
+
+  if (filters.mechanism) {
+    conditions.push({ contractMechanism: filters.mechanism });
   }
 
   if (filters.contractType) {

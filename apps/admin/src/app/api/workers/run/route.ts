@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { triggerWorkerRun } from "@/lib/workers";
 import { requireAdmin } from "@/lib/auth";
+import { getWorkerBudgets, getBudgetMaxItems } from "@/lib/settings";
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -14,7 +15,10 @@ export async function POST(request: Request) {
     const { workerName } = (await request.json()) as { workerName: string };
     if (!workerName) return NextResponse.json({ error: "Missing workerName" }, { status: 400 });
 
-    const result = await triggerWorkerRun(workerName);
+    const budgets = await getWorkerBudgets();
+    const maxItems = getBudgetMaxItems(budgets, workerName);
+
+    const result = await triggerWorkerRun(workerName, maxItems);
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[workers/run] Error:", error);

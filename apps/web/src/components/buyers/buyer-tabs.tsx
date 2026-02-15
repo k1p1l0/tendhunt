@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useCallback } from "react";
 import {
   Tabs,
   TabsList,
@@ -81,17 +83,35 @@ interface BuyerTabsProps {
   spendTransactionCount?: number;
   departments?: ChildBuyerData[];
   ofstedSchools?: OfstedSchoolData[];
-  initialTab?: string;
 }
 
 export function BuyerTabs(props: BuyerTabsProps) {
   const contactCount = props.contacts.length;
-  const activeTab: BuyerTab = VALID_TABS.includes(props.initialTab as BuyerTab)
-    ? (props.initialTab as BuyerTab)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tabParam = searchParams.get("tab");
+  const activeTab: BuyerTab = VALID_TABS.includes(tabParam as BuyerTab)
+    ? (tabParam as BuyerTab)
     : "spending";
 
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "spending") {
+        params.delete("tab");
+      } else {
+        params.set("tab", value);
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [searchParams, router, pathname]
+  );
+
   return (
-    <Tabs defaultValue={activeTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList
         variant="line"
         className="w-full justify-start gap-6 border-b border-border overflow-x-auto"

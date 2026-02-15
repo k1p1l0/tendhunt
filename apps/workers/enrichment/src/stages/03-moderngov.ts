@@ -6,6 +6,7 @@ import {
   getMeetings,
   testConnection,
 } from "../api-clients/moderngov-client";
+import { reportPipelineError } from "../db/pipeline-errors";
 import type { BoardDocumentDoc } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,15 @@ export async function fetchModernGovData(
           errorMessages.push(
             `Connection failed: ${buyer.name} (${baseUrl})`
           );
+          await reportPipelineError(db, {
+            worker: "enrichment",
+            stage: "moderngov",
+            buyerId: buyer._id!,
+            buyerName: buyer.name,
+            errorType: "unreachable",
+            message: `ModernGov API unreachable at ${baseUrl}`,
+            url: baseUrl,
+          });
           // Mark as processed to prevent infinite retry of unreachable APIs
           await collection.updateOne(
             { _id: buyer._id },

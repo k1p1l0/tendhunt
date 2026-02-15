@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, Database, Sparkles } from "lucide-react";
 import { ENTITY_FIELDS } from "@/components/scanners/table-columns";
+import { ColumnMentionInput } from "@/components/scanners/column-mention-input";
+import { getAvailableColumns } from "@/lib/column-references";
 import type { DataType, EntityField } from "@/components/scanners/table-columns";
 import type { ScannerType } from "@/models/scanner";
 import {
@@ -38,6 +39,8 @@ interface AddColumnModalProps {
   onOpenChange: (open: boolean) => void;
   scannerId: string;
   scannerType: ScannerType;
+  existingAiColumns?: Array<{ columnId: string; name: string; useCase?: string }>;
+  existingCustomColumns?: Array<{ columnId: string; name: string; accessor: string; dataType: string }>;
   onColumnAdded: (column: {
     columnId: string;
     name: string;
@@ -60,6 +63,7 @@ const DATA_TYPE_LABELS: Record<DataType, string> = {
   email: "Email",
   checkbox: "Checkbox",
   paragraph: "Paragraph",
+  "rating-change": "Rating Change",
 };
 
 export function AddColumnModal({
@@ -67,6 +71,8 @@ export function AddColumnModal({
   onOpenChange,
   scannerId,
   scannerType,
+  existingAiColumns = [],
+  existingCustomColumns = [],
   onColumnAdded,
 }: AddColumnModalProps) {
   const [tab, setTab] = useState<TabKind>("data");
@@ -85,6 +91,10 @@ export function AddColumnModal({
   const [promptModified, setPromptModified] = useState(false);
 
   const entityFields = ENTITY_FIELDS[scannerType] ?? [];
+  const mentionColumns = useMemo(
+    () => getAvailableColumns(scannerType, existingAiColumns, existingCustomColumns),
+    [scannerType, existingAiColumns, existingCustomColumns]
+  );
 
   function handleFieldChange(field: string) {
     setSelectedField(field);
@@ -373,19 +383,20 @@ export function AddColumnModal({
               {/* Prompt */}
               <div className="space-y-2">
                 <Label htmlFor="column-prompt">Prompt</Label>
-                <Textarea
+                <ColumnMentionInput
                   id="column-prompt"
                   placeholder="Describe what you want the AI to analyze for each row..."
                   value={prompt}
-                  onChange={(e) => {
-                    setPrompt(e.target.value);
+                  onChange={(v) => {
+                    setPrompt(v);
                     setPromptModified(true);
                   }}
+                  columns={mentionColumns}
                   disabled={isSubmitting}
-                  className="min-h-[150px] font-mono text-sm"
+                  className="min-h-[150px] w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Pre-filled from the selected use case. Customise to refine the analysis for your needs.
+                  Type <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px]">@</kbd> to reference another column. Pre-filled from the selected use case.
                 </p>
               </div>
             </>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/collapsible";
 import { EnrichmentBadge } from "@/components/buyers/enrichment-badge";
 import { resolveRegionName } from "@/lib/nuts-regions";
+import { getActionCTA } from "@/lib/contract-mechanism";
 import {
   ExternalLink,
   Building2,
@@ -29,6 +31,9 @@ import {
   Circle,
   CircleDot,
   Loader,
+  RefreshCw,
+  Layers,
+  ArrowRight,
   GraduationCap,
 } from "lucide-react";
 
@@ -137,6 +142,7 @@ interface ContractDetailData {
   }> | null;
   lotCount?: number | null;
   maxLotsBidPerSupplier?: number | null;
+  contractMechanism?: "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework" | null;
 
   // Contract enrichment fields
   contractType?: string | null;
@@ -284,6 +290,134 @@ function relativeTime(date: Date): string {
   if (months < 12) return isPast ? `${months}mo ago` : `in ${months} month${months > 1 ? "s" : ""}`;
   const years = Math.round(absDays / 365);
   return isPast ? `${years}y ago` : `in ${years} year${years > 1 ? "s" : ""}`;
+}
+
+function isFutureEndDate(contractEndDate?: string | Date | null): boolean {
+  if (!contractEndDate) return false;
+  return new Date(contractEndDate) > new Date();
+}
+
+function getMechanismLabel(mechanism: string): string {
+  switch (mechanism) {
+    case "dps":
+      return "DPS";
+    case "framework":
+      return "Framework";
+    case "call_off_dps":
+      return "DPS Call-off";
+    case "call_off_framework":
+      return "Framework Call-off";
+    default:
+      return "";
+  }
+}
+
+function mechanismBadgeClassName(mechanism: string): string {
+  switch (mechanism) {
+    case "dps":
+    case "call_off_dps":
+      return "bg-purple-500/15 text-purple-400 border-purple-500/20 hover:bg-purple-500/15";
+    case "framework":
+    case "call_off_framework":
+      return "bg-indigo-500/15 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/15";
+    default:
+      return "";
+  }
+}
+
+function ProcurementMechanismSection({
+  mechanism,
+  status,
+  contractEndDate,
+}: {
+  mechanism: string;
+  status: string;
+  contractEndDate?: string | Date | null;
+}) {
+  if (mechanism === "standard" || !mechanism) return null;
+
+  const futureEnd = isFutureEndDate(contractEndDate);
+  const endDateFormatted = contractEndDate ? formatDate(contractEndDate) : null;
+
+  let icon: React.ReactNode;
+  let title: string;
+  let explanation: string;
+  let callout: string | null = null;
+
+  switch (mechanism) {
+    case "dps":
+      icon = <RefreshCw className="h-5 w-5 text-purple-400 shrink-0" />;
+      title = "Dynamic Purchasing System (DPS)";
+      explanation =
+        "This is a Dynamic Purchasing System -- a multi-year procurement framework that periodically reopens for new suppliers to join. Unlike a standard tender, a DPS runs for its full contract period and reopens application windows at intervals.";
+      if (status === "CLOSED" && futureEnd) {
+        callout = `The current application window is closed, but this DPS runs until ${endDateFormatted}. It will reopen for new applications -- monitor the buyer for the next window.`;
+      } else if (status === "OPEN") {
+        callout = "The application window is currently open. New suppliers can apply to join this DPS.";
+      }
+      break;
+
+    case "framework":
+      icon = <Layers className="h-5 w-5 text-indigo-400 shrink-0" />;
+      title = "Framework Agreement";
+      explanation =
+        "This is a Framework Agreement -- a pre-established arrangement between the buyer and a set of qualified suppliers. Individual contracts (call-offs) are awarded to framework members throughout the agreement period.";
+      if (status === "CLOSED" && futureEnd) {
+        callout = `This framework agreement runs until ${endDateFormatted}. While new suppliers cannot join mid-term, monitoring the buyer may reveal when the framework is re-tendered.`;
+      }
+      break;
+
+    case "call_off_dps":
+      icon = <ArrowRight className="h-5 w-5 text-purple-400 shrink-0" />;
+      title = "Call-off Contract (from DPS)";
+      explanation =
+        "This is a call-off contract awarded under a Dynamic Purchasing System. The parent DPS may still be accepting new suppliers.";
+      break;
+
+    case "call_off_framework":
+      icon = <ArrowRight className="h-5 w-5 text-indigo-400 shrink-0" />;
+      title = "Call-off Contract (from Framework Agreement)";
+      explanation =
+        "This is a call-off contract awarded under a Framework Agreement. The parent Framework may still be accepting new suppliers.";
+      break;
+
+    default:
+      return null;
+  }
+
+  const isAmberCallout = mechanism === "dps" && status === "CLOSED" && futureEnd;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="mt-8 mb-8"
+    >
+      <div className="border rounded-lg p-4 bg-muted/30">
+        <div className="flex items-center gap-2.5 mb-2">
+          {icon}
+          <h3 className="text-sm font-semibold">{title}</h3>
+        </div>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {explanation}
+        </p>
+        {callout && (
+          <div
+            className={`mt-3 p-3 rounded-md border text-sm leading-relaxed ${
+              isAmberCallout
+                ? "border-amber-500/30 bg-amber-500/5 text-amber-200"
+                : mechanism === "dps"
+                  ? "border-purple-500/20 bg-purple-500/5 text-purple-300"
+                  : "border-indigo-500/20 bg-indigo-500/5 text-indigo-300"
+            }`}
+          >
+            {callout}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
 }
 
 type TimelinePhase = "planning" | "tender" | "award";
@@ -1003,11 +1137,28 @@ export function ContractDetailView({
         <div className="max-w-4xl">
           {/* Hero Metadata */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <Badge
-              className={`text-sm px-3 py-1 ${statusClassName(contract.status)}`}
-            >
-              {contract.status}
-            </Badge>
+            {contract.contractMechanism &&
+             contract.contractMechanism !== "standard" &&
+             contract.status === "CLOSED" &&
+             isFutureEndDate(contract.contractEndDate) ? (
+              <Badge className="text-sm px-3 py-1 bg-amber-500/15 text-amber-400 border-amber-500/20 hover:bg-amber-500/15">
+                Window Closed
+              </Badge>
+            ) : (
+              <Badge
+                className={`text-sm px-3 py-1 ${statusClassName(contract.status)}`}
+              >
+                {contract.status}
+              </Badge>
+            )}
+            {contract.contractMechanism &&
+             contract.contractMechanism !== "standard" && (
+              <Badge
+                className={`text-sm px-3 py-1 ${mechanismBadgeClassName(contract.contractMechanism)}`}
+              >
+                {getMechanismLabel(contract.contractMechanism)}
+              </Badge>
+            )}
             {contract.sector && (
               <Badge variant="outline" className="text-sm px-3 py-1">
                 {contract.sector}
@@ -1019,25 +1170,58 @@ export function ContractDetailView({
             </span>
           </div>
 
-          {/* Apply CTA */}
-          {contract.submissionPortalUrl && contract.status === "OPEN" && (
-            <a
-              href={contract.submissionPortalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 mb-6 rounded-lg border border-lime-400/30 bg-lime-400/5 hover:bg-lime-400/10 transition-colors group"
-            >
-              <div>
-                <div className="text-sm font-semibold text-lime-400">
-                  Apply for this tender
+          {/* Adaptive Apply CTA */}
+          {(() => {
+            const cta = getActionCTA(
+              contract.contractMechanism,
+              contract.status,
+              contract.contractEndDate,
+              contract.sourceUrl
+            );
+            const targetUrl = contract.submissionPortalUrl ?? contract.sourceUrl;
+
+            if (cta.disabled) {
+              return (
+                <div className="flex items-center justify-between p-4 mb-6 rounded-lg border border-border bg-muted/30 opacity-60">
+                  <div>
+                    <div className="text-sm font-semibold text-muted-foreground">{cta.label}</div>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  Register and submit your bid on {getDomain(contract.submissionPortalUrl)}
+              );
+            }
+
+            if (!targetUrl) return null;
+
+            const borderColor =
+              cta.variant === "default"
+                ? "border-lime-400/30 bg-lime-400/5 hover:bg-lime-400/10"
+                : cta.variant === "secondary"
+                  ? "border-amber-400/30 bg-amber-400/5 hover:bg-amber-400/10"
+                  : "border-border bg-muted/30 hover:bg-muted/50";
+            const textColor =
+              cta.variant === "default"
+                ? "text-lime-400"
+                : cta.variant === "secondary"
+                  ? "text-amber-400"
+                  : "text-muted-foreground";
+
+            return (
+              <a
+                href={targetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center justify-between p-4 mb-6 rounded-lg border transition-colors group ${borderColor}`}
+              >
+                <div>
+                  <div className={`text-sm font-semibold ${textColor}`}>{cta.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {getDomain(targetUrl)}
+                  </div>
                 </div>
-              </div>
-              <ExternalLink className="h-5 w-5 text-lime-400 shrink-0 transition-transform group-hover:translate-x-0.5" />
-            </a>
-          )}
+                <ExternalLink className={`h-5 w-5 ${textColor} shrink-0 transition-transform group-hover:translate-x-0.5`} />
+              </a>
+            );
+          })()}
 
           {/* Key Details Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-5 bg-muted/50 rounded-lg border border-border mb-8">
@@ -1298,6 +1482,16 @@ export function ContractDetailView({
               </p>
             )}
           </div>
+
+          {/* Procurement Mechanism */}
+          {contract.contractMechanism &&
+           contract.contractMechanism !== "standard" && (
+            <ProcurementMechanismSection
+              mechanism={contract.contractMechanism}
+              status={contract.status}
+              contractEndDate={contract.contractEndDate}
+            />
+          )}
 
           {/* Documents */}
           {contract.documents && contract.documents.length > 0 && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
 import { useAgentContext } from "./agent-provider";
 
 import type { AgentPageContext } from "./agent-provider";
@@ -39,6 +40,26 @@ function getPrompts(context: AgentPageContext): string[] {
         "Are there similar contracts?",
         "What signals suggest active procurement?",
       ];
+    case "competitors":
+      return [
+        "Search for Capita contracts",
+        "Who are the biggest IT suppliers in government?",
+        "Find contracts for Serco",
+        "Which suppliers work with NHS trusts?",
+      ];
+    case "competitor_detail":
+      return [
+        context.competitorName
+          ? `Which buyers work most with ${context.competitorName}?`
+          : "Which buyers work with this supplier?",
+        context.competitorName
+          ? `What sectors does ${context.competitorName} operate in?`
+          : "What sectors does this supplier operate in?",
+        context.competitorName
+          ? `Show me spend data for ${context.competitorName}`
+          : "Show me spend data for this supplier",
+        "Find similar suppliers",
+      ];
     default:
       return [
         "Find NHS trusts with high enrichment scores",
@@ -71,7 +92,7 @@ export function SuggestedActions({ onSend }: SuggestedActionsProps) {
         className="flex flex-col items-center gap-3 text-center"
       >
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-          <span className="agent-trigger-orb !w-7 !h-7" aria-hidden="true" />
+          <SculptorIcon size={28} animate />
         </div>
         <h3 className="text-lg font-semibold tracking-tight">How can I help?</h3>
         <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">

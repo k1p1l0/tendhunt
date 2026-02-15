@@ -23,13 +23,14 @@ export async function GET(request: Request) {
         : undefined,
       stage: searchParams.get("stage") ?? undefined,
       status: searchParams.get("status") ?? undefined,
+      mechanism: searchParams.get("mechanism") ?? undefined,
       sort: (searchParams.get("sort") as ContractFilters["sort"]) ?? undefined,
       page: searchParams.get("page")
         ? parseInt(searchParams.get("page")!, 10)
         : 1,
       pageSize: searchParams.get("pageSize")
         ? parseInt(searchParams.get("pageSize")!, 10)
-        : 0,
+        : 100,
     };
 
     const { contracts, filteredCount, totalCount } =

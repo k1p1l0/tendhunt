@@ -11,6 +11,7 @@ import { validateTransparencyUrl } from "../patterns/url-validator";
 import { extractNavAndFooter, extractMainContent, containsSpendKeywords } from "../patterns/html-extractor";
 import { scoreLink } from "../patterns/csv-patterns";
 import { decodeHtmlEntities } from "../patterns/html-extractor";
+import { reportPipelineError } from "../db/pipeline-errors";
 
 // ---------------------------------------------------------------------------
 // Stage 1: Discover transparency pages — pattern-first, AI fallback
@@ -131,14 +132,203 @@ function extractCsvLinksFromHtml(html: string, baseUrl: string): string[] {
   return [...new Set(links)];
 }
 
+// ---------------------------------------------------------------------------
+// Alternate domain fallback — try governance/ICB domains when main website fails
+// ---------------------------------------------------------------------------
+
+interface AltDomainResult {
+  url: string;
+  csvLinks: string[];
+}
+
+export function getAlternateDomains(
+  buyerName: string,
+  orgType: string | undefined,
+  website: string | undefined
+): string[] {
+  const domains: string[] = [];
+  const nameLower = buyerName.toLowerCase();
+
+  if (orgType?.startsWith("nhs_icb") || nameLower.includes("icb")) {
+    const region = nameLower
+      .replace(/^nhs\s+/, "")
+      .replace(/\s+icb$/, "")
+      .replace(/\s+integrated care board$/, "")
+      .trim()
+      .replace(/\s+/g, "");
+    if (region.length > 2) {
+      domains.push(`https://www.${region}.icb.nhs.uk`);
+      const hyphenated = nameLower
+        .replace(/^nhs\s+/, "")
+        .replace(/\s+icb$/, "")
+        .replace(/\s+integrated care board$/, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      if (hyphenated !== region) {
+        domains.push(`https://www.${hyphenated}.icb.nhs.uk`);
+      }
+    }
+  }
+
+  if (orgType?.startsWith("nhs_trust") && website && !website.includes(".nhs.uk")) {
+    const slug = nameLower
+      .replace(/nhs\s+(foundation\s+)?trust/gi, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    if (slug.length > 3) {
+      domains.push(`https://www.${slug}.nhs.uk`);
+    }
+  }
+
+  return domains;
+}
+
+const ALT_SPEND_PATHS = [
+  "/documents/publication-scheme/what-we-spend-and-how-we-spend-it",
+  "/about-us/how-we-spend-public-money",
+  "/about-us/spending-over-25000",
+  "/about-us/spending-reports",
+  "/publications/expenditure-over-25000",
+  "/about-us/transparency/spending",
+  "/transparency/spending",
+  "/how-we-work/expenditure-over-25k",
+  "/policies-and-documents/expenditure-over-25k-1",
+  "/about-us/what-we-spend-and-how-we-spend-it",
+];
+
+async function tryAlternateDomains(
+  buyer: { _id?: import("mongodb").ObjectId; name: string; orgType?: string; website?: string },
+  _env: Env
+): Promise<AltDomainResult | null> {
+  const altDomains = getAlternateDomains(buyer.name, buyer.orgType, buyer.website);
+  if (altDomains.length === 0) return null;
+
+  for (const domain of altDomains) {
+    for (const path of ALT_SPEND_PATHS) {
+      const url = `${domain}${path}`;
+      try {
+        const result = await validateTransparencyUrl(url);
+        if (result.valid && result.html && containsSpendKeywords(result.html)) {
+          console.log(`Alt domain match for "${buyer.name}": ${url}`);
+          const csvLinks = extractCsvLinksFromHtml(result.html, url);
+          return { url, csvLinks };
+        }
+      } catch {
+        // Skip unreachable alt domains silently
+      }
+    }
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// data.gov.uk search fallback — many NHS ICBs publish spending data there
+// ---------------------------------------------------------------------------
+
+export async function tryDataGovUk(
+  buyerName: string
+): Promise<AltDomainResult | null> {
+  // Strip punctuation/stopwords for cleaner search
+  const cleanName = buyerName
+    .replace(/[,()]/g, " ")
+    .replace(/\b(the|of|and|for)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const query = encodeURIComponent(`${cleanName} spend 25k`);
+  const searchUrl = `https://www.data.gov.uk/search?q=${query}`;
+
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // Extract dataset titles + links from search results
+    // data.gov.uk renders datasets as <h2><a href="/dataset/...">Title</a></h2>
+    const datasetRegex = /href="(\/dataset\/[^"]+)"[^>]*>([^<]+)</g;
+    const datasets: { url: string; title: string }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = datasetRegex.exec(html)) !== null && datasets.length < 5) {
+      datasets.push({
+        url: `https://www.data.gov.uk${m[1]}`,
+        title: m[2].trim(),
+      });
+    }
+    if (datasets.length === 0) return null;
+
+    // Keywords from buyer name for relevance matching
+    // Keep org-type words (council, borough, trust) for matching — they help disambiguate
+    const nameWords = buyerName
+      .toLowerCase()
+      .replace(/[,()]/g, " ")
+      .replace(/\b(nhs|icb|the|of|and|for)\b/g, "")
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+
+    for (const dataset of datasets) {
+      // Check dataset title (more reliable than URL slug)
+      const titleLower = dataset.title.toLowerCase();
+      const matchCount = nameWords.filter((w) => titleLower.includes(w)).length;
+      // Require at least 60% of keywords to match in the title
+      // "Essex County Council" (essex, county, council) → 3 words, need 2
+      // "NHS BOB ICB" (buckinghamshire, oxfordshire, berkshire, west) → need 3
+      const threshold = Math.max(1, Math.ceil(nameWords.length * 0.5));
+      if (matchCount < threshold) continue;
+
+      try {
+        const datasetRes = await fetch(dataset.url, {
+          headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+          redirect: "follow",
+        });
+        if (!datasetRes.ok) continue;
+
+        const datasetHtml = await datasetRes.text();
+
+        // Extract CSV download links from dataset page
+        const csvRegex = /href="(https?:\/\/[^"]+\.csv[^"]*)"/gi;
+        const csvLinks: string[] = [];
+        const seen = new Set<string>();
+        while ((m = csvRegex.exec(datasetHtml)) !== null) {
+          const link = m[1];
+          if (!seen.has(link)) {
+            seen.add(link);
+            csvLinks.push(link);
+          }
+        }
+
+        if (csvLinks.length > 0) {
+          console.log(
+            `data.gov.uk match for "${buyerName}": ${dataset.url} → ${csvLinks.length} CSV links`
+          );
+          return { url: dataset.url, csvLinks };
+        }
+      } catch {
+        // Skip unreachable dataset pages
+      }
+    }
+  } catch {
+    // data.gov.uk unreachable — skip
+  }
+
+  return null;
+}
+
 /**
  * Stage 1: Discover transparency pages on buyer websites.
  *
- * New flow per buyer:
+ * Flow per buyer:
  * 1. Look up patterns for buyer.orgType
  * 2. PATTERN PHASE: probe known URL paths, validate with spend keywords
  * 3. AI FALLBACK: if no pattern matched, fetch homepage + Claude Haiku
- * 4. Store result with discoveryMethod tag
+ * 4. ALTERNATE DOMAIN: try governance/ICB domains when AI fails
+ * 5. data.gov.uk SEARCH: search for buyer spending datasets
+ * 6. Store result with discoveryMethod tag
  */
 export async function discoverTransparencyPages(
   db: Db,
@@ -171,7 +361,26 @@ export async function discoverTransparencyPages(
     const results = await Promise.allSettled(
       batch.map((buyer) =>
         limit(async () => {
-          const websiteUrl = buyer.website!;
+          // No website? Skip to data.gov.uk search directly
+          if (!buyer.website) {
+            const dataGovResult = await tryDataGovUk(buyer.name);
+            if (dataGovResult) {
+              await updateBuyerTransparencyInfo(db, buyer._id!, {
+                transparencyPageUrl: dataGovResult.url,
+                csvLinks: dataGovResult.csvLinks,
+                discoveryMethod: "data_gov_uk",
+              });
+              discovered++;
+              return { error: false, found: true };
+            }
+            await updateBuyerTransparencyInfo(db, buyer._id!, {
+              transparencyPageUrl: "none",
+              discoveryMethod: "none",
+            });
+            return { error: false, found: false };
+          }
+
+          const websiteUrl = buyer.website;
 
           // ---------------------------------------------------------------
           // GOV.UK DEPT-SPECIFIC: try department publication page first
@@ -273,14 +482,22 @@ export async function discoverTransparencyPages(
 
             html = await response.text();
           } catch (err) {
-            console.warn(
-              `Fetch failed for "${buyer.name}" (${websiteUrl}): ${
-                err instanceof Error ? err.message : String(err)
-              }`
-            );
+            const fetchMsg = `Fetch failed for "${buyer.name}" (${websiteUrl}): ${
+              err instanceof Error ? err.message : String(err)
+            }`;
+            console.warn(fetchMsg);
             await updateBuyerTransparencyInfo(db, buyer._id!, {
               transparencyPageUrl: "none",
               discoveryMethod: "none",
+            });
+            await reportPipelineError(db, {
+              worker: "spend-ingest",
+              stage: "discover",
+              buyerId: buyer._id!,
+              buyerName: buyer.name,
+              errorType: "unreachable",
+              message: fetchMsg,
+              url: websiteUrl,
             });
             return { error: false, found: false };
           }
@@ -354,6 +571,36 @@ Return ONLY valid JSON (no markdown):
             const parsed = parseDiscoveryResponse(responseText);
 
             if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
+              // ---------------------------------------------------------------
+              // ALTERNATE DOMAIN FALLBACK: try common governance/ICB domains
+              // Many NHS ICBs, combined authorities, etc. host spending data
+              // on a different domain than their main website
+              // ---------------------------------------------------------------
+              const altResult = await tryAlternateDomains(buyer, env);
+              if (altResult) {
+                await updateBuyerTransparencyInfo(db, buyer._id!, {
+                  transparencyPageUrl: altResult.url,
+                  csvLinks: altResult.csvLinks,
+                  discoveryMethod: "alt_domain",
+                });
+                discovered++;
+                return { error: false, found: true };
+              }
+
+              // ---------------------------------------------------------------
+              // data.gov.uk SEARCH: many NHS ICBs/trusts publish spending there
+              // ---------------------------------------------------------------
+              const dataGovResult = await tryDataGovUk(buyer.name);
+              if (dataGovResult) {
+                await updateBuyerTransparencyInfo(db, buyer._id!, {
+                  transparencyPageUrl: dataGovResult.url,
+                  csvLinks: dataGovResult.csvLinks,
+                  discoveryMethod: "data_gov_uk",
+                });
+                discovered++;
+                return { error: false, found: true };
+              }
+
               await updateBuyerTransparencyInfo(db, buyer._id!, {
                 transparencyPageUrl: "none",
                 discoveryMethod: "none",

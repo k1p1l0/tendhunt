@@ -10,7 +10,8 @@ export type DataType =
   | "url"
   | "email"
   | "checkbox"
-  | "paragraph";
+  | "paragraph"
+  | "rating-change";
 
 export interface ColumnDef {
   id: string;
@@ -37,6 +38,24 @@ export interface EntityField {
 }
 
 export const ENTITY_FIELDS: Record<ScannerType, EntityField[]> = {
+  schools: [
+    { field: "name", label: "School Name", suggestedType: "text" },
+    { field: "overallEffectiveness", label: "Overall Rating", suggestedType: "number" },
+    { field: "qualityOfEducation", label: "Quality of Education", suggestedType: "number" },
+    { field: "behaviourAndAttitudes", label: "Behaviour & Attitudes", suggestedType: "number" },
+    { field: "personalDevelopment", label: "Personal Development", suggestedType: "number" },
+    { field: "leadershipAndManagement", label: "Leadership & Management", suggestedType: "number" },
+    { field: "inspectionDate", label: "Inspection Date", suggestedType: "date" },
+    { field: "previousOverallEffectiveness", label: "Previous Rating", suggestedType: "number" },
+    { field: "ratingDirection", label: "Rating Change", suggestedType: "rating-change" },
+    { field: "region", label: "Region", suggestedType: "badge" },
+    { field: "phase", label: "School Phase", suggestedType: "badge" },
+    { field: "totalPupils", label: "Pupils", suggestedType: "number" },
+    { field: "localAuthority", label: "Local Authority", suggestedType: "badge" },
+    { field: "schoolType", label: "School Type", suggestedType: "badge" },
+    { field: "lastDowngradeDate", label: "Last Downgrade", suggestedType: "date" },
+    { field: "downgradeType", label: "Downgrade Type", suggestedType: "badge" },
+  ],
   rfps: [
     { field: "title", label: "Title", suggestedType: "text" },
     { field: "description", label: "Description", suggestedType: "paragraph" },
@@ -85,6 +104,7 @@ export const VALID_ACCESSORS: Record<ScannerType, Set<string>> = {
   rfps: new Set(ENTITY_FIELDS.rfps.map((f) => f.field)),
   meetings: new Set(ENTITY_FIELDS.meetings.map((f) => f.field)),
   buyers: new Set(ENTITY_FIELDS.buyers.map((f) => f.field)),
+  schools: new Set(ENTITY_FIELDS.schools.map((f) => f.field)),
 };
 
 // ── Default width per data type ──────────────────────────────
@@ -99,9 +119,95 @@ const DATA_TYPE_WIDTHS: Record<DataType, number> = {
   url: 160,
   email: 160,
   checkbox: 80,
+  "rating-change": 140,
 };
 
 // ── Core column definitions per scanner type ─────────────────
+
+const SCHOOLS_COLUMNS: ColumnDef[] = [
+  {
+    id: "name",
+    header: "School",
+    accessor: "name",
+    type: "entity-name",
+    logoAccessor: "name",
+    width: "w-[220px]",
+    widthPx: 220,
+    truncate: true,
+  },
+  {
+    id: "overallEffectiveness",
+    header: "Rating",
+    accessor: "overallEffectiveness",
+    type: "number",
+    width: "w-[80px]",
+    widthPx: 80,
+  },
+  {
+    id: "qualityOfEducation",
+    header: "Quality of Ed",
+    accessor: "qualityOfEducation",
+    type: "number",
+    width: "w-[100px]",
+    widthPx: 100,
+  },
+  {
+    id: "inspectionDate",
+    header: "Inspection Date",
+    accessor: "inspectionDate",
+    type: "date",
+    width: "w-[120px]",
+    widthPx: 120,
+  },
+  {
+    id: "previousOverallEffectiveness",
+    header: "Prev Rating",
+    accessor: "previousOverallEffectiveness",
+    type: "number",
+    width: "w-[90px]",
+    widthPx: 90,
+  },
+  {
+    id: "ratingDirection",
+    header: "Rating Change",
+    accessor: "ratingDirection",
+    type: "rating-change",
+    width: "w-[140px]",
+    widthPx: 140,
+  },
+  {
+    id: "region",
+    header: "Region",
+    accessor: "region",
+    type: "badge",
+    width: "w-[130px]",
+    widthPx: 130,
+  },
+  {
+    id: "phase",
+    header: "Phase",
+    accessor: "phase",
+    type: "badge",
+    width: "w-[130px]",
+    widthPx: 130,
+  },
+  {
+    id: "totalPupils",
+    header: "Pupils",
+    accessor: "totalPupils",
+    type: "number",
+    width: "w-[80px]",
+    widthPx: 80,
+  },
+  {
+    id: "localAuthority",
+    header: "LA",
+    accessor: "localAuthority",
+    type: "badge",
+    width: "w-[140px]",
+    widthPx: 140,
+  },
+];
 
 const RFP_COLUMNS: ColumnDef[] = [
   {
@@ -162,6 +268,14 @@ const RFP_COLUMNS: ColumnDef[] = [
     type: "badge",
     width: "w-[110px]",
     widthPx: 110,
+  },
+  {
+    id: "contractMechanism",
+    header: "Type",
+    accessor: "contractMechanism",
+    type: "badge",
+    width: "w-[130px]",
+    widthPx: 130,
   },
 ];
 
@@ -281,6 +395,10 @@ const BUYERS_COLUMNS: ColumnDef[] = [
   },
 ];
 
+export function getSchoolsColumns(): ColumnDef[] {
+  return [...SCHOOLS_COLUMNS];
+}
+
 export function getRfpColumns(): ColumnDef[] {
   return [...RFP_COLUMNS];
 }
@@ -320,6 +438,9 @@ export function getColumnsForType(
       break;
     case "buyers":
       base = getBuyersColumns();
+      break;
+    case "schools":
+      base = getSchoolsColumns();
       break;
     default:
       base = getRfpColumns();

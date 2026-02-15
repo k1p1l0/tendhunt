@@ -10,14 +10,22 @@ import "@glideapps/glide-data-grid/dist/index.css";
 import { useScannerStore, getScore } from "@/stores/scanner-store";
 import type { ColumnDef } from "@/components/scanners/table-columns";
 import type { ScannerType } from "@/models/scanner";
+import type { CellClickedEventArgs } from "@glideapps/glide-data-grid";
 import { toGlideColumns } from "./glide-columns";
 import type { ColumnMeta } from "./glide-columns";
 import { createGetCellContent } from "./cell-content";
 import { customRenderers, setLogoRedrawCallback } from "./custom-renderers";
 import { useGlideTheme } from "./glide-theme";
-import { resolveAccessor, getUniqueColumnValues } from "./format-utils";
+import {
+  resolveAccessor,
+  getUniqueColumnValues,
+  formatDate,
+  formatCurrency,
+  formatNumber,
+} from "./format-utils";
 import { HeaderMenu } from "./header-menu";
 import type { RunColumnOptions } from "./header-menu";
+import { CellContextMenu } from "./cell-context-menu";
 import { isTextUseCase } from "@/lib/ai-column-config";
 
 // Play button hit area: 24×24 icon in the right side of the header
@@ -28,6 +36,7 @@ interface ScannerDataGridProps {
   columns: ColumnDef[];
   rows: Array<Record<string, unknown>>;
   scannerType: ScannerType;
+  displayRowIdsRef?: React.MutableRefObject<string[]>;
   onAiCellClick?: (columnId: string, entityId: string) => void;
   onScoreColumn?: (columnId: string) => void;
   onCancelScoring?: () => void;
@@ -40,11 +49,14 @@ interface ScannerDataGridProps {
   onRowDoubleClick?: (row: Record<string, unknown>, columnMeta: { type: string; aiColumnId?: string }) => void;
   onInsertColumn?: (referenceColumnId: string, side: "left" | "right") => void;
   onAutoRule?: (columnId: string, columnName: string) => void;
+  onScoreCell?: (columnId: string, entityId: string) => void;
+  onOpenEntity?: (row: Record<string, unknown>) => void;
 }
 
 export function ScannerDataGrid({
   columns,
   rows,
+  displayRowIdsRef,
   onAiCellClick,
   onScoreColumn,
   onCancelScoring,
@@ -57,12 +69,21 @@ export function ScannerDataGrid({
   onRowDoubleClick,
   onInsertColumn,
   onAutoRule,
+  onScoreCell,
+  onOpenEntity,
 }: ScannerDataGridProps) {
   const [sortColumnIdx, setSortColumnIdx] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const [headerMenu, setHeaderMenu] = useState<{
     col: number;
     title: string;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  const [cellMenu, setCellMenu] = useState<{
+    col: number;
+    row: number;
+    entityId: string;
     position: { x: number; y: number };
   } | null>(null);
 
@@ -84,8 +105,8 @@ export function ScannerDataGrid({
 
   const theme = useGlideTheme();
 
-  // Force re-render when logos finish loading asynchronously
-  const [, forceRedraw] = useReducer((x: number) => x + 1, 0);
+  // Force re-render when logos finish loading or during scoring animations
+  const [animTick, forceRedraw] = useReducer((x: number) => x + 1, 0);
   useEffect(() => {
     setLogoRedrawCallback(forceRedraw);
     return () => setLogoRedrawCallback(() => {});
@@ -181,10 +202,18 @@ export function ScannerDataGrid({
   // Display rows = filtered rows (no threshold splitting)
   const displayRows = filteredRows;
 
-  // getCellContent callback
+  // Expose display-order entity IDs to parent for scoring order
+  useEffect(() => {
+    if (displayRowIdsRef) {
+      displayRowIdsRef.current = displayRows.map((r) => String(r._id));
+    }
+  }, [displayRows, displayRowIdsRef]);
+
+  // getCellContent callback — include animTick so Glide repaints animated cells
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const getCellContent = useMemo(
-    () => createGetCellContent(columnMeta, displayRows, scores, getScore, isScoring),
-    [columnMeta, displayRows, scores, isScoring]
+    () => createGetCellContent(columnMeta, displayRows, scores, getScore),
+    [columnMeta, displayRows, scores, isScoring ? animTick : 0]
   );
 
   // Store columnMeta + columnFilters in refs so drawHeader can access without re-creating
@@ -200,6 +229,143 @@ export function ScannerDataGrid({
     scoringProgressRef.current = scoringProgress;
     columnScoringProgressRef.current = columnScoringProgress;
   }, [columnMeta, columnFilters, isScoring, scoringProgress, columnScoringProgress]);
+
+  // Draw a use-case-specific icon for AI column headers
+  const drawAiUseCaseIcon = useCallback(
+    (ctx: CanvasRenderingContext2D, useCase: string | undefined, x: number, cy: number) => {
+      ctx.save();
+
+      switch (useCase) {
+        case "research": {
+          // Magnifying glass: circle + diagonal handle
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.arc(x - 1, cy - 1, 4, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + 2, cy + 2);
+          ctx.lineTo(x + 5.5, cy + 5.5);
+          ctx.stroke();
+          break;
+        }
+        case "decision-makers": {
+          // Two person silhouettes
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          // Front person head
+          ctx.beginPath();
+          ctx.arc(x - 1, cy - 3, 2.2, 0, Math.PI * 2);
+          ctx.stroke();
+          // Front person shoulders
+          ctx.beginPath();
+          ctx.arc(x - 1, cy + 4, 3.5, Math.PI * 1.15, Math.PI * 1.85);
+          ctx.stroke();
+          // Back person head (offset right)
+          ctx.beginPath();
+          ctx.arc(x + 4, cy - 3.5, 2, 0, Math.PI * 2);
+          ctx.stroke();
+          // Back person shoulders
+          ctx.beginPath();
+          ctx.arc(x + 4, cy + 3.5, 3, Math.PI * 1.15, Math.PI * 1.85);
+          ctx.stroke();
+          break;
+        }
+        case "bid-recommendation": {
+          // Shield with checkmark
+          ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
+          ctx.fillStyle = "#E5FF00";
+          ctx.lineWidth = 1.3;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          // Shield outline
+          ctx.beginPath();
+          ctx.moveTo(x, cy - 5.5);
+          ctx.lineTo(x + 5, cy - 3.5);
+          ctx.lineTo(x + 5, cy + 1);
+          ctx.quadraticCurveTo(x + 5, cy + 4, x, cy + 6);
+          ctx.quadraticCurveTo(x - 5, cy + 4, x - 5, cy + 1);
+          ctx.lineTo(x - 5, cy - 3.5);
+          ctx.closePath();
+          ctx.stroke();
+          // Checkmark inside
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x - 2.5, cy);
+          ctx.lineTo(x - 0.5, cy + 2.5);
+          ctx.lineTo(x + 3, cy - 2);
+          ctx.stroke();
+          break;
+        }
+        case "find-contacts": {
+          // Contact card: rounded rect with person + lines
+          ctx.strokeStyle = "#E5FF00";
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          // Card outline
+          ctx.beginPath();
+          ctx.roundRect(x - 6, cy - 4.5, 12, 9, 1.5);
+          ctx.stroke();
+          // Person circle (left half)
+          ctx.beginPath();
+          ctx.arc(x - 2.5, cy - 1.5, 1.5, 0, Math.PI * 2);
+          ctx.stroke();
+          // Person shoulders
+          ctx.beginPath();
+          ctx.arc(x - 2.5, cy + 3.5, 2.5, Math.PI * 1.2, Math.PI * 1.8);
+          ctx.stroke();
+          // Lines (right half)
+          ctx.beginPath();
+          ctx.moveTo(x + 1.5, cy - 1.5);
+          ctx.lineTo(x + 4.5, cy - 1.5);
+          ctx.moveTo(x + 1.5, cy + 1);
+          ctx.lineTo(x + 4, cy + 1);
+          ctx.stroke();
+          break;
+        }
+        default: {
+          // Default sparkle ✦ for "score" and unknown use cases
+          const ss = 4.5;
+          ctx.beginPath();
+          ctx.moveTo(x, cy - ss);
+          ctx.quadraticCurveTo(x, cy, x + ss, cy);
+          ctx.quadraticCurveTo(x, cy, x, cy + ss);
+          ctx.quadraticCurveTo(x, cy, x - ss, cy);
+          ctx.quadraticCurveTo(x, cy, x, cy - ss);
+          ctx.closePath();
+          ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = "#E5FF00";
+          ctx.fill();
+
+          // Mini sparkle
+          const sx2 = x + 7;
+          const sy2 = cy - 4;
+          const ss2 = 2;
+          ctx.beginPath();
+          ctx.moveTo(sx2, sy2 - ss2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2 + ss2, sy2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 + ss2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2 - ss2, sy2);
+          ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 - ss2);
+          ctx.closePath();
+          ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          ctx.fillStyle = "#E5FF00";
+          ctx.fill();
+          break;
+        }
+      }
+
+      ctx.restore();
+    },
+    []
+  );
 
   // Draw a small type icon — all centered at (x, cy), ~10px wide
   const drawTypeIcon = useCallback(
@@ -359,6 +525,29 @@ export function ScannerDataGrid({
           ctx.lineTo(x + w, cy);
           ctx.moveTo(x - w, cy + 3);
           ctx.lineTo(x + 2, cy + 3);
+          ctx.stroke();
+          break;
+        }
+        case "rating-change": {
+          // Up/down arrows icon indicating direction change
+          ctx.lineWidth = 1.3;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          // Down arrow (left side)
+          ctx.beginPath();
+          ctx.moveTo(x - 3, cy - 3);
+          ctx.lineTo(x - 3, cy + 2);
+          ctx.moveTo(x - 5, cy);
+          ctx.lineTo(x - 3, cy + 3);
+          ctx.lineTo(x - 1, cy);
+          ctx.stroke();
+          // Up arrow (right side)
+          ctx.beginPath();
+          ctx.moveTo(x + 3, cy + 3);
+          ctx.lineTo(x + 3, cy - 2);
+          ctx.moveTo(x + 1, cy);
+          ctx.lineTo(x + 3, cy - 3);
+          ctx.lineTo(x + 5, cy);
           ctx.stroke();
           break;
         }
@@ -574,44 +763,9 @@ export function ScannerDataGrid({
         ctx.fillRect(rect.x, rect.y + rect.height - 2, rect.width, 2);
         ctx.restore();
 
-        // Sparkle icon (left side) — with outline for light-mode visibility
-        ctx.save();
+        // Use-case-specific icon (left side)
         const sparkleX = rect.x + 12;
-        const sparkleY = cy;
-        const ss = 4.5;
-
-        // Draw sparkle path
-        ctx.beginPath();
-        ctx.moveTo(sparkleX, sparkleY - ss);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX + ss, sparkleY);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX, sparkleY + ss);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX - ss, sparkleY);
-        ctx.quadraticCurveTo(sparkleX, sparkleY, sparkleX, sparkleY - ss);
-        ctx.closePath();
-        // Outline for contrast
-        ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = "#E5FF00";
-        ctx.fill();
-
-        // Mini sparkle
-        const sx2 = sparkleX + 7;
-        const sy2 = sparkleY - 4;
-        const ss2 = 2;
-        ctx.beginPath();
-        ctx.moveTo(sx2, sy2 - ss2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2 + ss2, sy2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 + ss2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2 - ss2, sy2);
-        ctx.quadraticCurveTo(sx2, sy2, sx2, sy2 - ss2);
-        ctx.closePath();
-        ctx.strokeStyle = "rgba(180, 200, 0, 0.6)";
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = "#E5FF00";
-        ctx.fill();
-        ctx.restore();
+        drawAiUseCaseIcon(ctx, meta.aiUseCase, sparkleX, cy);
 
         // Column title text (after sparkle) — clip to available area
         const textX = sparkleX + 16;
@@ -660,7 +814,7 @@ export function ScannerDataGrid({
         ctx.restore();
       }
     },
-    [drawTypeIcon]
+    [drawTypeIcon, drawAiUseCaseIcon]
   );
 
   // Header click: play button zone → score, otherwise → open menu
@@ -688,6 +842,7 @@ export function ScannerDataGrid({
 
       // Any other click on the header → open the column menu
       const title = gridColumns[col]?.title ?? "";
+      setCellMenu(null);
       setHeaderMenu({
         col,
         title,
@@ -720,6 +875,7 @@ export function ScannerDataGrid({
       }
 
       const title = gridColumns[col]?.title ?? "";
+      setCellMenu(null);
       setHeaderMenu({ col, title, position });
     },
     [columnMeta, isScoring, onScoreColumn, onCancelScoring, gridColumns]
@@ -808,7 +964,7 @@ export function ScannerDataGrid({
       onAddColumn ? (
         <button
           onClick={onAddColumn}
-          className="flex h-full w-[50px] items-center justify-center border-l border-border bg-background text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+          className="flex h-full w-[50px] items-center justify-center border-l border-border bg-muted/50 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
           title="Add column"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -824,8 +980,78 @@ export function ScannerDataGrid({
     [onAddColumn]
   );
 
+  const getCellText = useCallback(
+    (meta: ColumnMeta, row: Record<string, unknown>): string => {
+      if (meta.type === "ai" && meta.aiColumnId) {
+        const entry = getScore(scores, meta.aiColumnId, String(row._id));
+        if (!entry) return "";
+        if (isTextUseCase(meta.aiUseCase)) return entry.response || "";
+        return entry.score != null ? String(entry.score) : "";
+      }
+      const value = resolveAccessor(row, meta.accessor);
+      if (value == null || value === "") return "";
+      switch (meta.type) {
+        case "date":
+          return formatDate(value);
+        case "currency":
+          return formatCurrency(value);
+        case "number":
+          return formatNumber(value);
+        default:
+          return String(value);
+      }
+    },
+    [scores]
+  );
+
+  const handleCopyCell = useCallback(
+    (col: number, rowIdx: number) => {
+      const meta = columnMeta[col];
+      const row = displayRows[rowIdx];
+      if (!meta || !row) return;
+      const text = getCellText(meta, row);
+      navigator.clipboard.writeText(text);
+    },
+    [columnMeta, displayRows, getCellText]
+  );
+
+  const handleCopyRow = useCallback(
+    (rowIdx: number) => {
+      const row = displayRows[rowIdx];
+      if (!row) return;
+      const parts = columnMeta.map((meta) => getCellText(meta, row));
+      navigator.clipboard.writeText(parts.join("\t"));
+    },
+    [displayRows, columnMeta, getCellText]
+  );
+
+  const onCellContextMenu = useCallback(
+    (cell: Item, event: CellClickedEventArgs) => {
+      event.preventDefault();
+      const [col, rowIdx] = cell;
+      const row = displayRows[rowIdx];
+      if (!row) return;
+      setHeaderMenu(null);
+      setCellMenu({
+        col,
+        row: rowIdx,
+        entityId: String(row._id),
+        position: {
+          x: event.bounds.x + event.localEventX,
+          y: event.bounds.y + event.localEventY,
+        },
+      });
+      setSelection({
+        columns: CompactSelection.empty(),
+        rows: CompactSelection.empty(),
+        current: { cell: [col, rowIdx], range: { x: col, y: rowIdx, width: 1, height: 1 }, rangeStack: [] },
+      });
+    },
+    [displayRows]
+  );
+
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border">
+    <div className="relative h-full w-full overflow-hidden rounded-lg border hide-scrollbar">
       <DataEditor
         columns={gridColumns}
         rows={displayRows.length}
@@ -847,12 +1073,12 @@ export function ScannerDataGrid({
         width="100%"
         height="100%"
         rightElement={addColumnButton}
-        rightElementProps={{ fill: true, sticky: false }}
+        rightElementProps={{ fill: false, sticky: true }}
         onHeaderClicked={onHeaderClicked}
         onHeaderMenuClick={onHeaderMenuClick}
         onHeaderContextMenu={(col, event) => {
           event.preventDefault();
-          // Right-click always opens the context menu (even for AI columns)
+          setCellMenu(null);
           const title = gridColumns[col]?.title ?? "";
           setHeaderMenu({
             col,
@@ -867,7 +1093,37 @@ export function ScannerDataGrid({
         onColumnMoved={onColumnMoved}
         onCellClicked={onCellClicked}
         onCellActivated={onCellActivated}
+        onCellContextMenu={onCellContextMenu}
       />
+      {cellMenu && (() => {
+        const meta = columnMeta[cellMenu.col];
+        if (!meta) return null;
+        const isAi = meta.type === "ai" && !!meta.aiColumnId;
+        return (
+          <CellContextMenu
+            position={cellMenu.position}
+            isAiColumn={isAi}
+            isScoring={isScoring}
+            onScoreCell={() => {
+              if (isAi && meta.aiColumnId) {
+                onScoreCell?.(meta.aiColumnId, cellMenu.entityId);
+              }
+            }}
+            onCopyCell={() => handleCopyCell(cellMenu.col, cellMenu.row)}
+            onCopyRow={() => handleCopyRow(cellMenu.row)}
+            onViewDetails={() => {
+              if (isAi && meta.aiColumnId) {
+                onAiCellClick?.(meta.aiColumnId, cellMenu.entityId);
+              }
+            }}
+            onOpenEntity={() => {
+              const row = displayRows[cellMenu.row];
+              if (row) onOpenEntity?.(row);
+            }}
+            onClose={() => setCellMenu(null)}
+          />
+        );
+      })()}
       {headerMenu && (() => {
         const meta = columnMeta[headerMenu.col];
         const filterableTypes = new Set(["badge", "text", "entity-name"]);

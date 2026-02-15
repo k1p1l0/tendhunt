@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { resolveRegionName } from "@/lib/nuts-regions";
+import { isDpsFrameworkActive, statusLabel } from "@/lib/contract-mechanism";
+import type { ContractMechanism } from "@/lib/contract-mechanism";
 import {
   Building2,
   MapPin,
@@ -23,6 +25,8 @@ interface ContractRow {
   source: "FIND_A_TENDER" | "CONTRACTS_FINDER";
   sector?: string | null;
   status: string;
+  contractMechanism?: ContractMechanism | null;
+  contractEndDate?: string | Date | null;
 }
 
 const currencyFormatter = new Intl.NumberFormat("en-GB", {
@@ -52,7 +56,14 @@ function sourceLabel(source: string) {
   return source === "FIND_A_TENDER" ? "FTS" : "CF";
 }
 
-function statusClassName(status: string) {
+function statusClassName(
+  status: string,
+  mechanism?: ContractMechanism | null,
+  contractEndDate?: string | Date | null
+) {
+  if (isDpsFrameworkActive(mechanism, status, contractEndDate)) {
+    return "bg-amber-500/15 text-amber-500 border-amber-500/20 hover:bg-amber-500/15";
+  }
   switch (status) {
     case "OPEN":
       return "bg-emerald-500/15 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/15";
@@ -63,6 +74,24 @@ function statusClassName(status: string) {
     default:
       return "";
   }
+}
+
+const MECHANISM_BADGE_CONFIG: Record<string, { label: string; className: string } | undefined> = {
+  dps: { label: "DPS", className: "bg-purple-500/15 text-purple-400 border-purple-500/20" },
+  framework: { label: "Framework", className: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20" },
+  call_off_dps: { label: "DPS Call-off", className: "bg-purple-500/10 text-purple-400/80 border-purple-500/15" },
+  call_off_framework: { label: "FW Call-off", className: "bg-indigo-500/10 text-indigo-400/80 border-indigo-500/15" },
+};
+
+function renderMechanismBadge(mechanism?: ContractMechanism | null) {
+  if (!mechanism || mechanism === "standard") return null;
+  const config = MECHANISM_BADGE_CONFIG[mechanism];
+  if (!config) return null;
+  return (
+    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${config.className}`}>
+      {config.label}
+    </Badge>
+  );
 }
 
 function BuyerLogo({
@@ -121,9 +150,9 @@ export function ContractsTable({ contracts }: { contracts: ContractRow[] }) {
         <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
           <div className="col-span-5 pl-2">Contract & Buyer</div>
           <div className="col-span-2">Value</div>
-          <div className="col-span-1">Status</div>
+          <div className="col-span-2">Status</div>
           <div className="col-span-2">Deadline</div>
-          <div className="col-span-2">Sector</div>
+          <div className="col-span-1">Sector</div>
         </div>
 
         {/* Rows */}
@@ -162,13 +191,14 @@ export function ContractsTable({ contracts }: { contracts: ContractRow[] }) {
                 {formatValue(contract.valueMin, contract.valueMax)}
               </div>
 
-              {/* Status */}
-              <div className="col-span-1">
+              {/* Status + Mechanism */}
+              <div className="col-span-2 flex items-center gap-1.5 flex-wrap">
+                {renderMechanismBadge(contract.contractMechanism)}
                 <Badge
                   variant="outline"
-                  className={`text-[10px] px-1.5 py-0 ${statusClassName(contract.status)}`}
+                  className={`text-[10px] px-1.5 py-0 ${statusClassName(contract.status, contract.contractMechanism, contract.contractEndDate)}`}
                 >
-                  {contract.status}
+                  {statusLabel(contract.status, contract.contractMechanism, contract.contractEndDate)}
                 </Badge>
               </div>
 
@@ -184,7 +214,7 @@ export function ContractsTable({ contracts }: { contracts: ContractRow[] }) {
               </div>
 
               {/* Sector */}
-              <div className="col-span-2">
+              <div className="col-span-1">
                 {contract.sector ? (
                   <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border line-clamp-1">
                     {contract.sector}

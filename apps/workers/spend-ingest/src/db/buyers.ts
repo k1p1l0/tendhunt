@@ -29,8 +29,9 @@ export async function getBuyerBatch(
 }
 
 /**
- * Fetch buyers with a website but no transparencyPageUrl yet.
- * Used by Stage 1 (discover) to find buyers needing transparency page discovery.
+ * Fetch buyers needing transparency page discovery.
+ * Includes buyers WITH websites (primary discovery) and WITHOUT websites
+ * (data.gov.uk fallback). Both must not yet have a transparencyPageUrl.
  */
 export async function getBuyerBatchForDiscovery(
   db: Db,
@@ -40,7 +41,6 @@ export async function getBuyerBatchForDiscovery(
   const collection = db.collection<BuyerDoc>(COLLECTION);
 
   const filter: Record<string, unknown> = {
-    website: { $ne: null, $exists: true },
     transparencyPageUrl: { $exists: false },
   };
   if (cursor) {

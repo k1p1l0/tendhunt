@@ -10,6 +10,8 @@ import {
   Zap,
   Users,
   Shield,
+  Settings2,
+  AlertTriangle,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import {
@@ -45,6 +47,11 @@ const navItems: NavItem[] = [
     icon: Activity,
   },
   {
+    title: "Pipeline Errors",
+    href: "/pipeline-errors",
+    icon: AlertTriangle,
+  },
+  {
     title: "Contracts",
     href: "/data/contracts",
     icon: FileText,
@@ -63,6 +70,11 @@ const navItems: NavItem[] = [
     title: "Users",
     href: "/users",
     icon: Users,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings2,
   },
 ];
 
