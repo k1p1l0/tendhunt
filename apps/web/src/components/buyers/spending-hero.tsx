@@ -127,7 +127,10 @@ function ProfileMatchCard({ profileMatch }: { profileMatch: ProfileMatch | null 
         </div>
         <div className="text-3xl font-bold text-muted-foreground">0%</div>
         <div className="mt-1 text-sm text-muted-foreground">
-          No category overlap with this buyer&apos;s spend
+          No overlap found between your profile and this buyer&apos;s spend categories or contract sectors
+        </div>
+        <div className="mt-2 text-xs text-muted-foreground/70">
+          Try adding more keywords to your profile in Settings
         </div>
       </div>
     );

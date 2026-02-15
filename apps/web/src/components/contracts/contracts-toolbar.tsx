@@ -51,6 +51,20 @@ const REGIONS: Record<string, string> = {
   UNSPECIFIED: "Nationwide / Unspecified",
 };
 
+const MECHANISMS = [
+  { value: "standard", label: "Standard Tender" },
+  { value: "dps", label: "DPS (Dynamic Purchasing)" },
+  { value: "framework", label: "Framework Agreement" },
+  { value: "call_off_dps", label: "DPS Call-off" },
+  { value: "call_off_framework", label: "Framework Call-off" },
+] as const;
+
+const CONTRACT_TYPES = [
+  { value: "services", label: "Services" },
+  { value: "goods", label: "Goods" },
+  { value: "works", label: "Works" },
+] as const;
+
 const VALUE_RANGES = [
   { label: "Under 100K", min: 0, max: 100000 },
   { label: "100K - 500K", min: 100000, max: 500000 },
@@ -184,7 +198,11 @@ export function ContractsToolbar({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleSearch = useDebouncedCallback((term: string) => {
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("query")?.toString() ?? ""
+  );
+
+  const syncSearchToUrl = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", "1");
     if (term) {
@@ -195,9 +213,17 @@ export function ContractsToolbar({
     replace(`${pathname}?${params.toString()}`);
   }, 300);
 
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    syncSearchToUrl(term);
+  };
+
   const currentSort = searchParams.get("sort") ?? "date";
   const currentSector = searchParams.get("sector");
   const currentRegion = searchParams.get("region");
+  const currentContractType = searchParams.get("contractType");
+  const currentSme = searchParams.get("smeOnly") === "true";
+  const currentVco = searchParams.get("vcoOnly") === "true";
   const currentMinValue = searchParams.get("minValue");
   const currentMaxValue = searchParams.get("maxValue");
   const currentValueRange = currentMinValue
@@ -205,6 +231,8 @@ export function ContractsToolbar({
       ? `${currentMinValue}-${currentMaxValue}`
       : `${currentMinValue}-`
     : null;
+
+  const currentMechanism = searchParams.get("mechanism");
 
   const currentValueLabel = currentValueRange
     ? VALUE_RANGES.find((r) => {
@@ -226,8 +254,9 @@ export function ContractsToolbar({
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              data-search-input
               placeholder="Search contracts, buyers, or CPV codes..."
-              defaultValue={searchParams.get("query")?.toString()}
+              value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-9 h-8 text-sm"
             />
@@ -268,6 +297,61 @@ export function ContractsToolbar({
                 label: r.label,
               }))}
             />
+            <FilterChip
+              label="Type"
+              value={currentMechanism}
+              displayValue={MECHANISMS.find((m) => m.value === currentMechanism)?.label}
+              onSelect={(v) => updateFilter("mechanism", v)}
+              onClear={() => updateFilter("mechanism", null)}
+              options={MECHANISMS.map((m) => ({ value: m.value, label: m.label }))}
+            />
+            <FilterChip
+              label="Category"
+              value={currentContractType}
+              displayValue={
+                currentContractType
+                  ? CONTRACT_TYPES.find(
+                      (t) => t.value === currentContractType
+                    )?.label ?? currentContractType
+                  : undefined
+              }
+              onSelect={(v) => updateFilter("contractType", v)}
+              onClear={() => updateFilter("contractType", null)}
+              options={CONTRACT_TYPES.map((t) => ({
+                value: t.value,
+                label: t.label,
+              }))}
+            />
+            <button
+              onClick={() =>
+                updateFilter("smeOnly", currentSme ? null : "true")
+              }
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                currentSme
+                  ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-500"
+                  : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-border hover:text-foreground"
+              }`}
+            >
+              SME
+              {currentSme && (
+                <X className="h-3 w-3" />
+              )}
+            </button>
+            <button
+              onClick={() =>
+                updateFilter("vcoOnly", currentVco ? null : "true")
+              }
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                currentVco
+                  ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-500"
+                  : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-border hover:text-foreground"
+              }`}
+            >
+              VCO
+              {currentVco && (
+                <X className="h-3 w-3" />
+              )}
+            </button>
           </div>
         </div>
 

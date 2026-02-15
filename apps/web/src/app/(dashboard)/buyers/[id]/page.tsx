@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { fetchBuyerById } from "@/lib/buyers";
 import { BuyerDetailClient } from "@/components/buyers/buyer-detail-client";
 import { AgentContextSetter } from "@/components/agent/agent-context-setter";
+import { EnrichmentRefresh } from "@/components/agent/enrichment-refresh";
 import { BuyerBreadcrumb } from "./breadcrumb";
 import { Button } from "@/components/ui/button";
 import { dbConnect } from "@/lib/mongodb";
@@ -14,15 +15,13 @@ import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
 
 export default async function BuyerDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
+  const { id } = await params;
   const buyer = await fetchBuyerById(id);
 
   if (!buyer) {
@@ -42,6 +41,8 @@ export default async function BuyerDetailPage({
     status: c.status ?? undefined,
     sector: c.sector ?? null,
     source: c.source ?? undefined,
+    contractMechanism: c.contractMechanism ?? null,
+    contractEndDate: c.contractEndDate ? String(c.contractEndDate) : null,
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,6 +88,39 @@ export default async function BuyerDetailPage({
     extractionMethod: p.extractionMethod ?? undefined,
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children = (buyer.children ?? []).map((c: any) => ({
+    _id: String(c._id),
+    name: c.name ?? "",
+    enrichmentScore: c.enrichmentScore ?? undefined,
+    logoUrl: c.logoUrl ?? undefined,
+    orgType: c.orgType ?? undefined,
+    contractCount: c.contractCount ?? 0,
+  }));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ofstedSchools = (buyer.ofstedSchools ?? []).map((s: any) => ({
+    _id: String(s._id),
+    urn: s.urn ?? 0,
+    name: s.name ?? "",
+    phase: s.phase ?? undefined,
+    schoolType: s.schoolType ?? undefined,
+    overallEffectiveness: s.overallEffectiveness ?? null,
+    qualityOfEducation: s.qualityOfEducation ?? null,
+    behaviourAndAttitudes: s.behaviourAndAttitudes ?? null,
+    personalDevelopment: s.personalDevelopment ?? null,
+    leadershipAndManagement: s.leadershipAndManagement ?? null,
+    inspectionDate: s.inspectionDate ? String(s.inspectionDate) : null,
+    totalPupils: s.totalPupils ?? null,
+    idaciQuintile: s.idaciQuintile ?? null,
+    reportUrl: s.reportUrl ?? null,
+    postcode: s.postcode ?? null,
+  }));
+
+  const parentBuyer = buyer.parentBuyer
+    ? { _id: String(buyer.parentBuyer._id), name: buyer.parentBuyer.name ?? "" }
+    : undefined;
+
   let hasSpendData = false;
   let spendTransactionCount = 0;
   if (isValidObjectId(buyerId)) {
@@ -106,8 +140,14 @@ export default async function BuyerDetailPage({
           buyerSector: buyer.sector ?? undefined,
           buyerRegion: buyer.region ?? undefined,
           buyerOrgType: buyer.orgType ?? undefined,
+          buyerContractCount: buyer.contractCount ?? 0,
+          buyerContactCount: contacts.length,
+          buyerSignalCount: signals.length,
+          buyerBoardDocCount: boardDocuments.length,
+          buyerKeyPersonnelNames: keyPersonnel.slice(0, 3).map((p: { name: string }) => p.name).join(", ") || undefined,
         }}
       />
+      <EnrichmentRefresh buyerId={buyerId} />
       <BuyerBreadcrumb name={buyerName} />
 
       {/* Sticky Header */}
@@ -149,7 +189,6 @@ export default async function BuyerDetailPage({
       <div className="flex-1 overflow-y-auto">
         <div className="p-6">
           <BuyerDetailClient
-            initialTab={tab}
             buyer={{
               _id: buyerId,
               name: buyerName,
@@ -182,6 +221,10 @@ export default async function BuyerDetailPage({
               } : undefined,
               hasSpendData,
               spendTransactionCount,
+              children,
+              parentBuyer,
+              isParent: buyer.isParent ?? false,
+              ofstedSchools,
             }}
           />
         </div>

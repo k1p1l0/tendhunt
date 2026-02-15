@@ -4,6 +4,7 @@ import type { Env, EnrichmentStage, EnrichmentJobDoc, StageFn, DocEnrichmentStag
 import { STAGE_ORDER, DOC_STAGE_ORDER } from "./types";
 import { getDb, closeDb } from "./db/client";
 import { processEnrichmentPipeline } from "./enrichment-engine";
+import { linkParentBuyers } from "./stages/00-parent-link";
 import { classifyBuyers } from "./stages/01-classify";
 import { discoverWebsites } from "./stages/01b-website-discovery";
 import { enrichLogoLinkedin } from "./stages/01c-logo-linkedin";
@@ -14,7 +15,7 @@ import { extractKeyPersonnel } from "./stages/05-personnel";
 import { computeEnrichmentScores } from "./stages/06-score";
 import { enrichPcsDocuments } from "./stages/07-pcs-documents";
 import { enrichProactisDocuments } from "./stages/08-proactis-documents";
-import { getOrCreateJob, markJobComplete, markJobError } from "./db/enrichment-jobs";
+import { getOrCreateJob, markJobComplete, markJobError, resetCompletedJobs } from "./db/enrichment-jobs";
 
 // ---------------------------------------------------------------------------
 // Enrichment Worker entry point
@@ -117,7 +118,9 @@ async function runDocEnrichmentPipeline(
       }
     }
 
-    console.log("--- Document enrichment pipeline complete ---");
+    // Reset for next cycle to pick up new contracts
+    const reset = await resetCompletedJobs(db, DOC_STAGE_ORDER);
+    console.log(`--- Document enrichment pipeline complete. Reset ${reset} jobs for next cycle. ---`);
     return { stage: "doc_all_complete", processed: 0, errors: 0, done: true };
   } finally {
     await closeDb();
@@ -156,6 +159,12 @@ export default {
         if (!buyer) {
           return Response.json({ error: "Buyer not found" }, { status: 404 });
         }
+
+        // Reset any stale priority-10 buyers from previous failed runs
+        await db.collection("buyers").updateMany(
+          { enrichmentPriority: 10, _id: { $ne: oid } },
+          { $set: { enrichmentPriority: 0, updatedAt: new Date() } }
+        );
 
         // Mark as manually triggered (highest priority)
         await db.collection("buyers").updateOne(
@@ -285,7 +294,7 @@ export default {
     const minute = new Date(controller.scheduledTime).getUTCMinutes();
 
     if (minute < 15) {
-      // :00 cron — buyer enrichment pipeline (8 stages)
+      // :00 cron — buyer enrichment pipeline (9 stages)
       try {
         await runPipeline(env);
       } catch (err) {
@@ -309,6 +318,7 @@ export default {
 // ---------------------------------------------------------------------------
 
 const SINGLE_BUYER_STAGES: Record<EnrichmentStage, StageFn> = {
+  parent_link: linkParentBuyers,
   classify: classifyBuyers,
   website_discovery: discoverWebsites,
   logo_linkedin: enrichLogoLinkedin,
@@ -346,6 +356,12 @@ async function runSingleBuyerEnrichment(
 
   for (const stage of STAGE_ORDER) {
     try {
+      // Re-assert priority 10 before each stage — classify overwrites it
+      await db.collection("buyers").updateOne(
+        { _id: _buyerId },
+        { $set: { enrichmentPriority: 10 } }
+      );
+
       const stageJob = { ...fakeJob, stage, cursor: null };
       const result = await SINGLE_BUYER_STAGES[stage](db, env, stageJob, 1);
       results[stage] = { processed: result.processed, errors: result.errors };

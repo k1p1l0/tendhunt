@@ -1,8 +1,10 @@
 import type { Env } from "./types";
+import type { OcdsRelease } from "./types";
 import { getDb, closeDb } from "./db/client";
 import { processSyncJob } from "./sync-engine";
 import { createFatFetchPage } from "./api-clients/fat-client";
 import { createCfFetchPage } from "./api-clients/cf-client";
+import { mapOcdsToContract } from "./mappers/ocds-mapper";
 
 // ---------------------------------------------------------------------------
 // Default backfill start dates (safe starting points for each source)
@@ -134,6 +136,77 @@ export default {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return Response.json({ error: msg }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/backfill-contracts") {
+      const denied = requireSecret(url, env);
+      if (denied) return denied;
+      const limit = Math.min(
+        parseInt(url.searchParams.get("limit") ?? "500", 10),
+        2000
+      );
+      const skip = parseInt(url.searchParams.get("skip") ?? "0", 10);
+
+      const db = await getDb(env.MONGODB_URI);
+      try {
+        const col = db.collection("contracts");
+        const cursor = col
+          .find({ contractType: { $exists: false } })
+          .project({ rawData: 1, source: 1 })
+          .skip(skip)
+          .limit(limit);
+
+        let processed = 0;
+        let enriched = 0;
+        let skipped = 0;
+
+        const batch: ReturnType<typeof col.initializeUnorderedBulkOp> =
+          col.initializeUnorderedBulkOp();
+
+        for await (const doc of cursor) {
+          processed++;
+          const raw = doc.rawData as OcdsRelease | null;
+          if (!raw) {
+            skipped++;
+            continue;
+          }
+
+          const mapped = mapOcdsToContract(
+            raw,
+            (doc.source as "FIND_A_TENDER" | "CONTRACTS_FINDER")
+              ?? "FIND_A_TENDER"
+          );
+
+          batch.find({ _id: doc._id }).updateOne({
+            $set: {
+              contractType: mapped.contractType,
+              suitableForSme: mapped.suitableForSme,
+              suitableForVco: mapped.suitableForVco,
+              hasEuFunding: mapped.hasEuFunding,
+              canRenew: mapped.canRenew,
+              renewalDescription: mapped.renewalDescription,
+              geographicScope: mapped.geographicScope,
+              awardedSuppliers: mapped.awardedSuppliers,
+              awardDate: mapped.awardDate,
+              awardValue: mapped.awardValue,
+              tenderPeriodStart: mapped.tenderPeriodStart,
+              enquiryPeriodEnd: mapped.enquiryPeriodEnd,
+            },
+          });
+          enriched++;
+        }
+
+        if (enriched > 0) {
+          await batch.execute();
+        }
+
+        return Response.json({ processed, enriched, skipped });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return Response.json({ error: msg }, { status: 500 });
+      } finally {
+        await closeDb();
       }
     }
 

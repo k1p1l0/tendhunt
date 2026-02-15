@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useCallback } from "react";
 import {
   Tabs,
   TabsList,
@@ -17,6 +19,11 @@ import { SpendingTab } from "@/components/buyers/spending-tab";
 import type { BoardDocumentData } from "@/components/buyers/board-documents-tab";
 import type { KeyPersonnelData } from "@/components/buyers/key-personnel-tab";
 import type { LinkedinData } from "@/components/buyers/buyer-detail-client";
+import type { ChildBuyerData } from "@/components/buyers/buyer-detail-client";
+import { DepartmentsTab } from "@/components/buyers/departments-tab";
+import { OfstedTab } from "@/components/buyers/ofsted-tab";
+
+import type { OfstedSchoolData } from "@/components/buyers/ofsted-tab";
 
 interface ContractData {
   _id: string;
@@ -48,7 +55,7 @@ interface ContactData {
 }
 
 const VALID_TABS = [
-  "spending", "contracts", "contacts", "signals",
+  "spending", "contracts", "departments", "schools", "contacts", "signals",
   "board-documents", "key-personnel", "attributes",
 ] as const;
 
@@ -74,17 +81,37 @@ interface BuyerTabsProps {
   keyPersonnel: KeyPersonnelData[];
   hasSpendData?: boolean;
   spendTransactionCount?: number;
-  initialTab?: string;
+  departments?: ChildBuyerData[];
+  ofstedSchools?: OfstedSchoolData[];
 }
 
 export function BuyerTabs(props: BuyerTabsProps) {
   const contactCount = props.contacts.length;
-  const activeTab: BuyerTab = VALID_TABS.includes(props.initialTab as BuyerTab)
-    ? (props.initialTab as BuyerTab)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tabParam = searchParams.get("tab");
+  const activeTab: BuyerTab = VALID_TABS.includes(tabParam as BuyerTab)
+    ? (tabParam as BuyerTab)
     : "spending";
 
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "spending") {
+        params.delete("tab");
+      } else {
+        params.set("tab", value);
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [searchParams, router, pathname]
+  );
+
   return (
-    <Tabs defaultValue={activeTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList
         variant="line"
         className="w-full justify-start gap-6 border-b border-border overflow-x-auto"
@@ -95,6 +122,16 @@ export function BuyerTabs(props: BuyerTabsProps) {
         <TabsTrigger value="contracts" className="text-sm">
           Contracts ({props.buyer.contractCount || props.contracts.length})
         </TabsTrigger>
+        {props.departments && props.departments.length > 0 && (
+          <TabsTrigger value="departments" className="text-sm">
+            Departments ({props.departments.length})
+          </TabsTrigger>
+        )}
+        {props.ofstedSchools && props.ofstedSchools.length > 0 && (
+          <TabsTrigger value="schools" className="text-sm">
+            Schools ({props.ofstedSchools.length})
+          </TabsTrigger>
+        )}
         <TabsTrigger value="contacts" className="text-sm">
           Key Contacts ({contactCount})
         </TabsTrigger>
@@ -119,6 +156,18 @@ export function BuyerTabs(props: BuyerTabsProps) {
       <TabsContent value="contracts" className="mt-6">
         <ContractsTab contracts={props.contracts} />
       </TabsContent>
+
+      {props.departments && props.departments.length > 0 && (
+        <TabsContent value="departments" className="mt-6">
+          <DepartmentsTab departments={props.departments} />
+        </TabsContent>
+      )}
+
+      {props.ofstedSchools && props.ofstedSchools.length > 0 && (
+        <TabsContent value="schools" className="mt-6">
+          <OfstedTab schools={props.ofstedSchools} />
+        </TabsContent>
+      )}
 
       <TabsContent value="contacts" className="mt-6">
         <ContactsTab contacts={props.contacts} />

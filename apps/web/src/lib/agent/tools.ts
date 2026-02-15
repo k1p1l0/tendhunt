@@ -119,13 +119,17 @@ export function getToolDefinitions(): Anthropic.Tool[] {
     {
       name: "get_buyer_detail",
       description:
-        "Get full details for a specific buyer including contacts, key personnel, board documents, signals, enrichment data, and spending info.",
+        "Get full details for a specific buyer including contacts, key personnel, board documents, signals, enrichment data, and spending info. Pass buyerId if known, or buyerName as fallback when buyerId is unavailable.",
       input_schema: {
         type: "object" as const,
         properties: {
           buyerId: {
             type: "string",
             description: "MongoDB ObjectId of the buyer",
+          },
+          buyerName: {
+            type: "string",
+            description: "Exact buyer name — used as fallback if buyerId is missing or invalid",
           },
         },
         required: ["buyerId"],
@@ -286,6 +290,29 @@ export function getToolDefinitions(): Anthropic.Tool[] {
       },
     },
     {
+      name: "enrich_buyer",
+      description:
+        "Trigger full data enrichment for a buyer — fetches org details, LinkedIn, logo, governance docs, board minutes, key personnel, and spending data. Takes 2-5 minutes. Call first WITHOUT confirmed=true to show confirmation UI. Call again WITH confirmed=true after user confirms.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          buyerId: {
+            type: "string",
+            description: "MongoDB ObjectId of the buyer to enrich",
+          },
+          buyerName: {
+            type: "string",
+            description: "Buyer name — used as fallback if buyerId is invalid",
+          },
+          confirmed: {
+            type: "boolean",
+            description: "Set to true to actually start enrichment (after user confirms)",
+          },
+        },
+        required: ["buyerId"],
+      },
+    },
+    {
       name: "add_scanner_column",
       description:
         "Add an AI-powered analysis column to a scanner. The column runs an AI prompt against each row to generate scores or insights.",
@@ -305,8 +332,33 @@ export function getToolDefinitions(): Anthropic.Tool[] {
             description:
               "AI prompt to evaluate each entity (e.g. 'Rate how well this contract matches our capabilities')",
           },
+          useCase: {
+            type: "string",
+            enum: ["score", "research", "decision-makers", "bid-recommendation", "find-contacts"],
+            description:
+              "Analysis type. 'score' = numeric 1-10 score (default). All others = free-text analysis. Choose based on user intent.",
+          },
         },
         required: ["scannerId", "name", "prompt"],
+      },
+    },
+    {
+      name: "test_score_column",
+      description:
+        "Test-score a single row for an AI column to preview the scoring prompt. Returns the score and reasoning inline. Use this after adding an AI column when the user wants to verify the prompt works before scoring all rows.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          scannerId: {
+            type: "string",
+            description: "MongoDB ObjectId of the scanner",
+          },
+          columnId: {
+            type: "string",
+            description: "The columnId of the AI column to test",
+          },
+        },
+        required: ["scannerId", "columnId"],
       },
     },
   ];

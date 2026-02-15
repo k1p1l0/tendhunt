@@ -20,6 +20,7 @@ export interface Env {
 // ---------------------------------------------------------------------------
 
 export type EnrichmentStage =
+  | "parent_link"
   | "classify"
   | "website_discovery"
   | "logo_linkedin"
@@ -30,6 +31,7 @@ export type EnrichmentStage =
   | "score";
 
 export const STAGE_ORDER: EnrichmentStage[] = [
+  "parent_link",
   "classify",
   "website_discovery",
   "logo_linkedin",
@@ -147,6 +149,13 @@ export interface BuyerDoc {
   lastEnrichedAt?: Date;
   enrichmentVersion?: number;
   enrichmentPriority?: number;
+
+  // Parent-child hierarchy
+  parentBuyerId?: ObjectId;
+  childBuyerIds?: ObjectId[];
+  isParent?: boolean;
+
+  nameLower?: string;
 
   createdAt: Date;
   updatedAt: Date;

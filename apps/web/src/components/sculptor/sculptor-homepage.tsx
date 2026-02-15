@@ -7,12 +7,10 @@ import { SculptorHeroInput } from "@/components/sculptor/sculptor-hero-input";
 import { RecentConversations } from "@/components/sculptor/recent-conversations";
 import { AgentContextSetter } from "@/components/agent/agent-context-setter";
 import { AccountManagerCard } from "@/components/dashboard/account-manager-card";
-import { SavedScannersSection } from "@/components/dashboard/saved-scanners-section";
-import { FreshSignalsFeed } from "@/components/dashboard/fresh-signals-feed";
 import { useAgent } from "@/hooks/use-agent";
 import { useAgentStore } from "@/stores/agent-store";
 
-import type { ScannerSummary, TopScore, RecentConversation } from "@/lib/dashboard";
+import type { RecentConversation } from "@/lib/dashboard";
 
 const SUGGESTIONS = [
   "Find NHS trusts with high enrichment scores",
@@ -30,16 +28,12 @@ interface AccountManager {
 
 interface SculptorHomepageProps {
   userName: string;
-  scanners: ScannerSummary[];
-  topScores: TopScore[];
   recentConversations: RecentConversation[];
   accountManager: AccountManager;
 }
 
 export function SculptorHomepage({
   userName,
-  scanners,
-  topScores,
   recentConversations,
   accountManager,
 }: SculptorHomepageProps) {
@@ -132,8 +126,6 @@ export function SculptorHomepage({
           <RecentConversations conversations={recentConversations} />
         )}
 
-        <SavedScannersSection scanners={scanners} />
-        <FreshSignalsFeed signals={topScores} />
         <AccountManagerCard {...accountManager} />
       </div>
     </div>

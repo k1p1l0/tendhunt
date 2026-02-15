@@ -200,94 +200,179 @@ const scoreBadgeRenderer: CustomRenderer<ScoreBadgeCell> = {
   },
 };
 
-// ── Text Shimmer (skeleton loader for text-mode AI columns) ─
+// ── Text Status (status indicator + text for text-mode AI columns) ─
 
-interface TextShimmerData {
-  readonly kind: "text-shimmer";
+type TextStatusState = "queued" | "loading" | "success" | "error" | "empty";
+
+interface TextStatusData {
+  readonly kind: "text-status";
+  readonly text: string;
+  readonly state: TextStatusState;
+  readonly errorMsg?: string;
 }
 
-export type TextShimmerCell = CustomCell<TextShimmerData>;
+export type TextStatusCell = CustomCell<TextStatusData>;
 
-export function createTextShimmerCell(): TextShimmerCell {
+export function createTextStatusCell(
+  text: string,
+  state: TextStatusState,
+  errorMsg?: string
+): TextStatusCell {
   return {
     kind: GridCellKind.Custom,
     allowOverlay: false,
-    copyData: "",
-    data: { kind: "text-shimmer" },
+    copyData: state === "success" ? text : "",
+    data: { kind: "text-status", text, state, errorMsg },
   };
 }
 
-const textShimmerRenderer: CustomRenderer<TextShimmerCell> = {
-  kind: GridCellKind.Custom,
-  isMatch: (cell: CustomCell): cell is TextShimmerCell =>
-    (cell.data as TextShimmerData).kind === "text-shimmer",
+function drawShimmerBars(
+  ctx: CanvasRenderingContext2D,
+  rect: { x: number; y: number; width: number; height: number },
+  speed: number
+) {
+  const padX = 12;
+  const barH = 6;
+  const gap = 6;
+  const barR = 3;
+  const barWidths = [0.7, 0.5];
+  const availW = rect.width - padX * 2;
+  const totalH = barWidths.length * barH + (barWidths.length - 1) * gap;
+  const startY = rect.y + (rect.height - totalH) / 2;
 
-  draw: (args, _cell) => {
-    const { ctx, rect } = args;
-    const padX = 12;
-    const barH = 6;
-    const gap = 6;
-    const barR = 3;
-    const barWidths = [0.7, 0.5]; // fraction of available width
-    const availW = rect.width - padX * 2;
-    const totalH = barWidths.length * barH + (barWidths.length - 1) * gap;
-    const startY = rect.y + (rect.height - totalH) / 2;
-
-    // Draw bars
-    for (let i = 0; i < barWidths.length; i++) {
-      const bw = availW * barWidths[i];
-      const bx = rect.x + padX;
-      const by = startY + i * (barH + gap);
-
-      ctx.beginPath();
-      ctx.moveTo(bx + barR, by);
-      ctx.lineTo(bx + bw - barR, by);
-      ctx.arcTo(bx + bw, by, bx + bw, by + barR, barR);
-      ctx.lineTo(bx + bw, by + barH - barR);
-      ctx.arcTo(bx + bw, by + barH, bx + bw - barR, by + barH, barR);
-      ctx.lineTo(bx + barR, by + barH);
-      ctx.arcTo(bx, by + barH, bx, by + barH - barR, barR);
-      ctx.lineTo(bx, by + barR);
-      ctx.arcTo(bx, by, bx + barR, by, barR);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(156, 163, 175, 0.15)";
-      ctx.fill();
-    }
-
-    // Animated shimmer sweep across all bars
-    const t = (Date.now() % 1200) / 1200;
-    const shimmerW = 40;
-    const sweepX = rect.x + padX + t * (availW + shimmerW) - shimmerW;
-
-    ctx.save();
-    // Clip to all bars combined
+  for (let i = 0; i < barWidths.length; i++) {
+    const bw = availW * barWidths[i];
+    const bx = rect.x + padX;
+    const by = startY + i * (barH + gap);
     ctx.beginPath();
-    for (let i = 0; i < barWidths.length; i++) {
-      const bw = availW * barWidths[i];
-      const bx = rect.x + padX;
-      const by = startY + i * (barH + gap);
-      ctx.moveTo(bx + barR, by);
-      ctx.lineTo(bx + bw - barR, by);
-      ctx.arcTo(bx + bw, by, bx + bw, by + barR, barR);
-      ctx.lineTo(bx + bw, by + barH - barR);
-      ctx.arcTo(bx + bw, by + barH, bx + bw - barR, by + barH, barR);
-      ctx.lineTo(bx + barR, by + barH);
-      ctx.arcTo(bx, by + barH, bx, by + barH - barR, barR);
-      ctx.lineTo(bx, by + barR);
-      ctx.arcTo(bx, by, bx + barR, by, barR);
-      ctx.closePath();
+    ctx.roundRect(bx, by, bw, barH, barR);
+    ctx.fillStyle = "rgba(156, 163, 175, 0.15)";
+    ctx.fill();
+  }
+
+  const t = (Date.now() % speed) / speed;
+  const shimmerW = 40;
+  const sweepX = rect.x + padX + t * (availW + shimmerW) - shimmerW;
+
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < barWidths.length; i++) {
+    const bw = availW * barWidths[i];
+    const bx = rect.x + padX;
+    const by = startY + i * (barH + gap);
+    ctx.roundRect(bx, by, bw, barH, barR);
+  }
+  ctx.clip();
+
+  const grad = ctx.createLinearGradient(sweepX, 0, sweepX + shimmerW, 0);
+  grad.addColorStop(0, "rgba(156, 163, 175, 0)");
+  grad.addColorStop(0.5, "rgba(156, 163, 175, 0.25)");
+  grad.addColorStop(1, "rgba(156, 163, 175, 0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(sweepX, rect.y, shimmerW, rect.height);
+  ctx.restore();
+}
+
+const textStatusRenderer: CustomRenderer<TextStatusCell> = {
+  kind: GridCellKind.Custom,
+  isMatch: (cell: CustomCell): cell is TextStatusCell =>
+    (cell.data as TextStatusData).kind === "text-status",
+
+  draw: (args, cell) => {
+    const { ctx, rect, theme } = args;
+    const { text, state } = cell.data;
+    const cy = rect.y + rect.height / 2;
+    const padX = 10;
+
+    if (state === "queued") {
+      drawShimmerBars(ctx, rect, 1500);
+      ctx.fillStyle = "rgba(156, 163, 175, 0.5)";
+      ctx.font = `500 9px ${theme.fontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("queued", rect.x + rect.width / 2, rect.y + rect.height - 8);
+      return true;
     }
-    ctx.clip();
 
-    const grad = ctx.createLinearGradient(sweepX, 0, sweepX + shimmerW, 0);
-    grad.addColorStop(0, "rgba(156, 163, 175, 0)");
-    grad.addColorStop(0.5, "rgba(156, 163, 175, 0.25)");
-    grad.addColorStop(1, "rgba(156, 163, 175, 0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(sweepX, rect.y, shimmerW, rect.height);
-    ctx.restore();
+    if (state === "loading") {
+      drawShimmerBars(ctx, rect, 800);
+      return true;
+    }
 
-    return true;
+    if (state === "error") {
+      // Red status pill
+      const pillR = 8;
+      const pillX = rect.x + padX;
+      ctx.beginPath();
+      ctx.arc(pillX + pillR, cy, pillR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(239, 68, 68, 0.15)";
+      ctx.fill();
+      // X icon
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(pillX + pillR - 3, cy - 3);
+      ctx.lineTo(pillX + pillR + 3, cy + 3);
+      ctx.moveTo(pillX + pillR + 3, cy - 3);
+      ctx.lineTo(pillX + pillR - 3, cy + 3);
+      ctx.stroke();
+
+      // "Failed" text
+      const textX = pillX + pillR * 2 + 8;
+      ctx.fillStyle = "#ef4444";
+      ctx.font = `500 12px ${theme.fontFamily}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Failed", textX, cy);
+      return false;
+    }
+
+    if (state === "success" && text) {
+      // Green status pill
+      const pillR = 8;
+      const pillX = rect.x + padX;
+      ctx.beginPath();
+      ctx.arc(pillX + pillR, cy, pillR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(34, 197, 94, 0.15)";
+      ctx.fill();
+      // Checkmark icon
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(pillX + pillR - 3.5, cy);
+      ctx.lineTo(pillX + pillR - 1, cy + 3);
+      ctx.lineTo(pillX + pillR + 4, cy - 3);
+      ctx.stroke();
+
+      // Truncated response text
+      const textX = pillX + pillR * 2 + 8;
+      const maxW = rect.x + rect.width - textX - 8;
+      ctx.fillStyle = theme.textDark;
+      ctx.font = `12px ${theme.fontFamily}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+
+      let displayText = text.replace(/\n/g, " ");
+      if (ctx.measureText(displayText).width > maxW) {
+        while (displayText.length > 0 && ctx.measureText(displayText + "…").width > maxW) {
+          displayText = displayText.slice(0, -1);
+        }
+        displayText += "…";
+      }
+      ctx.fillText(displayText, textX, cy);
+      return false;
+    }
+
+    // Empty state: just muted "--" text (no circle, to differentiate from score-mode)
+    ctx.fillStyle = theme.textLight;
+    ctx.font = `12px ${theme.fontFamily}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("--", rect.x + padX, cy);
+    return false;
   },
 };
 
@@ -518,7 +603,7 @@ const entityNameRenderer: CustomRenderer<EntityNameCell> = {
 
 export const customRenderers: CustomRenderer<CustomCell>[] = [
   scoreBadgeRenderer as unknown as CustomRenderer<CustomCell>,
-  textShimmerRenderer as unknown as CustomRenderer<CustomCell>,
+  textStatusRenderer as unknown as CustomRenderer<CustomCell>,
   categoryBadgeRenderer as unknown as CustomRenderer<CustomCell>,
   entityNameRenderer as unknown as CustomRenderer<CustomCell>,
 ];

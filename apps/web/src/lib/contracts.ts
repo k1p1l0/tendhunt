@@ -3,6 +3,7 @@ import { dbConnect } from "@/lib/mongodb";
 import Contract from "@/models/contract";
 import Buyer from "@/models/buyer";
 import Signal from "@/models/signal";
+import OfstedSchool from "@/models/ofsted-school";
 
 export interface ContractFilters {
   query?: string;
@@ -12,10 +13,31 @@ export interface ContractFilters {
   maxValue?: number;
   stage?: string;
   status?: string;
+  mechanism?: string;
+  contractType?: string;
+  smeOnly?: boolean;
+  vcoOnly?: boolean;
   sort?: "date" | "score";
   page?: number;
   pageSize?: number;
 }
+
+// Contracts store NUTS codes in buyerRegion (from OCDS data), but filters
+// use human-readable region names (from buyer dropdown). Map names → NUTS1 prefix.
+const REGION_TO_NUTS: Record<string, string> = {
+  "North East": "UKC",
+  "North West": "UKD",
+  "Yorkshire and the Humber": "UKE",
+  "East Midlands": "UKF",
+  "West Midlands": "UKG",
+  "East of England": "UKH",
+  "London": "UKI",
+  "South East": "UKJ",
+  "South West": "UKK",
+  "Wales": "UKL",
+  "Scotland": "UKM",
+  "Northern Ireland": "UKN",
+};
 
 export async function fetchContracts(filters: ContractFilters) {
   await dbConnect();
@@ -44,9 +66,16 @@ export async function fetchContracts(filters: ContractFilters) {
         $or: [{ buyerRegion: null }, { buyerRegion: { $exists: false } }],
       });
     } else {
-      conditions.push({
-        buyerRegion: { $regex: new RegExp("^" + filters.region, "i") },
-      });
+      const nutsPrefix = REGION_TO_NUTS[filters.region];
+      if (nutsPrefix) {
+        conditions.push({
+          buyerRegion: { $regex: new RegExp("^" + nutsPrefix, "i") },
+        });
+      } else {
+        conditions.push({
+          buyerRegion: { $regex: new RegExp("^" + filters.region, "i") },
+        });
+      }
     }
   }
 
@@ -64,6 +93,22 @@ export async function fetchContracts(filters: ContractFilters) {
 
   if (filters.status) {
     conditions.push({ status: filters.status });
+  }
+
+  if (filters.mechanism) {
+    conditions.push({ contractMechanism: filters.mechanism });
+  }
+
+  if (filters.contractType) {
+    conditions.push({ contractType: filters.contractType });
+  }
+
+  if (filters.smeOnly) {
+    conditions.push({ suitableForSme: true });
+  }
+
+  if (filters.vcoOnly) {
+    conditions.push({ suitableForVco: true });
   }
 
   const query = conditions.length > 0 ? { $and: conditions } : {};
@@ -136,7 +181,54 @@ export async function fetchContractById(id: string) {
       .lean();
   }
 
-  return { ...contract, buyer };
+  // Fetch Ofsted context for education-sector contracts
+  let ofstedContext = null;
+  const isEducation =
+    contract.sector === "Education" ||
+    (contract.cpvCodes as string[] | undefined)?.some((c: string) => c.startsWith("80"));
+
+  const buyerOid = buyer?._id ?? contract.buyerId;
+  if (isEducation && buyerOid) {
+    const schools = await OfstedSchool.find({ buyerId: buyerOid })
+      .select("name overallEffectiveness qualityOfEducation behaviourAndAttitudes personalDevelopment leadershipAndManagement")
+      .lean();
+
+    if (schools.length > 0) {
+      const belowGood = schools.filter((s) => {
+        const ratings = [
+          s.overallEffectiveness,
+          s.qualityOfEducation,
+          s.behaviourAndAttitudes,
+          s.personalDevelopment,
+          s.leadershipAndManagement,
+        ].filter((r): r is number => r != null);
+        return ratings.some((r) => r >= 3);
+      });
+
+      ofstedContext = {
+        totalSchools: schools.length,
+        belowGoodCount: belowGood.length,
+        schools: belowGood
+          .map((s) => {
+            const ratings = [
+              s.overallEffectiveness,
+              s.qualityOfEducation,
+              s.behaviourAndAttitudes,
+              s.personalDevelopment,
+              s.leadershipAndManagement,
+            ].filter((r): r is number => r != null);
+            return {
+              name: s.name,
+              worstRating: Math.max(...ratings),
+            };
+          })
+          .sort((a, b) => b.worstRating - a.worstRating)
+          .slice(0, 10),
+      };
+    }
+  }
+
+  return { ...contract, buyer, ofstedContext };
 }
 
 export async function getContractStats() {

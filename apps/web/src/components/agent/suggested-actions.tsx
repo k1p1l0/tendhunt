@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { SculptorIcon } from "@/components/sculptor/sculptor-icon";
 import { useAgentContext } from "./agent-provider";
 
 import type { AgentPageContext } from "./agent-provider";
@@ -71,7 +72,7 @@ export function SuggestedActions({ onSend }: SuggestedActionsProps) {
         className="flex flex-col items-center gap-3 text-center"
       >
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-          <span className="agent-trigger-orb !w-7 !h-7" aria-hidden="true" />
+          <SculptorIcon size={28} animate />
         </div>
         <h3 className="text-lg font-semibold tracking-tight">How can I help?</h3>
         <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">

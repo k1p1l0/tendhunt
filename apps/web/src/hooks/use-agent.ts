@@ -101,6 +101,53 @@ export function useAgent(): UseAgentReturn {
               router.push(url);
             }
           }
+
+          if (event.action?.type === "column_added") {
+            window.dispatchEvent(
+              new CustomEvent("scanner-column-added", {
+                detail: {
+                  scannerId: event.action.scannerId as string,
+                  columnId: event.action.columnId as string,
+                  name: event.action.name as string,
+                  prompt: event.action.prompt as string,
+                  useCase: (event.action.useCase as string) || "score",
+                  model: (event.action.model as string) || "haiku",
+                },
+              })
+            );
+          }
+
+          if (event.action?.type === "score_updated") {
+            window.dispatchEvent(
+              new CustomEvent("scanner-score-updated", {
+                detail: {
+                  scannerId: event.action.scannerId as string,
+                  columnId: event.action.columnId as string,
+                  entityId: event.action.entityId as string,
+                  score: event.action.score as number | null,
+                  value: event.action.value as string,
+                  reasoning: event.action.reasoning as string,
+                },
+              })
+            );
+          }
+
+          if (event.action?.type === "enrich_confirm") {
+            useAgentStore.getState().setEnrichmentConfirmation({
+              buyerId: event.action.buyerId as string,
+              buyerName: event.action.buyerName as string,
+              messageId,
+            });
+          }
+
+          if (event.action?.type === "enrich_started") {
+            useAgentStore.getState().setEnrichmentConfirmation(null);
+            startEnrichmentStream(
+              event.action.buyerId as string,
+              event.action.buyerName as string,
+              messageId
+            );
+          }
           break;
         }
         case "conversation_id": {
@@ -172,6 +219,7 @@ export function useAgent(): UseAgentReturn {
             messages: apiMessages,
             context,
             conversationId: conversationIdRef.current,
+            settings: useAgentStore.getState().conversationSettings,
           }),
           signal: abortController.signal,
         });
@@ -258,6 +306,116 @@ export function useAgent(): UseAgentReturn {
     // Re-send
     sendMessage(lastUserMessage.content);
   }, [sendMessage]);
+
+  const startEnrichmentStream = useCallback(
+    async (buyerId: string, buyerName: string, messageId: string) => {
+      const INITIAL_STAGES = [
+        { name: "classify", label: "Classifying organisation", status: "pending" as const },
+        { name: "website_discovery", label: "Finding website", status: "pending" as const },
+        { name: "logo_linkedin", label: "Fetching LinkedIn & logo", status: "pending" as const },
+        { name: "governance_urls", label: "Mapping governance portals", status: "pending" as const },
+        { name: "moderngov", label: "Pulling board meeting data", status: "pending" as const },
+        { name: "scrape", label: "Scraping governance pages", status: "pending" as const },
+        { name: "personnel", label: "Extracting key personnel", status: "pending" as const },
+        { name: "score", label: "Calculating enrichment score", status: "pending" as const },
+        { name: "spend_discover", label: "Discovering spending pages", status: "pending" as const },
+        { name: "spend_extract", label: "Extracting download links", status: "pending" as const },
+        { name: "spend_parse", label: "Parsing spend data", status: "pending" as const },
+        { name: "spend_aggregate", label: "Building spend summary", status: "pending" as const },
+      ];
+
+      const store = useAgentStore.getState();
+      store.setActiveEnrichment({
+        buyerId,
+        buyerName,
+        messageId,
+        stages: INITIAL_STAGES,
+        startedAt: new Date(),
+      });
+
+      try {
+        const response = await fetch(`/api/enrichment/${buyerId}/progress`);
+        if (!response.ok || !response.body) {
+          useAgentStore.getState().completeEnrichment();
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
+              const s = useAgentStore.getState();
+
+              switch (data.type) {
+                case "init": {
+                  const stages = data.stages as Array<{ name: string; label: string; status: string }>;
+                  s.setActiveEnrichment({
+                    buyerId,
+                    buyerName,
+                    messageId,
+                    stages: stages.map((st) => ({
+                      name: st.name,
+                      label: st.label,
+                      status: st.status as "pending",
+                    })),
+                    startedAt: new Date(),
+                  });
+                  break;
+                }
+                case "stage_active":
+                  s.updateEnrichmentStage(data.stage as string, "active");
+                  break;
+                case "stage_complete":
+                  s.updateEnrichmentStage(data.stage as string, "complete");
+                  break;
+                case "refresh":
+                  window.dispatchEvent(
+                    new CustomEvent("enrichment-complete", { detail: { buyerId } })
+                  );
+                  break;
+                case "done": {
+                  const summary = data.summary as Record<string, unknown> | undefined;
+                  s.completeEnrichment(data.enrichmentScore as number, summary ? {
+                    orgType: summary.orgType as string | undefined,
+                    website: summary.website as string | undefined,
+                    hasLogo: summary.hasLogo as boolean | undefined,
+                    hasLinkedIn: summary.hasLinkedIn as boolean | undefined,
+                    staffCount: summary.staffCount as number | undefined,
+                  } : undefined);
+                  window.dispatchEvent(
+                    new CustomEvent("enrichment-complete", { detail: { buyerId } })
+                  );
+                  break;
+                }
+              }
+            } catch {
+              // skip malformed events
+            }
+          }
+        }
+
+        // Stream ended — ensure we mark as complete
+        const final = useAgentStore.getState();
+        if (final.activeEnrichment && !final.activeEnrichment.completedAt) {
+          final.completeEnrichment();
+        }
+      } catch {
+        useAgentStore.getState().completeEnrichment();
+      }
+    },
+    []
+  );
 
   return {
     sendMessage,

@@ -67,6 +67,11 @@ const buyerSchema = new Schema(
     lastEnrichedAt: { type: Date },
     enrichmentVersion: { type: Number, default: 0 },
     enrichmentPriority: { type: Number, default: 0, index: true },
+
+    // Parent-child hierarchy (single-level only)
+    parentBuyerId: { type: Schema.Types.ObjectId, ref: "Buyer", index: true },
+    childBuyerIds: [{ type: Schema.Types.ObjectId, ref: "Buyer" }],
+    isParent: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

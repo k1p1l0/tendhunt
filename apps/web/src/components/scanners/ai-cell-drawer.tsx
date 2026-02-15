@@ -79,16 +79,25 @@ export function AiCellDrawer({
         </SheetHeader>
 
         <div className="px-4 pb-6 space-y-6">
-          {!entry ? (
+          {!entry || (!entry.response && !entry.score && !entry.error) ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-sm text-muted-foreground">
-                Not yet scored. Click &quot;Score All&quot; to analyze this
-                item.
+                {textMode
+                  ? "Not yet analyzed. Click the play button to analyze this item."
+                  : "Not yet scored. Click \"Score All\" to analyze this item."}
               </p>
             </div>
           ) : (
             <>
+              {/* Error state */}
+              {entry.error && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-3 space-y-1">
+                  <h3 className="text-sm font-medium text-destructive">Analysis Failed</h3>
+                  <p className="text-sm text-destructive/80">{entry.error}</p>
+                </div>
+              )}
+
               {/* Score display — hidden for text-mode columns */}
               {!textMode && entry.score != null && (
                 <>

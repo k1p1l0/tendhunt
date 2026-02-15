@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -16,14 +16,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { ColumnMentionInput } from "@/components/scanners/column-mention-input";
+import { getAvailableColumns } from "@/lib/column-references";
 import { AI_USE_CASES, AI_MODELS } from "@/lib/ai-column-config";
 import type { AIModel } from "@/lib/ai-column-config";
+import type { ScannerType } from "@/models/scanner";
 
 export interface EditColumnData {
   columnId: string;
@@ -38,6 +40,9 @@ interface EditColumnSheetProps {
   onOpenChange: (open: boolean) => void;
   column: EditColumnData | null;
   scannerId: string;
+  scannerType: ScannerType;
+  scannerAiColumns?: Array<{ columnId: string; name: string; useCase?: string }>;
+  scannerCustomColumns?: Array<{ columnId: string; name: string; accessor: string; dataType: string }>;
   onColumnUpdated: (column: EditColumnData, rescore: boolean) => void;
 }
 
@@ -46,6 +51,9 @@ export function EditColumnSheet({
   onOpenChange,
   column,
   scannerId,
+  scannerType,
+  scannerAiColumns = [],
+  scannerCustomColumns = [],
   onColumnUpdated,
 }: EditColumnSheetProps) {
   const [name, setName] = useState("");
@@ -63,6 +71,11 @@ export function EditColumnSheet({
       setError(null);
     }
   }, [column]);
+
+  const mentionColumns = useMemo(
+    () => getAvailableColumns(scannerType, scannerAiColumns, scannerCustomColumns, column?.columnId),
+    [scannerType, scannerAiColumns, scannerCustomColumns, column?.columnId]
+  );
 
   const hasChanges =
     column &&
@@ -207,16 +220,17 @@ export function EditColumnSheet({
             <Label htmlFor="edit-column-prompt">
               Prompt <span className="text-destructive">*</span>
             </Label>
-            <Textarea
+            <ColumnMentionInput
               id="edit-column-prompt"
               placeholder="Describe what you want the AI to analyze for each row..."
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={setPrompt}
+              columns={mentionColumns}
               disabled={isSubmitting}
-              className="min-h-[240px] font-mono text-sm"
+              className="min-h-[240px] w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
             />
             <p className="text-xs text-muted-foreground">
-              Type @ to reference a column. The AI receives each row&apos;s data
+              Type <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px]">@</kbd> to reference another column. The AI receives each row&apos;s data
               alongside this prompt.
             </p>
           </div>

@@ -7,6 +7,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
+import { isDpsFrameworkActive, statusLabel } from "@/lib/contract-mechanism";
+
+import type { ContractMechanism } from "@/lib/contract-mechanism";
 
 interface ContractData {
   _id: string;
@@ -17,6 +20,8 @@ interface ContractData {
   status?: string;
   sector?: string | null;
   source?: string;
+  contractMechanism?: ContractMechanism | null;
+  contractEndDate?: string | Date | null;
 }
 
 interface ContractsTabProps {
@@ -47,7 +52,14 @@ function formatDate(date?: string | Date | null) {
   return dateFormatter.format(new Date(date));
 }
 
-function statusColor(status: string) {
+function statusColor(
+  status: string,
+  mechanism?: ContractMechanism | null,
+  contractEndDate?: string | Date | null
+) {
+  if (isDpsFrameworkActive(mechanism, status, contractEndDate)) {
+    return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+  }
   switch (status) {
     case "OPEN":
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
@@ -61,6 +73,13 @@ function statusColor(status: string) {
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
   }
 }
+
+const MECHANISM_BADGE: Record<string, { label: string; className: string } | undefined> = {
+  dps: { label: "DPS", className: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
+  framework: { label: "Framework", className: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200" },
+  call_off_dps: { label: "DPS Call-off", className: "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300" },
+  call_off_framework: { label: "FW Call-off", className: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300" },
+};
 
 export function ContractsTab({ contracts }: ContractsTabProps) {
   if (contracts.length === 0) {
@@ -100,9 +119,14 @@ export function ContractsTab({ contracts }: ContractsTabProps) {
                     </p>
                   )}
                   <div className="flex flex-wrap gap-1.5">
+                    {contract.contractMechanism && MECHANISM_BADGE[contract.contractMechanism] && (
+                      <Badge className={MECHANISM_BADGE[contract.contractMechanism]!.className}>
+                        {MECHANISM_BADGE[contract.contractMechanism]!.label}
+                      </Badge>
+                    )}
                     {contract.status && (
-                      <Badge className={statusColor(contract.status)}>
-                        {contract.status}
+                      <Badge className={statusColor(contract.status, contract.contractMechanism, contract.contractEndDate)}>
+                        {statusLabel(contract.status, contract.contractMechanism, contract.contractEndDate)}
                       </Badge>
                     )}
                     {contract.sector && (

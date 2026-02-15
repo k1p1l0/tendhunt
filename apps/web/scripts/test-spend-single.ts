@@ -342,10 +342,120 @@ function extractLinksEnhanced(html: string, baseUrl: string): ScoredLink[] {
 }
 
 function isValidDownloadLink(url: string): boolean {
+  if (url.includes("docs.google.com") || url.includes("drive.google.com")) return true;
   try {
     const full = new URL(url).href.toLowerCase();
     return scoreLink(full) !== null;
   } catch { return false; }
+}
+
+function transformGoogleUrls(urls: string[]): string[] {
+  const transformed: string[] = [];
+  for (const url of urls) {
+    const sheetsMatch = url.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (sheetsMatch) {
+      transformed.push(`https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/export?format=csv`);
+      continue;
+    }
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveMatch) {
+      transformed.push(`https://drive.google.com/uc?export=download&id=${driveMatch[1]}`);
+      continue;
+    }
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (driveOpenMatch) {
+      transformed.push(`https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`);
+      continue;
+    }
+    transformed.push(url);
+  }
+  return transformed;
+}
+
+function extractGoogleLinks(html: string): string[] {
+  const links: string[] = [];
+  const seen = new Set<string>();
+  const sheetsRegex = /href\s*=\s*["'](https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = sheetsRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); links.push(m[1]); }
+  }
+  const driveRegex = /href\s*=\s*["'](https?:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  while ((m = driveRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); links.push(m[1]); }
+  }
+  const driveOpenRegex = /href\s*=\s*["'](https?:\/\/drive\.google\.com\/open\?id=[a-zA-Z0-9_-]+[^"']*?)["']/gi;
+  while ((m = driveOpenRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); links.push(m[1]); }
+  }
+  return links;
+}
+
+async function tryDataGovUkSearch(
+  buyerName: string
+): Promise<{ url: string; csvLinks: string[] } | null> {
+  const cleanName = buyerName
+    .replace(/[,()]/g, " ")
+    .replace(/\b(the|of|and|for)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const query = encodeURIComponent(`${cleanName} spend 25k`);
+  const searchUrl = `https://www.data.gov.uk/search?q=${query}`;
+  console.log(`\nSearching data.gov.uk: ${searchUrl}`);
+
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    const datasetRegex = /href="(\/dataset\/[^"]+)"[^>]*>([^<]+)/g;
+    const datasets: { url: string; title: string }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = datasetRegex.exec(html)) !== null && datasets.length < 5) {
+      datasets.push({ url: `https://www.data.gov.uk${m[1]}`, title: m[2].trim() });
+    }
+    if (datasets.length === 0) { console.log("  No datasets found on data.gov.uk"); return null; }
+    console.log(`  Found ${datasets.length} candidate datasets`);
+
+    const nameWords = buyerName
+      .toLowerCase()
+      .replace(/[,()]/g, " ")
+      .replace(/\b(nhs|icb|the|of|and|for)\b/g, "")
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+    const threshold = Math.max(1, Math.ceil(nameWords.length * 0.5));
+    console.log(`  Name keywords: ${nameWords.join(", ")} (threshold: ${threshold})`);
+
+    for (const dataset of datasets) {
+      const titleLower = dataset.title.toLowerCase();
+      const matchCount = nameWords.filter((w) => titleLower.includes(w)).length;
+      console.log(`  Dataset: "${dataset.title}" — ${matchCount}/${nameWords.length} keywords match (need ${threshold})`);
+      if (matchCount < threshold) continue;
+
+      console.log(`  Checking dataset: ${dataset.url}`);
+      try {
+        const datasetRes = await fetch(dataset.url, {
+          headers: { "User-Agent": "TendHunt-SpendBot/1.0" },
+          redirect: "follow",
+        });
+        if (!datasetRes.ok) continue;
+        const datasetHtml = await datasetRes.text();
+        const csvRegex = /href="(https?:\/\/[^"]+\.csv[^"]*)"/gi;
+        const csvLinks: string[] = [];
+        const seen = new Set<string>();
+        while ((m = csvRegex.exec(datasetHtml)) !== null) {
+          const link = m[1];
+          if (!seen.has(link)) { seen.add(link); csvLinks.push(link); }
+        }
+        if (csvLinks.length > 0) return { url: dataset.url, csvLinks };
+      } catch { /* skip */ }
+    }
+  } catch { /* skip */ }
+  return null;
 }
 
 // GOV.UK buyer filtering
@@ -471,6 +581,16 @@ const KNOWN_SCHEMAS: KnownSchema[] = [
     name: "govuk_mod_spending_25k",
     detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier name", "transaction number", "payment date"]),
     map: { date: "Payment Date", amount: "Total", vendor: "Supplier Name", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
+  },
+  {
+    name: "govuk_nhs_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number", "ap amount"]),
+    map: { date: "Date", amount: "AP Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
+  },
+  {
+    name: "nhs_icb_spending_25k",
+    detect: (headers) => hasHeaders(headers, ["expense type", "expense area", "supplier", "transaction number", "ap amount"]),
+    map: { date: "Date", amount: "AP Amount", vendor: "Supplier", category: "Expense Type", subcategory: "Expense Area", department: "Entity", reference: "Transaction Number" },
   },
   {
     name: "govuk_spending_25k",
@@ -636,8 +756,27 @@ async function main() {
     if (transparencyUrl && transparencyUrl !== "none") {
       console.log(`Already has transparencyPageUrl: ${transparencyUrl}`);
     } else if (!buyer.website) {
-      console.log("No website — cannot discover transparency page. Stopping.");
-      return;
+      console.log("No website — trying data.gov.uk search as fallback...");
+      const dataGovResult = await tryDataGovUkSearch(buyer.name as string);
+      if (dataGovResult) {
+        console.log(`data.gov.uk match: ${dataGovResult.url}`);
+        console.log(`CSV links: ${dataGovResult.csvLinks.length}`);
+        dataGovResult.csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+        await db.collection("buyers").updateOne(
+          { _id: buyerId },
+          { $set: {
+            transparencyPageUrl: dataGovResult.url,
+            csvLinks: dataGovResult.csvLinks,
+            discoveryMethod: "data_gov_uk",
+            updatedAt: new Date(),
+          } }
+        );
+        transparencyUrl = dataGovResult.url;
+        // csvLinks written to DB — Stage 2 reads from DB
+      } else {
+        console.log("data.gov.uk also found nothing. Stopping.");
+        return;
+      }
     } else {
       const websiteUrl = buyer.website as string;
       let discoveryMethod = "none";
@@ -861,12 +1000,32 @@ Return ONLY valid JSON (no markdown):
         const parsed = parseDiscoveryResponse(responseText);
 
         if (!parsed || parsed.confidence === "NONE" || !parsed.transparencyUrl) {
-          console.log("No transparency page found. Marking as 'none'.");
-          await db.collection("buyers").updateOne(
-            { _id: buyerId },
-            { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
-          );
-          return;
+          console.log("AI found nothing. Trying data.gov.uk search...");
+          const dataGovResult = await tryDataGovUkSearch(buyer.name);
+          if (dataGovResult) {
+            console.log(`data.gov.uk match: ${dataGovResult.url}`);
+            console.log(`CSV links: ${dataGovResult.csvLinks.length}`);
+            dataGovResult.csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+            await db.collection("buyers").updateOne(
+              { _id: buyerId },
+              { $set: {
+                transparencyPageUrl: dataGovResult.url,
+                csvLinks: dataGovResult.csvLinks,
+                discoveryMethod: "data_gov_uk",
+                updatedAt: new Date(),
+              } }
+            );
+            transparencyUrl = dataGovResult.url;
+            csvLinks = dataGovResult.csvLinks;
+            discoveryMethod = "data_gov_uk";
+          } else {
+            console.log("No transparency page found. Marking as 'none'.");
+            await db.collection("buyers").updateOne(
+              { _id: buyerId },
+              { $set: { transparencyPageUrl: "none", discoveryMethod: "none", updatedAt: new Date() } }
+            );
+            return;
+          }
         }
 
         try {
@@ -1018,11 +1177,22 @@ Return ONLY valid JSON:
         console.log(`AI found ${aiLinks.length} additional links`);
       }
 
+      // Extract Google Sheets/Drive links
+      const googleLinks = extractGoogleLinks(html!);
+      if (googleLinks.length > 0) {
+        console.log(`\nGoogle Sheets/Drive links found: ${googleLinks.length}`);
+        googleLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));
+      }
+      const transformedGoogle = transformGoogleUrls(googleLinks);
+
       // Merge all links
-      const allLinks = Array.from(new Set([...csvLinks, ...regexLinks, ...aiLinks]));
+      const allLinks = Array.from(new Set([...csvLinks, ...regexLinks, ...aiLinks, ...transformedGoogle]));
+
+      // Transform any remaining Google URLs
+      const transformedAll = transformGoogleUrls(allLinks);
 
       // Filter: keep only valid download links (enhanced check)
-      csvLinks = allLinks.filter(isValidDownloadLink);
+      csvLinks = transformedAll.filter(isValidDownloadLink);
 
       console.log(`\nTotal CSV links after merge + filter: ${csvLinks.length}`);
       csvLinks.forEach((l, i) => console.log(`  ${i + 1}. ${l}`));

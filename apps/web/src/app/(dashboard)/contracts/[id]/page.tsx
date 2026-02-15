@@ -32,6 +32,7 @@ export default async function ContractDetailPage({
           contractValue: contract.valueMax
             ? `GBP ${contract.valueMax.toLocaleString()}`
             : undefined,
+          contractMechanism: (contract.contractMechanism as string) ?? undefined,
         }}
       />
       <ContractBreadcrumb name={contract.title} />
@@ -107,6 +108,7 @@ export default async function ContractDetailPage({
           lots: contract.lots,
           lotCount: contract.lotCount,
           maxLotsBidPerSupplier: contract.maxLotsBidPerSupplier,
+          contractMechanism: (contract.contractMechanism ?? null) as "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework" | null,
           buyer: contract.buyer
             ? {
                 _id: String(contract.buyer._id),
@@ -149,6 +151,7 @@ export default async function ContractDetailPage({
                 lastEnrichedAt: contract.buyer.lastEnrichedAt,
               }
             : null,
+          ofstedContext: contract.ofstedContext ?? null,
         }}
       />
     </div>

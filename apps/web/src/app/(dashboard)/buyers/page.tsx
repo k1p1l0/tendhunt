@@ -109,7 +109,7 @@ export default async function BuyersPage({
   const orgType = typeof params.orgType === "string" ? params.orgType : undefined;
   const region = typeof params.region === "string" ? params.region : undefined;
 
-  const suspenseKey = JSON.stringify({ sort, order, page, q, sector, orgType, region });
+  const suspenseKey = JSON.stringify({ sort, order, page, sector, orgType, region });
 
   return (
     <div className="space-y-4">

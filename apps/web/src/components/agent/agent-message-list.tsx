@@ -6,6 +6,10 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentMessage } from "./agent-message";
 import { SuggestedActions } from "./suggested-actions";
+import { QuickReplyChips } from "./quick-reply-chips";
+import { EnrichmentConfirm } from "./enrichment-confirm";
+import { EnrichmentProgress } from "./enrichment-progress";
+import { useAgentStore } from "@/stores/agent-store";
 
 import type { AgentMessage as AgentMessageType } from "@/stores/agent-store";
 
@@ -38,10 +42,15 @@ export function AgentMessageList({
   isStreaming = false,
   onRetry,
 }: AgentMessageListProps) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const enrichmentConfirmation = useAgentStore((s) => s.enrichmentConfirmation);
+  const activeEnrichment = useAgentStore((s) => s.activeEnrichment);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
   }, [messages]);
 
   if (messages.length === 0) {
@@ -60,12 +69,27 @@ export function AgentMessageList({
       (!lastMessage.content && !lastMessage.toolCalls?.length));
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
       <AnimatePresence mode="popLayout">
         {messages.map((msg) => (
           <AgentMessage key={msg.id} message={msg} />
         ))}
       </AnimatePresence>
+
+      <QuickReplyChips
+        lastMessage={lastMessage}
+        isStreaming={isStreaming}
+        onSend={onSend}
+      />
+
+      <EnrichmentConfirm
+        lastMessage={lastMessage}
+        isStreaming={isStreaming}
+      />
+
+      {activeEnrichment && activeEnrichment.stages.length > 0 && (
+        <EnrichmentProgress />
+      )}
 
       {showTypingIndicator && <TypingIndicator />}
 
@@ -90,8 +114,6 @@ export function AgentMessageList({
           )}
         </motion.div>
       )}
-
-      <div ref={endRef} />
     </div>
   );
 }

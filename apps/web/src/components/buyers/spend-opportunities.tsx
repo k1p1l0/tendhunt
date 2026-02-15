@@ -9,10 +9,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
-  RefreshCw,
   AlertTriangle,
-  Target,
+  Shuffle,
 } from "lucide-react";
+
+const gbpCompact = new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "GBP",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 interface ProfileMatch {
   matchedCategories: string[];
@@ -41,28 +47,39 @@ interface SpendGrowthSignal {
   growthPercent: number;
 }
 
+interface SmeOpennessData {
+  smeOpennessScore: number;
+  signal: string;
+  sme: { percentage: number; count: number };
+}
+
+interface VendorStabilityData {
+  vendorStabilityScore: number;
+  signal: string;
+}
+
 interface SpendOpportunitiesProps {
   opportunities: {
     profileMatch: ProfileMatch | null;
     recurringPatterns: RecurringPattern[];
     vendorConcentration: VendorConcentration[];
     spendGrowthSignals: SpendGrowthSignal[];
+    smeOpenness?: SmeOpennessData | null;
+    vendorStability?: VendorStabilityData | null;
   };
 }
 
 export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
   const {
-    profileMatch,
-    recurringPatterns,
     vendorConcentration,
     spendGrowthSignals,
+    vendorStability,
   } = opportunities;
 
   const hasAnyOpportunities =
-    profileMatch ||
-    recurringPatterns.length > 0 ||
     vendorConcentration.length > 0 ||
-    spendGrowthSignals.length > 0;
+    spendGrowthSignals.length > 0 ||
+    vendorStability;
 
   if (!hasAnyOpportunities) {
     return (
@@ -78,82 +95,6 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {/* Profile Match */}
-      {profileMatch && profileMatch.matchedCategories.length > 0 && (
-        <Card className="border-l-4 border-l-blue-500 transition-all hover:shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg">Profile Match</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-3xl font-bold text-blue-500">
-                {profileMatch.matchPercentage}%
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                £{profileMatch.totalMatchedSpend.toLocaleString()} spent in your sectors
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Top matched categories:</p>
-              <div className="flex flex-wrap gap-2">
-                {profileMatch.matchedCategories.slice(0, 3).map((cat) => (
-                  <Badge key={cat} variant="secondary">
-                    {cat}
-                  </Badge>
-                ))}
-                {profileMatch.matchedCategories.length > 3 && (
-                  <Badge variant="outline">
-                    +{profileMatch.matchedCategories.length - 3} more
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recurring Patterns */}
-      {recurringPatterns.length > 0 && (
-        <Card className="border-l-4 border-l-green-500 transition-all hover:shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-lg">Recurring Spend</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-3xl font-bold text-green-500">
-                {recurringPatterns.length}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Recurring spend patterns detected
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Top patterns:</p>
-              <div className="space-y-2">
-                {recurringPatterns.slice(0, 3).map((pattern, index) => (
-                  <div
-                    key={index}
-                    className="text-sm border-l-2 border-green-200 pl-2 py-1"
-                  >
-                    <p className="font-medium">{pattern.vendor}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {pattern.frequency === "monthly" ? "Monthly" : "Quarterly"} •
-                      Avg £{pattern.averageAmount.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Vendor Concentration */}
       {vendorConcentration.length > 0 && (
         <Card className="border-l-4 border-l-amber-500 transition-all hover:shadow-md">
@@ -193,7 +134,7 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
       )}
 
       {/* Spend Growth */}
-      {spendGrowthSignals.length > 0 && (
+      {spendGrowthSignals.length > 0 && spendGrowthSignals[0] && (
         <Card className="border-l-4 border-l-purple-500 transition-all hover:shadow-md">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
@@ -204,30 +145,71 @@ export function SpendOpportunities({ opportunities }: SpendOpportunitiesProps) {
           <CardContent className="space-y-3">
             <div>
               <div className="text-3xl font-bold text-purple-500">
-                {spendGrowthSignals.length}
+                +{spendGrowthSignals[0].growthPercent}%
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Growing spend categories
+                Year-over-year spend increase
               </p>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Top growth areas:</p>
-              <div className="space-y-2">
-                {spendGrowthSignals.slice(0, 3).map((signal, index) => (
-                  <div
-                    key={index}
-                    className="text-sm border-l-2 border-purple-200 pl-2 py-1"
-                  >
-                    <p className="font-medium">{signal.category}</p>
-                    <p className="text-muted-foreground text-xs">
-                      <TrendingUp className="inline h-3 w-3 mr-1" />
-                      {signal.growthPercent > 0 ? "+" : ""}
-                      {signal.growthPercent}% YoY growth
-                    </p>
-                  </div>
-                ))}
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Recent 12 months</span>
+                <span className="font-medium">
+                  {gbpCompact.format(spendGrowthSignals[0].currentYearSpend)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Prior 12 months</span>
+                <span className="font-medium">
+                  {gbpCompact.format(spendGrowthSignals[0].priorYearSpend)}
+                </span>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This buyer is spending significantly more than last year — a sign of growing procurement activity.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vendor Stability */}
+      {vendorStability && (
+        <Card className="border-l-4 border-l-orange-500 transition-all hover:shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Shuffle className="h-5 w-5 text-orange-500" />
+              <CardTitle className="text-lg">Vendor Stability</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="text-3xl font-bold text-orange-500">
+                {vendorStability.vendorStabilityScore}/100
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {vendorStability.vendorStabilityScore < 40
+                  ? "Only " + vendorStability.vendorStabilityScore + "% of vendors are retained year-over-year"
+                  : vendorStability.vendorStabilityScore > 70
+                    ? vendorStability.vendorStabilityScore + "% of vendors return each year"
+                    : vendorStability.vendorStabilityScore + "% vendor retention rate"}
+              </p>
+            </div>
+            <Badge variant="outline" className={
+              vendorStability.vendorStabilityScore < 40
+                ? "bg-green-500/15 text-green-600 border-green-500/30"
+                : vendorStability.vendorStabilityScore > 70
+                  ? "bg-red-500/15 text-red-600 border-red-500/30"
+                  : "bg-yellow-500/15 text-yellow-600 border-yellow-500/30"
+            }>
+              {vendorStability.vendorStabilityScore < 40 ? "Open to new suppliers" : vendorStability.vendorStabilityScore > 70 ? "Hard to break in" : "Moderate openness"}
+            </Badge>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {vendorStability.vendorStabilityScore < 40
+                ? "This buyer regularly changes vendors — they're open to working with new suppliers."
+                : vendorStability.vendorStabilityScore > 70
+                  ? "This buyer tends to stick with the same vendors — breaking in may require a strong differentiator."
+                  : "This buyer retains some vendors but also brings in new ones."}
+            </p>
           </CardContent>
         </Card>
       )}

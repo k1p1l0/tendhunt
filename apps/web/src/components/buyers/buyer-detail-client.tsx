@@ -3,6 +3,8 @@
 import { BuyerHeader } from "@/components/buyers/buyer-header";
 import { BuyerTabs } from "@/components/buyers/buyer-tabs";
 
+import type { OfstedSchoolData } from "@/components/buyers/ofsted-tab";
+
 interface ContractData {
   _id: string;
   title: string;
@@ -71,6 +73,20 @@ export interface LinkedinData {
   lastFetchedAt?: string;
 }
 
+export interface ChildBuyerData {
+  _id: string;
+  name: string;
+  enrichmentScore?: number;
+  logoUrl?: string;
+  orgType?: string;
+  contractCount: number;
+}
+
+export interface ParentBuyerData {
+  _id: string;
+  name: string;
+}
+
 interface BuyerData {
   _id: string;
   name: string;
@@ -98,14 +114,17 @@ interface BuyerData {
   linkedin?: LinkedinData;
   hasSpendData?: boolean;
   spendTransactionCount?: number;
+  children?: ChildBuyerData[];
+  parentBuyer?: ParentBuyerData;
+  isParent?: boolean;
+  ofstedSchools?: OfstedSchoolData[];
 }
 
 interface BuyerDetailClientProps {
   buyer: BuyerData;
-  initialTab?: string;
 }
 
-export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps) {
+export function BuyerDetailClient({ buyer }: BuyerDetailClientProps) {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <BuyerHeader
@@ -125,6 +144,9 @@ export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps)
           description: buyer.description,
           address: buyer.address,
           industry: buyer.industry,
+          isParent: buyer.isParent,
+          childCount: buyer.children?.length ?? 0,
+          parentBuyer: buyer.parentBuyer,
         }}
       />
       <BuyerTabs
@@ -147,7 +169,8 @@ export function BuyerDetailClient({ buyer, initialTab }: BuyerDetailClientProps)
         keyPersonnel={buyer.keyPersonnel}
         hasSpendData={buyer.hasSpendData}
         spendTransactionCount={buyer.spendTransactionCount}
-        initialTab={initialTab}
+        departments={buyer.children}
+        ofstedSchools={buyer.ofstedSchools}
       />
     </div>
   );

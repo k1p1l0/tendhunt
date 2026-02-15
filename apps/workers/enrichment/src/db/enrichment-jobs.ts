@@ -96,6 +96,29 @@ export async function markJobComplete(
 }
 
 /**
+ * Reset all completed stage jobs back to "running" with cursor: null.
+ * Called when all stages are complete to start a new enrichment cycle
+ * that picks up newly added buyers.
+ */
+export async function resetCompletedJobs(
+  db: Db,
+  stages: readonly (EnrichmentStage | DocEnrichmentStage)[]
+): Promise<number> {
+  const collection = db.collection<EnrichmentJobDoc>(COLLECTION);
+  const result = await collection.updateMany(
+    { stage: { $in: stages as (EnrichmentStage | DocEnrichmentStage)[] }, status: "complete" },
+    {
+      $set: {
+        status: "running" as const,
+        cursor: null,
+        updatedAt: new Date(),
+      },
+    }
+  );
+  return result.modifiedCount;
+}
+
+/**
  * Mark a job as errored with an error message.
  */
 export async function markJobError(

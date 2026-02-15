@@ -207,7 +207,11 @@ export function ScannerList({
           </TableHeader>
           <TableBody>
             {sorted.map((scanner, idx) => {
-              const config = TYPE_CONFIG[scanner.type];
+              const config = TYPE_CONFIG[scanner.type] ?? {
+                label: scanner.type,
+                emoji: "📋",
+                badgeClass: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
+              };
               return (
                 <TableRow
                   key={scanner._id}

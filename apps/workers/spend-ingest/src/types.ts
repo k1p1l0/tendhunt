@@ -9,6 +9,7 @@ export interface Env {
   ANTHROPIC_API_KEY: string;
   DOCS: R2Bucket;
   WORKER_SECRET?: string;
+  SCRAPELESS_API_KEY?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +71,18 @@ export interface SpendTransactionDoc {
 // SpendSummary — pre-computed per-buyer aggregates (mirrors Mongoose schema)
 // ---------------------------------------------------------------------------
 
+export interface VendorSizeBucket {
+  totalSpend: number;
+  vendorCount: number;
+  transactionCount: number;
+}
+
+export interface YearlyVendorSet {
+  year: number;
+  vendors: string[];
+  totalSpend: number;
+}
+
 export interface SpendSummaryDoc {
   _id?: ObjectId;
   buyerId: ObjectId;
@@ -96,6 +109,13 @@ export interface SpendSummaryDoc {
   }>;
   csvFilesProcessed: string[];
   lastComputedAt?: Date;
+  vendorSizeBreakdown?: {
+    sme: VendorSizeBucket;
+    large: VendorSizeBucket;
+  };
+  yearlyVendorSets?: YearlyVendorSet[];
+  smeOpennessScore?: number;
+  vendorStabilityScore?: number;
   createdAt: Date;
   updatedAt: Date;
 }

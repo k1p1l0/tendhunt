@@ -299,8 +299,13 @@ export async function fetchAllWorkerStatus(): Promise<WorkerStatus[]> {
 // Worker actions (trigger run, fetch debug)
 // ---------------------------------------------------------------------------
 
-export async function triggerWorkerRun(workerName: string): Promise<{ ok: boolean; data?: unknown; error?: string }> {
-  const url = buildWorkerUrl(workerName, "/run", true);
+export async function triggerWorkerRun(
+  workerName: string,
+  maxItems?: number | null
+): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  // null = unlimited (budget disabled) → pass 999999 to override worker default
+  const effectiveMax = maxItems ?? 999999;
+  const url = buildWorkerUrl(workerName, `/run?max=${effectiveMax}`, true);
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     const data = await res.json();

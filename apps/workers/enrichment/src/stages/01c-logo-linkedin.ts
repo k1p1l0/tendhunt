@@ -3,6 +3,7 @@ import type { Env, EnrichmentJobDoc, BuyerDoc } from "../types";
 import { getFilteredBuyerBatch, bulkUpdateBuyerEnrichment } from "../db/buyers";
 import { updateJobProgress } from "../db/enrichment-jobs";
 import { callApifyActor } from "../api-clients/apify";
+import { reportPipelineError } from "../db/pipeline-errors";
 
 // ---------------------------------------------------------------------------
 // Stage 1c: Logo + LinkedIn enrichment via harvestapi/linkedin-company
@@ -218,6 +219,12 @@ export async function enrichLogoLinkedin(
         }`;
         errorMessages.push(msg);
         console.error(msg);
+        await reportPipelineError(db, {
+          worker: "enrichment",
+          stage: "logo_linkedin",
+          errorType: "api_403",
+          message: msg,
+        });
       }
     }
 

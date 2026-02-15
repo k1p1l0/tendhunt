@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef, use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Loader2, Crosshair, ChevronRight, AlertTriangle, X } from "lucide-react";
+import { Loader2, ChevronRight, AlertTriangle, X } from "lucide-react";
 import { ScannerHeader } from "@/components/scanners/scanner-header";
 import { ScannerDataGrid } from "@/components/scanners/grid/scanner-data-grid";
 import type { RunColumnOptions } from "@/components/scanners/grid/header-menu";
@@ -115,7 +114,6 @@ export default function ScannerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const router = useRouter();
   const [scanner, setScanner] = useState<ScannerData | null>(null);
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [columns, setColumns] = useState<ColumnDef[]>([]);
@@ -160,6 +158,9 @@ export default function ScannerDetailPage({
 
   // Abort controller for cancelling active SSE scoring streams
   const scoringAbortRef = useRef<AbortController | null>(null);
+
+  // Display-order row IDs from the grid (sorted + filtered)
+  const displayRowIdsRef = useRef<string[]>([]);
 
   // Store refs for SSE callbacks (avoid stale closures)
   const rowsRef = useRef(rows);
@@ -253,17 +254,16 @@ export default function ScannerDetailPage({
         if (f.signalType) params.set("signalType", String(f.signalType));
         if (f.stage) params.set("stage", String(f.stage));
         if (f.status) params.set("status", String(f.status));
+        if (f.mechanism) params.set("mechanism", String(f.mechanism));
       }
 
-      // Apply row pagination
-      if (savedLimit > 0) {
-        const page = Math.floor(savedOffset / savedLimit) + 1;
-        params.set("page", String(page));
-        params.set("pageSize", String(savedLimit));
-      } else if (savedOffset > 0) {
-        params.set("page", String(savedOffset + 1));
-        params.set("pageSize", "1");
-      }
+      // Apply row pagination — always send a pageSize to avoid loading all results
+      const effectiveLimit = savedLimit > 0 ? savedLimit : 100;
+      const page = savedLimit > 0
+        ? Math.floor(savedOffset / savedLimit) + 1
+        : savedOffset > 0 ? savedOffset + 1 : 1;
+      params.set("page", String(page));
+      params.set("pageSize", String(effectiveLimit));
 
       const queryString = params.toString();
       const dataUrl = queryString
@@ -327,6 +327,20 @@ export default function ScannerDetailPage({
           response: "",
           reasoning: "",
         });
+      }
+    }
+  }
+
+  /**
+   * Clear any remaining isQueued/isLoading flags from the store.
+   * Called after scoring completes or is cancelled to prevent stuck shimmers.
+   */
+  function clearStaleLoadingStates() {
+    const currentScores = useScannerStore.getState().scores;
+    for (const [key, entry] of Object.entries(currentScores)) {
+      if (entry.isLoading || entry.isQueued) {
+        const [colId, entId] = key.split(":");
+        setScore(colId, entId, { response: entry.response || "", reasoning: entry.reasoning || "" });
       }
     }
   }
@@ -424,6 +438,12 @@ export default function ScannerDetailPage({
 
           lastProgressRef.current = Date.now();
         }
+        if (event.type === "error" && event.entityId && event.columnId) {
+          setScore(event.columnId, event.entityId, {
+            response: "",
+            error: event.message ?? "Scoring failed",
+          });
+        }
         if (event.type === "error" && event.message && !fatalErrorSeen) {
           fatalErrorSeen = true;
           const msg = event.message.includes("credit balance")
@@ -435,18 +455,21 @@ export default function ScannerDetailPage({
         }
         if (event.type === "complete") {
           clearColumnScoringProgress();
+          clearStaleLoadingStates();
           setIsScoring(false);
         }
       });
 
       // Ensure scoring ends even if complete event was missed
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Score All stream error:", err);
       setScoringError("Scoring connection lost. Please try again.");
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } finally {
       scoringAbortRef.current = null;
@@ -545,51 +568,22 @@ export default function ScannerDetailPage({
       scoringAbortRef.current = null;
     }
     clearColumnScoringProgress();
+    clearStaleLoadingStates();
     setIsScoring(false);
-
-    // Clear loading/queued states on any cells still showing spinners
-    const scores = useScannerStore.getState().scores;
-    for (const [key, entry] of Object.entries(scores)) {
-      if (entry.isLoading || entry.isQueued) {
-        const [colId, entityId] = key.split(":");
-        setScore(colId, entityId, { response: "", reasoning: "" });
-      }
-    }
-
-    // Reload to get whatever was scored before cancellation
     reloadScores();
   }
 
   /**
-   * Compute filtered row IDs based on active column filters.
-   * Always returns IDs from the currently loaded rows, respecting both
-   * row pagination and column filters. Never returns null — the backend
-   * should only score what the user can see.
+   * Returns entity IDs in display order (sorted + filtered as shown in the grid).
+   * Uses the grid's displayRowIdsRef which is kept in sync via useEffect.
    */
   function getVisibleEntityIds(): string[] {
-    const currentRows = rowsRef.current;
-    const filters = useScannerStore.getState().columnFilters;
-    const activeFilters = Object.entries(filters).filter(
-      ([, vals]) => vals.length > 0
-    );
-
-    if (activeFilters.length === 0) {
-      return currentRows.map((r) => String(r._id));
+    // Prefer grid's display order (sorted + filtered)
+    if (displayRowIdsRef.current.length > 0) {
+      return displayRowIdsRef.current;
     }
-
-    const cols = columns;
-    const filtered = currentRows.filter((row) =>
-      activeFilters.every(([colId, allowedValues]) => {
-        const col = cols.find((c) => c.id === colId);
-        if (!col) return true;
-        const raw = row[col.accessor];
-        if (raw == null) return false;
-        const val = String(raw).trim();
-        return allowedValues.includes(val);
-      })
-    );
-
-    return filtered.map((r) => String(r._id));
+    // Fallback: raw rows (before grid mounts)
+    return rowsRef.current.map((r) => String(r._id));
   }
 
   async function scoreSingleColumn(
@@ -605,24 +599,29 @@ export default function ScannerDetailPage({
       ? new Set(options.entityIds)
       : null;
 
-    // Track queued entities for progressive activation
+    // Build list of entity IDs that will actually be scored (matching backend logic)
     const queuedEntityIds = new Set<string>();
+    const rowLimit = options?.limit && options.limit > 0 ? options.limit : Infinity;
 
     for (const row of currentRows) {
+      if (queuedEntityIds.size >= rowLimit) break;
       const entityId = String(row._id);
-      // Skip rows not in the target set (when scoped to filtered rows)
       if (targetIds && !targetIds.has(entityId)) continue;
       const existing = scores[`${columnId}:${entityId}`];
-      const hasScore = existing && existing.score != null;
-      if (options?.force || !hasScore) {
-        setScore(columnId, entityId, {
-          isLoading: true,
-          isQueued: true,
-          response: "",
-          reasoning: "",
-        });
+      const hasResult = existing && (existing.score != null || !!existing.response);
+      if (options?.force || !hasResult) {
         queuedEntityIds.add(entityId);
       }
+    }
+
+    // Only set queued state on rows that will actually be scored
+    for (const entityId of queuedEntityIds) {
+      setScore(columnId, entityId, {
+        isLoading: true,
+        isQueued: true,
+        response: "",
+        reasoning: "",
+      });
     }
 
     setIsScoring(true);
@@ -713,8 +712,13 @@ export default function ScannerDetailPage({
 
           lastProgressRef.current = Date.now();
         }
+        if (event.type === "error" && event.entityId && event.columnId) {
+          setScore(event.columnId, event.entityId, {
+            response: "",
+            error: event.message ?? "Scoring failed",
+          });
+        }
         if (event.type === "error" && event.message && !fatalErrorSeen) {
-          // Surface the first error message to the user
           fatalErrorSeen = true;
           const msg = event.message.includes("credit balance")
             ? "Anthropic API credits exhausted. Please top up at console.anthropic.com."
@@ -723,19 +727,20 @@ export default function ScannerDetailPage({
               : `Scoring error: ${event.message}`;
           setScoringError(msg);
 
-          // If fatal, abort the rest of the scoring run
           if (event.fatal) {
             scoringAbortRef.current?.abort();
           }
         }
         if (event.type === "complete") {
           clearColumnScoringProgress();
+          clearStaleLoadingStates();
           setIsScoring(false);
           reloadScores();
         }
       });
 
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } catch (err) {
       // AbortError is expected when user cancels — don't log as error
@@ -743,6 +748,7 @@ export default function ScannerDetailPage({
       console.error("Score column stream error:", err);
       setScoringError("Scoring connection lost. Please try again.");
       clearColumnScoringProgress();
+      clearStaleLoadingStates();
       setIsScoring(false);
     } finally {
       scoringAbortRef.current = null;
@@ -879,6 +885,14 @@ export default function ScannerDetailPage({
     loadData();
   }
 
+  function handleScoreCell(columnId: string, entityId: string) {
+    scoreSingleColumn(columnId, {
+      force: true,
+      entityIds: [entityId],
+      limit: 1,
+    });
+  }
+
   function handleRunColumn(options: RunColumnOptions) {
     const visibleIds = getVisibleEntityIds();
     scoreSingleColumn(options.columnId, {
@@ -902,22 +916,8 @@ export default function ScannerDetailPage({
       return;
     }
 
-    // Data column double-click → navigate based on scanner type
-    const entityId = String(row._id);
-    switch (scanner?.type) {
-      case "rfps":
-        router.push(`/contracts/${entityId}`);
-        break;
-      case "buyers":
-        router.push(`/buyers/${entityId}`);
-        break;
-      case "meetings":
-        // No dedicated meetings page — open the EntityDetailSheet
-        setDetailRow(row);
-        break;
-      default:
-        setDetailRow(row);
-    }
+    // Data column double-click → open entity detail sheet inline
+    setDetailRow(row);
   }
 
   function handleEditColumn(columnId: string) {
@@ -1129,19 +1129,69 @@ export default function ScannerDetailPage({
     return () => setAgentContext({ page: "dashboard" });
   }, [scanner?._id, scanner?.name, scanner?.type, scanner?.searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Update scanner state directly when Sculptor adds a column via tool call
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        scannerId: string;
+        columnId: string;
+        name: string;
+        prompt: string;
+        useCase?: string;
+        model?: string;
+      };
+      if (detail.scannerId !== id || !scanner) return;
+
+      const aiCol = {
+        columnId: detail.columnId,
+        name: detail.name,
+        prompt: detail.prompt,
+        useCase: detail.useCase,
+        model: detail.model,
+      };
+      const updatedAiColumns = [...scanner.aiColumns, aiCol];
+      const updatedScanner = { ...scanner, aiColumns: updatedAiColumns };
+      setScanner(updatedScanner);
+      const newCols = getColumnsForType(
+        updatedScanner.type,
+        updatedAiColumns,
+        updatedScanner.customColumns,
+        updatedScanner.columnRenames
+      );
+      setColumns(reorderWithInsertPosition(newCols));
+    };
+    window.addEventListener("scanner-column-added", handler);
+    return () => window.removeEventListener("scanner-column-added", handler);
+  }, [id, scanner]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update scanner store when Sculptor test-scores a single entity
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        scannerId: string;
+        columnId: string;
+        entityId: string;
+        score: number | null;
+        value: string;
+        reasoning: string;
+      };
+      if (detail.scannerId !== id) return;
+
+      setScore(detail.columnId, detail.entityId, {
+        score: detail.score ?? undefined,
+        response: detail.value ?? "",
+        reasoning: detail.reasoning ?? "",
+      });
+    };
+    window.addEventListener("scanner-score-updated", handler);
+    return () => window.removeEventListener("scanner-score-updated", handler);
+  }, [id, setScore]);
+
   // Push breadcrumb into the global header
   const { setBreadcrumb } = useBreadcrumb();
   useEffect(() => {
     setBreadcrumb(
       <nav className="flex items-center gap-1.5 text-sm">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Crosshair className="h-4 w-4" />
-          <span className="font-medium">TendHunt</span>
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
         <Link
           href="/scanners"
           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -1150,8 +1200,8 @@ export default function ScannerDetailPage({
         </Link>
         {scanner && (
           <>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-            <span className="text-foreground font-medium truncate max-w-[200px]">
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium truncate max-w-[300px]">
               {scanner.name}
             </span>
           </>
@@ -1188,11 +1238,10 @@ export default function ScannerDetailPage({
 
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
-      {/* Sticky toolbar area */}
-      <div className="shrink-0 space-y-3 px-1 pb-3">
-        {/* Scanner Header */}
+      {/* Compact single-line toolbar */}
+      <div className="shrink-0 px-1 pb-1">
         <ScannerHeader
-          scanner={{ ...scanner, autoRun }}
+          scanner={{ ...scanner, autoRun, searchQuery: scanner.searchQuery }}
           rowCount={filteredRowCount}
           totalRowCount={totalRowCount}
           activeFilterCount={Object.values(columnFilters).filter((v) => v.length > 0).length}
@@ -1205,7 +1254,7 @@ export default function ScannerDetailPage({
           onEditScanner={handleEditScanner}
         />
 
-        {/* Filter chip toolbar */}
+        {/* Filter chip toolbar (auto-hides when no filters) */}
         <ScannerFilterToolbar columns={columns} />
       </div>
 
@@ -1229,6 +1278,7 @@ export default function ScannerDetailPage({
           columns={columns}
           rows={rows}
           scannerType={scanner.type}
+          displayRowIdsRef={displayRowIdsRef}
           onAiCellClick={handleAiCellClick}
           onScoreColumn={(colId) => {
             const visibleIds = getVisibleEntityIds();
@@ -1246,6 +1296,8 @@ export default function ScannerDetailPage({
           onDeleteColumn={handleDeleteColumn}
           onRowDoubleClick={handleRowDoubleClick}
           onInsertColumn={handleInsertColumn}
+          onScoreCell={handleScoreCell}
+          onOpenEntity={(row) => setDetailRow(row)}
           onAutoRule={(columnId, columnName) =>
             setAutoRuleColumn({ columnId, columnName })
           }
@@ -1286,6 +1338,8 @@ export default function ScannerDetailPage({
         onOpenChange={setAddColumnOpen}
         scannerId={id}
         scannerType={scanner.type}
+        existingAiColumns={scanner.aiColumns}
+        existingCustomColumns={scanner.customColumns}
         onColumnAdded={handleColumnAdded}
       />
 
@@ -1297,6 +1351,9 @@ export default function ScannerDetailPage({
         }}
         column={editColumn}
         scannerId={id}
+        scannerType={scanner.type}
+        scannerAiColumns={scanner.aiColumns}
+        scannerCustomColumns={scanner.customColumns}
         onColumnUpdated={handleColumnUpdated}
       />
 

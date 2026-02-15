@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
   MapPin,
   FileText,
@@ -11,6 +12,8 @@ import {
   Landmark,
   Linkedin,
   Building2,
+  ChevronRight,
+  Network,
 } from "lucide-react";
 import { EnrichmentBadge } from "@/components/buyers/enrichment-badge";
 import { resolveRegionName } from "@/lib/nuts-regions";
@@ -32,6 +35,9 @@ interface BuyerHeaderProps {
     description?: string;
     address?: string;
     industry?: string;
+    isParent?: boolean;
+    childCount?: number;
+    parentBuyer?: { _id: string; name: string };
   };
 }
 
@@ -101,6 +107,18 @@ export function BuyerHeader({ buyer }: BuyerHeaderProps) {
 
       {/* Content */}
       <div className="flex-1 min-w-0 pt-1">
+        {/* Child buyer: "Part of [Parent →]" link */}
+        {buyer.parentBuyer && (
+          <Link
+            href={`/buyers/${buyer.parentBuyer._id}`}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+          >
+            Part of
+            <span className="font-medium text-foreground/80">{buyer.parentBuyer.name}</span>
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        )}
+
         <h2 className="text-2xl font-bold tracking-tight mb-1.5">
           {buyer.name}
         </h2>
@@ -114,6 +132,12 @@ export function BuyerHeader({ buyer }: BuyerHeaderProps) {
         <div className="flex flex-col gap-3">
           {/* Badges Row */}
           <div className="flex flex-wrap items-center gap-2">
+            {buyer.isParent && buyer.childCount != null && buyer.childCount > 0 && (
+              <Badge variant="secondary" className="rounded-full gap-1">
+                <Network className="h-3 w-3" />
+                Parent org &middot; {buyer.childCount} department{buyer.childCount !== 1 ? "s" : ""}
+              </Badge>
+            )}
             {buyer.sector && (
               <Badge variant="outline" className="rounded-full">
                 {buyer.sector}

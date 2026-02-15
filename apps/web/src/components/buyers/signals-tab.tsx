@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bell, FileText, X } from "lucide-react";
+import { Bell, ExternalLink, FileText, GraduationCap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SignalData {
@@ -52,6 +52,26 @@ const signalTypeColors: Record<string, string> = {
     "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   REGULATORY: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
+
+const OFSTED_BADGE_CLASS = "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+
+function isOfstedSignal(signal: SignalData): boolean {
+  return signal.source === "Ofsted Inspection";
+}
+
+function parseOfstedRatings(quote?: string): { area: string; rating: string }[] {
+  if (!quote) return [];
+  return quote.split(";").map((part) => {
+    const [area, rating] = part.split(":").map((s) => s.trim());
+    return { area: area || "", rating: rating || "" };
+  }).filter((r) => r.area && r.rating);
+}
+
+function ratingBadgeClass(rating: string): string {
+  if (rating === "Inadequate") return "bg-red-500/15 text-red-500 border-red-500/20";
+  if (rating === "Requires Improvement") return "bg-amber-500/15 text-amber-600 border-amber-500/20";
+  return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+}
 
 const signalTypePillColors: Record<
   string,
@@ -273,10 +293,13 @@ export function SignalsTab({ signals, hasBoardDocuments }: SignalsTabProps) {
         <AnimatePresence mode="popLayout">
           {filteredSignals.map((signal, index) => {
             const date = formatDate(signal.sourceDate);
-            const colorClass =
-              signalTypeColors[signal.signalType] ??
-              "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+            const ofsted = isOfstedSignal(signal);
+            const colorClass = ofsted
+              ? OFSTED_BADGE_CLASS
+              : signalTypeColors[signal.signalType] ??
+                "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
             const entityBadges = collectEntities(signal.entities);
+            const ofstedRatings = ofsted ? parseOfstedRatings(signal.quote) : [];
 
             return (
               <motion.div
@@ -287,14 +310,21 @@ export function SignalsTab({ signals, hasBoardDocuments }: SignalsTabProps) {
                 exit={prefersReducedMotion ? {} : { opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
               >
-                <Card>
+                <Card className={ofsted ? "border-amber-500/20" : ""}>
                   <CardContent className="pt-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className={colorClass}>
-                            {signal.signalType}
-                          </Badge>
+                          {ofsted ? (
+                            <Badge className={colorClass}>
+                              <GraduationCap className="h-3 w-3 mr-1" />
+                              Ofsted
+                            </Badge>
+                          ) : (
+                            <Badge className={colorClass}>
+                              {signal.signalType}
+                            </Badge>
+                          )}
                           {date && (
                             <span className="text-xs text-muted-foreground">
                               {date}
@@ -315,11 +345,23 @@ export function SignalsTab({ signals, hasBoardDocuments }: SignalsTabProps) {
                           {signal.insight}
                         </p>
 
-                        {signal.quote && (
+                        {ofsted && ofstedRatings.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {ofstedRatings.map((r, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className={`text-xs py-0 px-1.5 ${ratingBadgeClass(r.rating)}`}
+                              >
+                                {r.area}: {r.rating}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : signal.quote ? (
                           <blockquote className="border-l-2 border-muted-foreground/30 pl-3 mt-2 text-xs text-muted-foreground italic">
                             &ldquo;{signal.quote}&rdquo;
                           </blockquote>
-                        )}
+                        ) : null}
 
                         {entityBadges.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-2">
@@ -338,7 +380,14 @@ export function SignalsTab({ signals, hasBoardDocuments }: SignalsTabProps) {
                     </div>
                     {signal.source && (
                       <p className="text-xs text-muted-foreground">
-                        Source: {signal.source}
+                        {ofsted ? (
+                          <span className="inline-flex items-center gap-1">
+                            <ExternalLink className="h-3 w-3" />
+                            Ofsted Inspection Report
+                          </span>
+                        ) : (
+                          <>Source: {signal.source}</>
+                        )}
                       </p>
                     )}
                   </CardContent>

@@ -5,7 +5,9 @@ import {
   getOrCreateJob,
   markJobComplete,
   markJobError,
+  resetCompletedJobs,
 } from "./db/enrichment-jobs";
+import { linkParentBuyers } from "./stages/00-parent-link";
 import { classifyBuyers } from "./stages/01-classify";
 import { discoverWebsites } from "./stages/01b-website-discovery";
 import { enrichLogoLinkedin } from "./stages/01c-logo-linkedin";
@@ -20,6 +22,7 @@ import { computeEnrichmentScores } from "./stages/06-score";
 // ---------------------------------------------------------------------------
 
 const STAGE_FUNCTIONS: Record<EnrichmentStage, StageFn> = {
+  parent_link: linkParentBuyers,
   classify: classifyBuyers,
   website_discovery: discoverWebsites,
   logo_linkedin: enrichLogoLinkedin,
@@ -55,7 +58,9 @@ export async function processEnrichmentPipeline(
   const currentStage = await findCurrentStage(db);
 
   if (!currentStage) {
-    console.log("All enrichment stages complete.");
+    // All stages done — reset for next cycle to pick up new buyers
+    const reset = await resetCompletedJobs(db, STAGE_ORDER);
+    console.log(`All enrichment stages complete. Reset ${reset} jobs for next cycle.`);
     return { stage: "all_complete", processed: 0, errors: 0, done: true };
   }
 

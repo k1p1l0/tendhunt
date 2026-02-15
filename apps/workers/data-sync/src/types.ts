@@ -16,9 +16,12 @@ export interface OcdsRelease {
     title?: string;
     description?: string;
     status?: string;
+    mainProcurementCategory?: string;
+    eligibilityCriteria?: string;
     value?: { amount?: number; currency?: string };
     minValue?: { amount?: number; currency?: string };
     tenderPeriod?: { startDate?: string; endDate?: string };
+    enquiryPeriod?: { startDate?: string; endDate?: string };
     contractPeriod?: { startDate?: string; endDate?: string };
     classification?: { id?: string; description?: string; scheme?: string };
     items?: Array<{
@@ -136,6 +139,11 @@ export interface MappedBuyerContact {
   telephone: string | null;
 }
 
+export interface MappedAwardedSupplier {
+  name: string;
+  supplierId: string | null;
+}
+
 export interface MappedContract {
   ocid: string | null;
   noticeId: string;
@@ -161,6 +169,7 @@ export interface MappedContract {
   buyerId?: ObjectId | null;
   procurementMethod: string | null;
   procurementMethodDetails: string | null;
+  contractMechanism: "standard" | "dps" | "framework" | "call_off_dps" | "call_off_framework";
   submissionMethod: string[];
   submissionPortalUrl: string | null;
   buyerContact: MappedBuyerContact | null;
@@ -168,6 +177,20 @@ export interface MappedContract {
   lots: MappedContractLot[];
   lotCount: number;
   maxLotsBidPerSupplier: number | null;
+
+  // Contract enrichment fields
+  contractType: "goods" | "services" | "works" | null;
+  suitableForSme: boolean | null;
+  suitableForVco: boolean | null;
+  hasEuFunding: boolean;
+  canRenew: boolean;
+  renewalDescription: string | null;
+  geographicScope: string | null;
+  awardedSuppliers: MappedAwardedSupplier[];
+  awardDate: Date | null;
+  awardValue: number | null;
+  tenderPeriodStart: Date | null;
+  enquiryPeriodEnd: Date | null;
 }
 
 // ---------------------------------------------------------------------------

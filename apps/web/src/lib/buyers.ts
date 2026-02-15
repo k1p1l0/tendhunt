@@ -5,6 +5,7 @@ import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import BoardDocument from "@/models/board-document";
 import KeyPersonnel from "@/models/key-personnel";
+import OfstedSchool from "@/models/ofsted-school";
 
 export interface BuyerFilters {
   sort?: "name" | "contracts" | "sector" | "region" | "orgType" | "enrichmentScore";
@@ -66,11 +67,52 @@ export async function fetchBuyers(filters: BuyerFilters) {
     Buyer.countDocuments(query),
   ]);
 
-  // Map buyers to include contactCount
-  const buyersWithStatus = buyers.map((b) => ({
-    ...b,
-    contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
-  }));
+  // Batch Ofsted stats for this page of buyers
+  const buyerIds = buyers.map((b) => b._id);
+  const ofstedStats = await OfstedSchool.aggregate([
+    { $match: { buyerId: { $in: buyerIds } } },
+    {
+      $addFields: {
+        worstRating: {
+          $max: [
+            "$overallEffectiveness",
+            "$qualityOfEducation",
+            "$behaviourAndAttitudes",
+            "$personalDevelopment",
+            "$leadershipAndManagement",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$buyerId",
+        worstRating: { $max: "$worstRating" },
+        belowGoodCount: {
+          $sum: { $cond: [{ $gte: ["$worstRating", 3] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const ofstedMap = new Map<string, { worstRating: number | null; belowGoodCount: number }>();
+  for (const stat of ofstedStats) {
+    ofstedMap.set(String(stat._id), {
+      worstRating: stat.worstRating ?? null,
+      belowGoodCount: stat.belowGoodCount ?? 0,
+    });
+  }
+
+  // Map buyers to include contactCount and Ofsted stats
+  const buyersWithStatus = buyers.map((b) => {
+    const ofsted = ofstedMap.get(String(b._id));
+    return {
+      ...b,
+      contactCount: Array.isArray(b.contacts) ? b.contacts.length : 0,
+      ofstedWorstRating: ofsted?.worstRating ?? null,
+      schoolsBelowGood: ofsted?.belowGoodCount ?? null,
+    };
+  });
 
   return { buyers: buyersWithStatus, total, filteredCount };
 }
@@ -87,18 +129,37 @@ export async function fetchBuyerById(buyerId: string) {
     return null;
   }
 
-  // Parallel fetch: contracts, signals, board documents, key personnel
-  const [contracts, signals, boardDocuments, keyPersonnel] = await Promise.all([
-    Contract.find({
-      $or: [
-        { buyerId: buyer._id },
-        ...(buyer.name ? [{ buyerName: new RegExp(`^${buyer.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }] : []),
-      ],
-    })
+  // For parent buyers, aggregate contracts from all children
+  const allBuyerIds = [buyer._id, ...(buyer.childBuyerIds ?? [])];
+
+  // Contract query: match by buyerId(s) OR exact buyer name
+  const contractFilter = {
+    $or: [
+      { buyerId: { $in: allBuyerIds } },
+      ...(buyer.name ? [{ buyerName: new RegExp(`^${buyer.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }] : []),
+    ],
+  };
+
+  // Fetch child summaries + parent name in parallel with main data
+  const childrenPromise = buyer.childBuyerIds?.length
+    ? Buyer.find({ _id: { $in: buyer.childBuyerIds } })
+        .select("name enrichmentScore logoUrl orgType contractCount")
+        .sort({ name: 1 })
+        .lean()
+    : Promise.resolve([]);
+
+  const parentBuyerPromise = buyer.parentBuyerId
+    ? Buyer.findById(buyer.parentBuyerId).select("name").lean()
+    : Promise.resolve(null);
+
+  // Parallel fetch: contracts, live count, signals, board documents, key personnel, children, parent, ofsted schools
+  const [contracts, contractCount, signals, boardDocuments, keyPersonnel, children, parentBuyer, ofstedSchools] = await Promise.all([
+    Contract.find(contractFilter)
       .sort({ publishedDate: -1 })
       .limit(20)
       .select("-rawData")
       .lean(),
+    Contract.countDocuments(contractFilter),
     Signal.find({ $or: [{ buyerId: buyer._id }, { organizationName: buyer.name }] })
       .sort({ sourceDate: -1 })
       .lean(),
@@ -109,15 +170,23 @@ export async function fetchBuyerById(buyerId: string) {
     KeyPersonnel.find({ buyerId: buyer._id })
       .sort({ confidence: -1 })
       .lean(),
+    childrenPromise,
+    parentBuyerPromise,
+    OfstedSchool.find({ buyerId: buyer._id })
+      .sort({ overallEffectiveness: -1 })
+      .lean(),
   ]);
 
   return {
     ...buyer,
     contracts,
+    contractCount,
     signals,
     boardDocuments,
     keyPersonnel,
-    // Enrichment fields (already on buyer document via spread, but explicitly named for clarity)
+    children,
+    parentBuyer,
+    ofstedSchools,
     enrichmentScore: buyer.enrichmentScore,
     enrichmentSources: buyer.enrichmentSources,
     orgType: buyer.orgType,

@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Loader2, RefreshCw, ChevronDown, Rows3, Filter, Play, Square } from "lucide-react";
+import { Pencil, Loader2, RefreshCw, ChevronDown, Rows3, Filter, Play, Square, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { ScannerType } from "@/models/scanner";
 
 interface RowPagination {
@@ -32,6 +37,7 @@ interface ScannerHeaderProps {
     name: string;
     type: ScannerType;
     description?: string;
+    searchQuery?: string;
     autoRun?: boolean;
   };
   rowCount: number;
@@ -39,26 +45,14 @@ interface ScannerHeaderProps {
   activeFilterCount: number;
   isScoring: boolean;
   rowPagination: RowPagination;
+  columnCount?: number;
+  totalColumnCount?: number;
   onRowPaginationChange: (offset: number, limit: number) => void;
   onToggleAutoRun: (enabled: boolean) => void;
   onRunNow: () => void;
   onCancelScoring: () => void;
   onEditScanner: () => void;
 }
-
-const TYPE_BADGE_STYLES: Record<ScannerType, string> = {
-  rfps: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
-  meetings:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
-  buyers:
-    "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-};
-
-const TYPE_LABELS: Record<ScannerType, string> = {
-  rfps: "RFPs",
-  meetings: "Meetings",
-  buyers: "Buyers",
-};
 
 const ENTITY_LABELS: Record<ScannerType, [string, string]> = {
   rfps: ["contract", "contracts"],
@@ -77,6 +71,8 @@ export function ScannerHeader({
   activeFilterCount,
   isScoring,
   rowPagination,
+  columnCount,
+  totalColumnCount,
   onRowPaginationChange,
   onToggleAutoRun,
   onRunNow,
@@ -111,162 +107,169 @@ export function ScannerHeader({
     setPopoverOpen(false);
   }
 
-  const [entitySingular, entityPlural] = ENTITY_LABELS[scanner.type];
-  const entityLabel = rowCount === 1 ? entitySingular : entityPlural;
+  const [, entityPlural] = ENTITY_LABELS[scanner.type];
   const rowLabel = isPaginated
     ? `${formatNumber(rowCount)}/${formatNumber(totalRowCount)} ${entityPlural}`
-    : `${formatNumber(rowCount)} ${entityLabel}`;
+    : `${formatNumber(rowCount)} ${entityPlural}`;
+
+  const columnLabel = columnCount != null && totalColumnCount != null && columnCount < totalColumnCount
+    ? `${columnCount}/${totalColumnCount} columns`
+    : null;
 
   return (
-    <div className="space-y-3">
-      {/* Name + type badge */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">{scanner.name}</h1>
-        <Badge
-          variant="outline"
-          className={TYPE_BADGE_STYLES[scanner.type]}
-        >
-          {TYPE_LABELS[scanner.type]}
-        </Badge>
-      </div>
+    <div className="flex h-9 items-center gap-1.5 text-sm">
+      {/* Auto-run dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors ${
+              autoRun
+                ? "bg-primary/10 text-primary hover:bg-primary/15"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            {isScoring ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            Auto-run
+            <ChevronDown className="h-3 w-3 opacity-50" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <span className="text-sm font-medium">Auto-update</span>
+            <Switch
+              checked={autoRun}
+              onCheckedChange={onToggleAutoRun}
+            />
+          </div>
+          <p className="px-2 pb-2 text-xs text-muted-foreground">
+            Run AI scoring when new data arrives
+          </p>
+          <DropdownMenuSeparator />
+          {isScoring ? (
+            <DropdownMenuItem onClick={onCancelScoring}>
+              <Square className="h-3.5 w-3.5 mr-2 text-destructive" />
+              <span className="text-destructive">Stop scoring</span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={onRunNow}>
+              <Play className="h-3.5 w-3.5 mr-2" />
+              Run now
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      {/* Description */}
-      {scanner.description && (
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {scanner.description}
-        </p>
+      <Separator orientation="vertical" className="mx-0.5 h-4" />
+
+      {/* Column count (if filtered) */}
+      {columnLabel && (
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          {columnLabel}
+        </span>
       )}
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-2">
-        {/* Auto-run dropdown button */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant={autoRun ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5"
-            >
-              {isScoring ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3.5 w-3.5" />
-              )}
-              Auto-run
-              <ChevronDown className="h-3 w-3 opacity-60" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            {/* Auto-update toggle */}
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-sm font-medium">Auto-update</span>
-              <Switch
-                checked={autoRun}
-                onCheckedChange={onToggleAutoRun}
+      {/* Row count — clickable popover */}
+      <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Rows3 className="h-3.5 w-3.5" />
+            {rowLabel}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 space-y-3">
+          <div className="space-y-1">
+            <h4 className="text-sm font-medium">Row pagination</h4>
+            <p className="text-xs text-muted-foreground">
+              Control how many rows load into the grid.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <Label htmlFor="row-offset" className="text-xs">Starting row</Label>
+              <Input
+                id="row-offset"
+                type="number"
+                min={0}
+                value={localOffset || ""}
+                onChange={(e) => setLocalOffset(e.target.value ? parseInt(e.target.value, 10) : 0)}
+                placeholder="0"
+                className="h-8 text-xs"
               />
             </div>
-            <p className="px-2 pb-2 text-xs text-muted-foreground">
-              Run AI scoring when new data arrives
-            </p>
-            <DropdownMenuSeparator />
-            {/* Manual trigger / Stop */}
-            {isScoring ? (
-              <DropdownMenuItem onClick={onCancelScoring}>
-                <Square className="h-3.5 w-3.5 mr-2 text-destructive" />
-                <span className="text-destructive">Stop scoring</span>
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={onRunNow}>
-                <Play className="h-3.5 w-3.5 mr-2" />
-                Run now
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <div className="space-y-1">
+              <Label htmlFor="row-limit" className="text-xs">Row limit</Label>
+              <Input
+                id="row-limit"
+                type="number"
+                min={0}
+                value={localLimit || ""}
+                onChange={(e) => setLocalLimit(e.target.value ? parseInt(e.target.value, 10) : 0)}
+                placeholder="No limit"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
 
-        {/* Edit */}
-        <Button variant="ghost" size="sm" onClick={onEditScanner}>
-          <Pencil className="h-3.5 w-3.5" />
-          Edit
-        </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs h-7"
+              onClick={handleShowAll}
+            >
+              Show all rows
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 text-xs h-7"
+              onClick={handleSave}
+            >
+              Save changes
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
 
-        <Separator orientation="vertical" className="h-5" />
+      {/* Active filters count */}
+      {activeFilterCount > 0 && (
+        <span className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground">
+          <Filter className="h-3.5 w-3.5" />
+          {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
+        </span>
+      )}
 
-        {/* Stats bar */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {/* Row count — clickable popover */}
-          <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
-            <PopoverTrigger asChild>
-              <button
-                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 text-foreground transition-colors hover:bg-muted cursor-pointer"
-              >
-                <Rows3 className="h-3.5 w-3.5" />
-                {rowLabel}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-64 space-y-3">
-              <div className="space-y-1">
-                <h4 className="text-sm font-medium">Row pagination</h4>
-                <p className="text-xs text-muted-foreground">
-                  Control how many rows load into the grid.
-                </p>
-              </div>
+      {/* Search query indicator */}
+      {scanner.searchQuery && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground">
+                <Search className="h-3.5 w-3.5" />
+                Search
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p className="text-xs">{scanner.searchQuery}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <Label htmlFor="row-offset" className="text-xs">Starting row</Label>
-                  <Input
-                    id="row-offset"
-                    type="number"
-                    min={0}
-                    value={localOffset || ""}
-                    onChange={(e) => setLocalOffset(e.target.value ? parseInt(e.target.value, 10) : 0)}
-                    placeholder="0"
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="row-limit" className="text-xs">Row limit</Label>
-                  <Input
-                    id="row-limit"
-                    type="number"
-                    min={0}
-                    value={localLimit || ""}
-                    onChange={(e) => setLocalLimit(e.target.value ? parseInt(e.target.value, 10) : 0)}
-                    placeholder="No limit"
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
+      {/* Spacer */}
+      <div className="flex-1" />
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs h-7"
-                  onClick={handleShowAll}
-                >
-                  Show all rows
-                </Button>
-                <Button
-                  size="sm"
-                  className="flex-1 text-xs h-7"
-                  onClick={handleSave}
-                >
-                  Save changes
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {activeFilterCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Filter className="h-3.5 w-3.5" />
-              {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
-            </span>
-          )}
-        </div>
-      </div>
+      {/* Edit button — right side */}
+      <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onEditScanner}>
+        <Pencil className="h-3 w-3" />
+        Edit
+      </Button>
     </div>
   );
 }

@@ -23,6 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 21: Slack Integration (OpenClaw)** - Public API, OpenClaw skill, Slack bot with Add to Slack OAuth
 - [x] **Phase 22: CRM Pipeline (Procurement Inbox)** - Kanban deal pipeline with auto-send from scanners
 - [ ] **Phase 30: Sculptor AI Homepage & Floating Assistant** - AI-first dashboard with Sculptor chat hero, animated starburst icon, floating bubble assistant on all pages
+- [x] **Phase 33: DPS & Framework Status Intelligence** - Procurement mechanism awareness (DPS, Framework, Call-off) in data model, UI, and AI
 
 ## Phase Details
 
@@ -231,7 +232,16 @@ Plans:
 | CRM-07 | Phase 22 | Notes/comments on cards |
 | CRM-08 | Phase 22 | Link back to source entity |
 
-**Coverage: 62/62 v1 requirements mapped. No orphans.**
+| DPS-01 | Phase 33 | Contract schema contractMechanism field |
+| DPS-02 | Phase 33 | Data-sync mapper classifies by mechanism |
+| DPS-03 | Phase 33 | Backfill script for existing contracts |
+| DPS-04 | Phase 33 | Contract list mechanism badge + DPS-aware status |
+| DPS-05 | Phase 33 | Contract detail procurement mechanism section |
+| DPS-06 | Phase 33 | Adaptive CTA based on mechanism type |
+| DPS-07 | Phase 33 | Sculptor AI DPS/Framework awareness |
+| DPS-08 | Phase 33 | Contract list mechanism filter |
+
+**Coverage: 70/70 requirements mapped. No orphans.**
 
 ## Progress
 
@@ -258,6 +268,7 @@ Note: Phase 3 (Onboarding) can run in parallel with Phase 2 (Data Pipeline) sinc
 | 20. Board Minutes Signals | 4/4 | ✓ Complete | 2026-02-12 |
 | 21. Slack Integration (OpenClaw) | 0/? | Not started | - |
 | 22. CRM Pipeline (Procurement Inbox) | 5/5 | ✓ Complete | 2026-02-13 |
+| 33. DPS & Framework Status Intelligence | 0/3 | Not started | - |
 
 ### Phase 9: Enhance Onboarding: Auto Logo Extraction + AI Analysis Animations
 
@@ -500,3 +511,24 @@ Plans:
 - [ ] 30-02-PLAN.md -- Server-side getRecentConversations query, SculptorHeroInput component
 - [ ] 30-03-PLAN.md -- SculptorHomepage client component, RecentConversations cards, dashboard page restructure
 - [ ] 30-04-PLAN.md -- Visual verification checkpoint (24-point checklist)
+
+### Phase 33: DPS & Framework Status Intelligence
+
+**Goal:** Add procurement mechanism awareness (DPS, Framework Agreement, Call-off) to the contract data model and UI, so suppliers see accurate status intelligence instead of misleading OPEN/CLOSED binaries. Fix Sculptor AI to explain DPS reopening windows correctly.
+**Depends on:** Phase 10 (data-sync worker), Phase 4 (contract dashboard)
+**Requirements**: DPS-01, DPS-02, DPS-03, DPS-04, DPS-05, DPS-06, DPS-07, DPS-08
+**Success Criteria** (what must be TRUE):
+  1. Contract schema has `contractMechanism` enum field derived from OCDS data
+  2. Data-sync mapper classifies contracts by mechanism during ingestion
+  3. Backfill script sets `contractMechanism` on existing ~60k contracts
+  4. Contract list shows mechanism badge (DPS/Framework) and DPS-aware status colors
+  5. Contract detail page shows procurement mechanism section with DPS/Framework context
+  6. "Apply" CTA adapts to mechanism type (apply/join DPS/monitor for reopening/framework members only)
+  7. Sculptor AI system prompt updated with DPS/Framework awareness
+  8. Contract list adds mechanism filter dropdown
+**Plans:** 3 plans
+
+Plans:
+- [x] 33-01-PLAN.md -- Contract schema contractMechanism field, OCDS mapper classification logic, backfill script
+- [x] 33-02-PLAN.md -- Contract list mechanism badge, DPS-aware status colors, mechanism filter chip
+- [x] 33-03-PLAN.md -- Contract detail procurement mechanism section, adaptive CTA, Sculptor AI DPS/Framework awareness

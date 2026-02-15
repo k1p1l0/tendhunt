@@ -7,6 +7,7 @@ export interface ScoreEntry {
   reasoning?: string;
   isLoading?: boolean;
   isQueued?: boolean;
+  error?: string;
 }
 
 type ScoreKey = string;
@@ -124,18 +125,21 @@ export const useScannerStore = create<ScannerStore>((set) => ({
     set({ scores: {}, scoringProgress: { scored: 0, total: 0 }, columnScoringProgress: {} }),
 
   loadScores: (scores) =>
-    set({
-      scores: Object.fromEntries(
-        scores.map((s) => [
-          makeKey(s.columnId, s.entityId),
-          {
-            score: s.score,
-            response: s.response ?? "",
-            reasoning: s.reasoning,
-          },
-        ])
-      ),
-    }),
+    set((state) => ({
+      scores: {
+        ...state.scores,
+        ...Object.fromEntries(
+          scores.map((s) => [
+            makeKey(s.columnId, s.entityId),
+            {
+              score: s.score,
+              response: s.response ?? "",
+              reasoning: s.reasoning,
+            },
+          ])
+        ),
+      },
+    })),
 }));
 
 /** Selector to get a score entry by columnId and entityId */
