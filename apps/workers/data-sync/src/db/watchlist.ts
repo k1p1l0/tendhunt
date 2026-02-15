@@ -91,93 +91,113 @@ export async function checkWatchlistMatches(
     watchMap.set(key, list);
   }
 
-  // For each awarded contract, check if any awarded supplier matches a watchlist entry
+  // Build reverse index: supplierNameLower → matching WatchlistEntry[]
+  // This runs O(uniqueSuppliers × watchNames) ONCE, then contract iteration
+  // becomes O(contracts × suppliers × avgMatchedWatchers) instead of
+  // O(contracts × suppliers × allWatchEntries).
+  const supplierWatchIndex = new Map<string, WatchlistEntry[]>();
+  for (const name of supplierNamesInBatch) {
+    const matched: WatchlistEntry[] = [];
+    for (const [normalizedName, entries] of watchMap) {
+      if (name.includes(normalizedName)) {
+        matched.push(...entries);
+      }
+    }
+    if (matched.length > 0) {
+      supplierWatchIndex.set(name, matched);
+    }
+  }
+
+  // Fast path: no suppliers match any watchlist entries
+  if (supplierWatchIndex.size === 0) {
+    return { notificationsCreated: 0 };
+  }
+
+  // For each awarded contract, look up pre-computed matches by supplier name
   for (const contract of awardedContracts) {
     for (const supplier of contract.awardedSuppliers) {
       if (!supplier.name) continue;
       const supplierLower = supplier.name.toLowerCase().trim();
 
-      // Check against each watchlist normalized name
-      for (const [normalizedName, entries] of watchMap) {
-        if (!supplierLower.includes(normalizedName)) continue;
+      const matchedEntries = supplierWatchIndex.get(supplierLower);
+      if (!matchedEntries) continue;
 
-        // Match found — create notifications for all users watching this supplier
-        for (const entry of entries) {
-          const contractTitle = contract.title || "Untitled contract";
-          const buyerName = contract.buyerName || "Unknown buyer";
-          const value = contract.awardValue ?? contract.valueMax;
-          const valueStr = value
-            ? `£${(value / 1000).toFixed(0)}k`
-            : "undisclosed value";
+      // Match found — create notifications for all users watching this supplier
+      for (const entry of matchedEntries) {
+        const contractTitle = contract.title || "Untitled contract";
+        const buyerName = contract.buyerName || "Unknown buyer";
+        const value = contract.awardValue ?? contract.valueMax;
+        const valueStr = value
+          ? `£${(value / 1000).toFixed(0)}k`
+          : "undisclosed value";
 
+        notifications.push({
+          userId: entry.userId,
+          type: "NEW_CONTRACT",
+          title: `${entry.supplierName} won a new contract`,
+          body: `"${contractTitle}" from ${buyerName} (${valueStr})`,
+          entityLink: `/competitors/${encodeURIComponent(entry.supplierName)}`,
+          supplierName: entry.supplierName,
+          metadata: {
+            contractTitle,
+            buyerName,
+            awardValue: value,
+            source: contract.source,
+            sector: contract.sector,
+            region: contract.buyerRegion,
+          },
+          read: false,
+          emailSent: false,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        // WATCH-05: Check for new region
+        if (
+          contract.buyerRegion &&
+          entry.lastSnapshot &&
+          !entry.lastSnapshot.regions.includes(contract.buyerRegion)
+        ) {
           notifications.push({
             userId: entry.userId,
-            type: "NEW_CONTRACT",
-            title: `${entry.supplierName} won a new contract`,
-            body: `"${contractTitle}" from ${buyerName} (${valueStr})`,
+            type: "NEW_REGION",
+            title: `${entry.supplierName} expanded to ${contract.buyerRegion}`,
+            body: `Won a contract in a new region: "${contractTitle}" from ${buyerName}`,
             entityLink: `/competitors/${encodeURIComponent(entry.supplierName)}`,
             supplierName: entry.supplierName,
             metadata: {
+              newRegion: contract.buyerRegion,
               contractTitle,
-              buyerName,
-              awardValue: value,
-              source: contract.source,
-              sector: contract.sector,
-              region: contract.buyerRegion,
             },
             read: false,
             emailSent: false,
             createdAt: now,
             updatedAt: now,
           });
+        }
 
-          // WATCH-05: Check for new region
-          if (
-            contract.buyerRegion &&
-            entry.lastSnapshot &&
-            !entry.lastSnapshot.regions.includes(contract.buyerRegion)
-          ) {
-            notifications.push({
-              userId: entry.userId,
-              type: "NEW_REGION",
-              title: `${entry.supplierName} expanded to ${contract.buyerRegion}`,
-              body: `Won a contract in a new region: "${contractTitle}" from ${buyerName}`,
-              entityLink: `/competitors/${encodeURIComponent(entry.supplierName)}`,
-              supplierName: entry.supplierName,
-              metadata: {
-                newRegion: contract.buyerRegion,
-                contractTitle,
-              },
-              read: false,
-              emailSent: false,
-              createdAt: now,
-              updatedAt: now,
-            });
-          }
-
-          // WATCH-05: Check for new sector
-          if (
-            contract.sector &&
-            entry.lastSnapshot &&
-            !entry.lastSnapshot.sectors.includes(contract.sector)
-          ) {
-            notifications.push({
-              userId: entry.userId,
-              type: "NEW_SECTOR",
-              title: `${entry.supplierName} entered ${contract.sector}`,
-              body: `Won their first contract in this sector: "${contractTitle}"`,
-              entityLink: `/competitors/${encodeURIComponent(entry.supplierName)}`,
-              supplierName: entry.supplierName,
-              metadata: {
-                newSector: contract.sector,
-                contractTitle,
-              },
-              read: false,
-              emailSent: false,
-              createdAt: now,
-              updatedAt: now,
-            });
-          }
+        // WATCH-05: Check for new sector
+        if (
+          contract.sector &&
+          entry.lastSnapshot &&
+          !entry.lastSnapshot.sectors.includes(contract.sector)
+        ) {
+          notifications.push({
+            userId: entry.userId,
+            type: "NEW_SECTOR",
+            title: `${entry.supplierName} entered ${contract.sector}`,
+            body: `Won their first contract in this sector: "${contractTitle}"`,
+            entityLink: `/competitors/${encodeURIComponent(entry.supplierName)}`,
+            supplierName: entry.supplierName,
+            metadata: {
+              newSector: contract.sector,
+              contractTitle,
+            },
+            read: false,
+            emailSent: false,
+            createdAt: now,
+            updatedAt: now,
+          });
         }
       }
     }
@@ -241,65 +261,102 @@ export async function checkWatchlistMatches(
     ordered: false,
   });
 
-  // Update watchlist snapshots with new regions/sectors
+  // Update watchlist snapshots with new regions/sectors.
+  // Build a per-watchEntry accumulator of regions/sectors from matched contracts
+  // using the pre-computed supplierWatchIndex (avoids re-scanning all watch entries).
+  const entryRegions = new Map<ObjectId, Set<string>>();
+  const entrySectors = new Map<ObjectId, Set<string>>();
+
+  for (const contract of awardedContracts) {
+    if (!contract.buyerRegion && !contract.sector) continue;
+    for (const supplier of contract.awardedSuppliers) {
+      if (!supplier.name) continue;
+      const supplierLower = supplier.name.toLowerCase().trim();
+      const matchedEntries = supplierWatchIndex.get(supplierLower);
+      if (!matchedEntries) continue;
+
+      for (const entry of matchedEntries) {
+        if (contract.buyerRegion) {
+          let regions = entryRegions.get(entry._id);
+          if (!regions) {
+            regions = new Set();
+            entryRegions.set(entry._id, regions);
+          }
+          regions.add(contract.buyerRegion);
+        }
+        if (contract.sector) {
+          let sectors = entrySectors.get(entry._id);
+          if (!sectors) {
+            sectors = new Set();
+            entrySectors.set(entry._id, sectors);
+          }
+          sectors.add(contract.sector);
+        }
+      }
+    }
+  }
+
   const snapshotUpdates: Array<{
     filter: Record<string, unknown>;
     update: Record<string, unknown>;
   }> = [];
 
-  for (const [normalizedName, entries] of watchMap) {
-    // Collect new regions and sectors from all matching contracts
-    const newRegions = new Set<string>();
-    const newSectors = new Set<string>();
-
-    for (const contract of awardedContracts) {
-      for (const supplier of contract.awardedSuppliers) {
-        if (!supplier.name) continue;
-        if (!supplier.name.toLowerCase().trim().includes(normalizedName))
-          continue;
-        if (contract.buyerRegion) newRegions.add(contract.buyerRegion);
-        if (contract.sector) newSectors.add(contract.sector);
-      }
-    }
-
-    if (newRegions.size === 0 && newSectors.size === 0) continue;
-
+  // Collect all entries that had matches
+  const allMatchedEntries = new Map<string, WatchlistEntry>();
+  for (const entries of supplierWatchIndex.values()) {
     for (const entry of entries) {
-      const regionsToAdd = [...newRegions].filter(
-        (r) => !entry.lastSnapshot?.regions.includes(r)
-      );
-      const sectorsToAdd = [...newSectors].filter(
-        (s) => !entry.lastSnapshot?.sectors.includes(s)
-      );
-
-      if (regionsToAdd.length > 0 || sectorsToAdd.length > 0) {
-        const addToSetFields: Record<string, unknown> = {};
-        if (regionsToAdd.length > 0) {
-          addToSetFields["lastSnapshot.regions"] = { $each: regionsToAdd };
-        }
-        if (sectorsToAdd.length > 0) {
-          addToSetFields["lastSnapshot.sectors"] = { $each: sectorsToAdd };
-        }
-
-        snapshotUpdates.push({
-          filter: { _id: entry._id },
-          update: {
-            $addToSet: addToSetFields,
-            $set: { "lastSnapshot.snapshotAt": now },
-          },
-        });
-      }
+      allMatchedEntries.set(String(entry._id), entry);
     }
   }
 
-  // Apply snapshot updates
-  if (snapshotUpdates.length > 0) {
-    const watchlistCol = db.collection("watchlists");
-    for (const op of snapshotUpdates) {
-      await watchlistCol.updateOne(op.filter, op.update).catch(() => {
-        // Non-critical — snapshot updates can be retried next cycle
+  for (const entry of allMatchedEntries.values()) {
+    const newRegions = entryRegions.get(entry._id);
+    const newSectors = entrySectors.get(entry._id);
+    if (!newRegions && !newSectors) continue;
+
+    const regionsToAdd = newRegions
+      ? [...newRegions].filter(
+          (r) => !entry.lastSnapshot?.regions.includes(r)
+        )
+      : [];
+    const sectorsToAdd = newSectors
+      ? [...newSectors].filter(
+          (s) => !entry.lastSnapshot?.sectors.includes(s)
+        )
+      : [];
+
+    if (regionsToAdd.length > 0 || sectorsToAdd.length > 0) {
+      const addToSetFields: Record<string, unknown> = {};
+      if (regionsToAdd.length > 0) {
+        addToSetFields["lastSnapshot.regions"] = { $each: regionsToAdd };
+      }
+      if (sectorsToAdd.length > 0) {
+        addToSetFields["lastSnapshot.sectors"] = { $each: sectorsToAdd };
+      }
+
+      snapshotUpdates.push({
+        filter: { _id: entry._id },
+        update: {
+          $addToSet: addToSetFields,
+          $set: { "lastSnapshot.snapshotAt": now },
+        },
       });
     }
+  }
+
+  // Apply snapshot updates in a single bulk operation
+  if (snapshotUpdates.length > 0) {
+    await db
+      .collection("watchlists")
+      .bulkWrite(
+        snapshotUpdates.map((op) => ({
+          updateOne: { filter: op.filter, update: op.update },
+        })),
+        { ordered: false }
+      )
+      .catch(() => {
+        // Non-critical — snapshot updates can be retried next cycle
+      });
   }
 
   return { notificationsCreated: notifications.length };
