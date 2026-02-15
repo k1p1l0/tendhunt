@@ -6,8 +6,11 @@
 |--------|------|-------|
 | `main` | `/Users/kirillkozak/Projects/tendhunt.com` | Main development |
 | `feat/phase-32-contract-enrichment` | `/Users/kirillkozak/Projects/tendhunt-contract-enrichment` | Phase 32: Contract Enrichment |
+| `feat/ofsted-timeline` | `/Users/kirillkozak/Projects/tendhunt-ofsted-timeline` | Ofsted Timeline Intelligence (PR #13) |
+| `feat/competitor-analysis` | `/Users/kirillkozak/Projects/tendhunt-competitor-analysis` | Competitor Contract Intelligence (PR #14) |
+| `feat/notifications-platform` | `/Users/kirillkozak/Projects/tendhunt-notifications` | Platform Notifications (building) |
 
-When working on Phase 32, use the worktree path. Merge back to main via PR when complete.
+Merge back to main via PR when complete.
 
 ## Source of Truth
 
@@ -144,6 +147,11 @@ feat(scope): Add new feature
 # ✅ CORRECT - Subject starts with lowercase
 feat(scope): add new feature
 ```
+
+**Allowed scopes** (enforced by `action-semantic-pull-request` in CI):
+`web`, `landing`, `workers`, `deps`, `deps-dev`, `release`
+
+Do NOT use feature-specific scopes like `ofsted`, `competitors`, `sculptor` — they will fail CI. Use `web` for app changes, `workers` for worker changes.
 
 ## UI/UX & Animation Guidelines
 

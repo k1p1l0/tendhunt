@@ -183,10 +183,14 @@ export async function fetchBuyerById(buyerId: string) {
       .lean(),
   ]);
 
+  // Destructure to explicitly exclude the cached contractCount field
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { contractCount: _, ...buyerWithoutCount } = buyer;
+
   return {
-    ...buyer,
+    ...buyerWithoutCount,
     contracts,
-    contractCount,
+    contractCount, // Live count from query (includes parent + children aggregation)
     signals,
     boardDocuments,
     keyPersonnel,

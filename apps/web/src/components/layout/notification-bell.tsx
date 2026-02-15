@@ -179,6 +179,7 @@ export function NotificationBell() {
           type="button"
           className="relative p-2 rounded-md hover:bg-accent transition-colors"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+          suppressHydrationWarning
         >
           <Bell className="h-4.5 w-4.5 text-muted-foreground" />
           <AnimatePresence>
