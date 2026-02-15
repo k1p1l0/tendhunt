@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -6,7 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { FileText, Plus, X, Building2 } from "lucide-react";
 import { isDpsFrameworkActive, statusLabel } from "@/lib/contract-mechanism";
 
 import type { ContractMechanism } from "@/lib/contract-mechanism";
@@ -22,6 +31,7 @@ interface ContractData {
   source?: string;
   contractMechanism?: ContractMechanism | null;
   contractEndDate?: string | Date | null;
+  awardedSuppliers?: { name: string; supplierId?: string }[];
 }
 
 interface ContractsTabProps {
@@ -81,7 +91,119 @@ const MECHANISM_BADGE: Record<string, { label: string; className: string } | und
   call_off_framework: { label: "FW Call-off", className: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300" },
 };
 
+const STATUSES = [
+  { value: "OPEN", label: "Open" },
+  { value: "AWARDED", label: "Awarded" },
+  { value: "CLOSED", label: "Closed" },
+  { value: "CANCELLED", label: "Cancelled" },
+] as const;
+
+const MECHANISMS = [
+  { value: "standard", label: "Standard Tender" },
+  { value: "dps", label: "DPS (Dynamic Purchasing)" },
+  { value: "framework", label: "Framework Agreement" },
+  { value: "call_off_dps", label: "DPS Call-off" },
+  { value: "call_off_framework", label: "Framework Call-off" },
+] as const;
+
+function FilterChip({
+  label,
+  value,
+  displayValue,
+  onSelect,
+  onClear,
+  options,
+}: {
+  label: string;
+  value: string | null;
+  displayValue?: string;
+  onSelect: (value: string) => void;
+  onClear: () => void;
+  options: { value: string; label: string }[];
+}) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } else {
+      setSearch("");
+    }
+  }, []);
+
+  const filtered = options.filter((o) =>
+    o.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (value) {
+    return (
+      <button
+        onClick={onClear}
+        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted"
+      >
+        <span className="text-muted-foreground">{label}:</span>
+        <span className="font-medium">{displayValue ?? value}</span>
+        <X className="h-3 w-3 text-muted-foreground" />
+      </button>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-muted-foreground/30 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground">
+          <Plus className="h-3 w-3" />
+          {label}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-0" align="start">
+        <div className="p-2 border-b border-border">
+          <Input
+            ref={inputRef}
+            placeholder={`Search ${label.toLowerCase()}...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="max-h-60 overflow-y-auto p-1">
+          {filtered.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => {
+                onSelect(option.value);
+                setOpen(false);
+              }}
+              className="w-full rounded-sm px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted"
+            >
+              {option.label}
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+              No results
+            </p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function ContractsTab({ contracts }: ContractsTabProps) {
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [mechanismFilter, setMechanismFilter] = useState<string | null>(null);
+
+  // Apply filters
+  const filteredContracts = contracts.filter((c) => {
+    if (statusFilter && c.status !== statusFilter) return false;
+    if (mechanismFilter && c.contractMechanism !== mechanismFilter) return false;
+    return true;
+  });
+
   if (contracts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
@@ -92,12 +214,34 @@ export function ContractsTab({ contracts }: ContractsTabProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        {contracts.length} contract{contracts.length !== 1 ? "s" : ""} found
-      </p>
+    <div className="space-y-4">
+      {/* Filter toolbar */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <FilterChip
+            label="Status"
+            value={statusFilter}
+            onSelect={setStatusFilter}
+            onClear={() => setStatusFilter(null)}
+            options={STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+          />
+          <FilterChip
+            label="Mechanism"
+            value={mechanismFilter}
+            displayValue={MECHANISMS.find((m) => m.value === mechanismFilter)?.label}
+            onSelect={setMechanismFilter}
+            onClear={() => setMechanismFilter(null)}
+            options={MECHANISMS.map((m) => ({ value: m.value, label: m.label }))}
+          />
+        </div>
+        <div className="ml-auto text-sm text-muted-foreground">
+          {filteredContracts.length} contract{filteredContracts.length !== 1 ? "s" : ""}
+          {filteredContracts.length !== contracts.length && ` (of ${contracts.length} total)`}
+        </div>
+      </div>
+
       <div className="grid gap-3 md:grid-cols-2">
-        {contracts.map((contract) => {
+        {filteredContracts.map((contract) => {
           const value = formatValue(contract.valueMin, contract.valueMax);
           const published = formatDate(contract.publishedDate);
 
@@ -133,6 +277,21 @@ export function ContractsTab({ contracts }: ContractsTabProps) {
                       <Badge variant="outline">{contract.sector}</Badge>
                     )}
                   </div>
+                  {/* Awarded suppliers */}
+                  {contract.status === "AWARDED" && contract.awardedSuppliers && contract.awardedSuppliers.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/50">
+                      {contract.awardedSuppliers.map((supplier, i) => (
+                        <Badge
+                          key={i}
+                          variant="outline"
+                          className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                        >
+                          <Building2 className="h-3 w-3 mr-1" />
+                          {supplier.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>
