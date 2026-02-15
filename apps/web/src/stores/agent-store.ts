@@ -79,6 +79,7 @@ interface AgentStore {
   enrichmentConfirmation: EnrichmentConfirmation | null;
   activeEnrichment: ActiveEnrichment | null;
   conversationSettings: ConversationSettings;
+  dismissedEnrichmentMessages: string[];
 
   setPanelOpen: (open: boolean) => void;
   updateConversationSettings: (updates: Partial<ConversationSettings>) => void;
@@ -97,6 +98,7 @@ interface AgentStore {
   setActiveEnrichment: (enrichment: ActiveEnrichment | null) => void;
   updateEnrichmentStage: (name: string, status: EnrichmentStage["status"], detail?: string) => void;
   completeEnrichment: (score?: number, summary?: EnrichmentSummary) => void;
+  dismissEnrichmentMessage: (messageId: string) => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -109,6 +111,7 @@ export const useAgentStore = create<AgentStore>()(
   enrichmentConfirmation: null,
   activeEnrichment: null,
   conversationSettings: DEFAULT_CONVERSATION_SETTINGS,
+  dismissedEnrichmentMessages: [],
 
   setPanelOpen: (open) => set({ panelOpen: open }),
 
@@ -214,6 +217,11 @@ export const useAgentStore = create<AgentStore>()(
         },
       };
     }),
+
+  dismissEnrichmentMessage: (messageId) =>
+    set((state) => ({
+      dismissedEnrichmentMessages: [...state.dismissedEnrichmentMessages, messageId],
+    })),
     }),
     {
       name: "sculptor-conversations",
@@ -222,6 +230,7 @@ export const useAgentStore = create<AgentStore>()(
         conversations: state.conversations,
         activeConversationId: state.activeConversationId,
         conversationSettings: state.conversationSettings,
+        dismissedEnrichmentMessages: state.dismissedEnrichmentMessages,
       }),
       storage: {
         getItem: (name) => {

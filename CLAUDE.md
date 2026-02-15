@@ -153,6 +153,25 @@ feat(scope): add new feature
 
 Do NOT use feature-specific scopes like `ofsted`, `competitors`, `sculptor` — they will fail CI. Use `web` for app changes, `workers` for worker changes.
 
+## Sculptor Slack App
+
+The Sculptor AI assistant is available as a Slack app. Users install it via "Add to Slack" in `/settings/notifications`.
+
+**Slack App Redirect URL:**
+- Local dev: `http://localhost:3005/api/slack/oauth`
+- Production: `https://app.tendhunt.com/api/slack/oauth`
+
+Make sure the Redirect URL in Slack app settings (https://api.slack.com/apps → OAuth & Permissions → Redirect URLs) matches the environment you're testing in.
+
+**Env vars needed:** `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`, `SLACK_REDIRECT_URI`
+
+**Key files:**
+- `apps/web/src/lib/slack/manifest.json` — Slack app manifest for setup
+- `apps/web/src/lib/slack/SETUP.md` — Step-by-step setup instructions
+- `apps/web/src/lib/slack/sculptor-handler.ts` — Core AI handler (same tools as web Sculptor)
+- `apps/web/src/app/api/slack/oauth/route.ts` — OAuth2 callback
+- `apps/web/src/app/api/slack/events/route.ts` — Events API (DMs + @mentions)
+
 ## UI/UX & Animation Guidelines
 
 **Every UI/UX implementation MUST include animations and follow design engineering principles.**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Zap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,9 +129,9 @@ interface EnrichmentConfirmProps {
 }
 
 export function EnrichmentConfirm({ lastMessage, isStreaming }: EnrichmentConfirmProps) {
-  const [dismissed, setDismissed] = useState<string | null>(null);
   const confirmation = useAgentStore((s) => s.enrichmentConfirmation);
   const activeEnrichment = useAgentStore((s) => s.activeEnrichment);
+  const dismissedMessages = useAgentStore((s) => s.dismissedEnrichmentMessages);
   const { context } = useAgentContext();
   const prefersReducedMotion = useReducedMotion();
 
@@ -142,7 +142,7 @@ export function EnrichmentConfirm({ lastMessage, isStreaming }: EnrichmentConfir
       useAgentStore.getState().setEnrichmentConfirmation(null);
     }
     if (lastMessage) {
-      setDismissed(lastMessage.id);
+      useAgentStore.getState().dismissEnrichmentMessage(lastMessage.id);
     }
     if (id) {
       startEnrichmentDirect(id, name);
@@ -154,7 +154,7 @@ export function EnrichmentConfirm({ lastMessage, isStreaming }: EnrichmentConfir
       useAgentStore.getState().setEnrichmentConfirmation(null);
     }
     if (lastMessage) {
-      setDismissed(lastMessage.id);
+      useAgentStore.getState().dismissEnrichmentMessage(lastMessage.id);
     }
   }, [confirmation, lastMessage]);
 
@@ -162,7 +162,7 @@ export function EnrichmentConfirm({ lastMessage, isStreaming }: EnrichmentConfir
 
   const fromStore = !!confirmation;
   const fromText = !fromStore && lastMessage
-    && dismissed !== lastMessage.id
+    && !dismissedMessages.includes(lastMessage.id)
     && detectEnrichmentSuggestion(lastMessage);
 
   if (!fromStore && !fromText) return null;
