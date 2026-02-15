@@ -4,6 +4,7 @@ import Scanner from "@/models/scanner";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import Buyer from "@/models/buyer";
+import OfstedSchool from "@/models/ofsted-school";
 import CompanyProfile from "@/models/company-profile";
 import PipelineCard from "@/models/pipeline-card";
 import AutoSendRule from "@/models/auto-send-rule";
@@ -17,15 +18,17 @@ import {
   resolveColumnReferences,
   extractReferencedColumnIds,
 } from "@/lib/column-references";
+import { batchGetReportTexts } from "@/lib/ofsted-report";
 import type { AIModel } from "@/lib/ai-column-config";
 import type { ScannerType } from "@/models/scanner";
 import mongoose from "mongoose";
 import pLimit from "p-limit";
 
-const ENTITY_TYPE_MAP: Record<string, "contract" | "buyer" | "signal"> = {
+const ENTITY_TYPE_MAP: Record<string, "contract" | "buyer" | "signal" | "school"> = {
   rfps: "contract",
   meetings: "signal",
   buyers: "buyer",
+  schools: "school",
 };
 
 function getEntityDisplayFields(
@@ -54,6 +57,12 @@ function getEntityDisplayFields(
         subtitle: entity.insight as string | undefined,
         buyerName: entity.organizationName as string | undefined,
         sector: entity.sector as string | undefined,
+      };
+    case "schools":
+      return {
+        title: String(entity.name || "Unknown School"),
+        subtitle: `${entity.phase || ""} - ${entity.localAuthority || ""}`.trim(),
+        sector: entity.region as string | undefined,
       };
     default:
       return {
@@ -176,6 +185,18 @@ export async function POST(
         entities = (await Buyer.find(entityFilter)
           .select(
             "name sector region description contractCount website contacts"
+          )
+          .lean()) as unknown as Array<Record<string, unknown>>;
+        break;
+
+      case "schools":
+        entities = (await OfstedSchool.find(entityFilter)
+          .select(
+            "name urn phase schoolType localAuthority region " +
+            "overallEffectiveness qualityOfEducation behaviourAndAttitudes " +
+            "personalDevelopment leadershipAndManagement " +
+            "inspectionDate previousOverallEffectiveness ratingDirection " +
+            "lastDowngradeDate downgradeType totalPupils reportUrl"
           )
           .lean()) as unknown as Array<Record<string, unknown>>;
         break;
@@ -304,6 +325,28 @@ export async function POST(
       ? null
       : buildScoringSystemPrompt(baseScoringPrompt, column.prompt, column.useCase);
 
+    // Pre-fetch Ofsted report texts for schools scanner type
+    // Maps entityId -> extracted report text (used as additionalContext during scoring)
+    let reportTexts: Map<string, string> | null = null;
+    if (scanner.type === "schools") {
+      try {
+        const schoolEntities = entitiesToScore.map((e) => ({
+          _id: e._id,
+          urn: e.urn as number,
+          reportUrl: e.reportUrl as string | undefined,
+        }));
+        reportTexts = await batchGetReportTexts(schoolEntities);
+        console.log(
+          `[score-column] Pre-fetched ${reportTexts.size}/${entitiesToScore.length} Ofsted reports`
+        );
+      } catch (err) {
+        console.error(
+          "[score-column] Report pre-fetch failed (scoring will proceed without report text):",
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
+
     // Load auto-send rules for this scanner + column (cached for entire run)
     const autoSendRules = await AutoSendRule.find({
       userId,
@@ -370,13 +413,17 @@ export async function POST(
                   column.useCase
                 );
 
+                // For schools, include Ofsted report text as additional context
+                const reportContext = reportTexts?.get(entityId) ?? undefined;
+
                 const result = await scoreOneEntity(
                   entity,
                   scanner.type,
                   entitySystemPrompt,
                   scanner.searchQuery || "",
                   (column.model as AIModel) || "haiku",
-                  column.useCase
+                  column.useCase,
+                  reportContext
                 );
 
                 if (cancelled) return;

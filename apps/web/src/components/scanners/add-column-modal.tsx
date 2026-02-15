@@ -63,6 +63,7 @@ const DATA_TYPE_LABELS: Record<DataType, string> = {
   email: "Email",
   checkbox: "Checkbox",
   paragraph: "Paragraph",
+  "rating-change": "Rating Change",
 };
 
 export function AddColumnModal({

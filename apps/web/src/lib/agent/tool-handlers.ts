@@ -421,9 +421,9 @@ async function handleCreateScanner(
   userId: string
 ): Promise<ToolResult> {
   const name = String(input.name);
-  const type = String(input.type) as "rfps" | "meetings" | "buyers";
+  const type = String(input.type) as "rfps" | "meetings" | "buyers" | "schools";
 
-  if (!["rfps", "meetings", "buyers"].includes(type)) {
+  if (!["rfps", "meetings", "buyers", "schools"].includes(type)) {
     return { summary: `Invalid scanner type: ${type}`, data: null };
   }
 

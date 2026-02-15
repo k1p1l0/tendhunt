@@ -4,6 +4,7 @@ import Scanner from "@/models/scanner";
 import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import Buyer from "@/models/buyer";
+import OfstedSchool from "@/models/ofsted-school";
 import CompanyProfile from "@/models/company-profile";
 import { generateScoringPrompt } from "@/lib/vibe-scanner";
 import { scoreEntities } from "@/lib/scoring-engine";
@@ -89,6 +90,18 @@ export async function POST(
         entities = (await Buyer.find({})
           .select(
             "name sector region description contractCount website contacts"
+          )
+          .lean()) as unknown as Array<Record<string, unknown>>;
+        break;
+
+      case "schools":
+        entities = (await OfstedSchool.find({})
+          .select(
+            "name urn phase schoolType localAuthority region " +
+            "overallEffectiveness qualityOfEducation behaviourAndAttitudes " +
+            "personalDevelopment leadershipAndManagement " +
+            "inspectionDate previousOverallEffectiveness ratingDirection " +
+            "lastDowngradeDate downgradeType totalPupils"
           )
           .lean()) as unknown as Array<Record<string, unknown>>;
         break;
