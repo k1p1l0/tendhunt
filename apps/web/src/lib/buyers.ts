@@ -173,6 +173,12 @@ export async function fetchBuyerById(buyerId: string) {
     childrenPromise,
     parentBuyerPromise,
     OfstedSchool.find({ buyerId: buyer._id })
+      .select(
+        "urn name phase schoolType overallEffectiveness qualityOfEducation " +
+        "behaviourAndAttitudes personalDevelopment leadershipAndManagement " +
+        "safeguarding inspectionDate totalPupils idaciQuintile reportUrl " +
+        "postcode ratingDirection lastDowngradeDate inspectionHistory"
+      )
       .sort({ overallEffectiveness: -1 })
       .lean(),
   ]);

@@ -70,12 +70,14 @@ const DATA_ENDPOINTS: Record<ScannerType, string> = {
   rfps: "/api/contracts",
   meetings: "/api/signals",
   buyers: "/api/buyers",
+  schools: "/api/schools",
 };
 
 const DATA_KEYS: Record<ScannerType, string> = {
   rfps: "contracts",
   meetings: "signals",
   buyers: "buyers",
+  schools: "schools",
 };
 
 /**
@@ -233,7 +235,8 @@ export default function ScannerDetailPage({
       const dataKey = DATA_KEYS[scannerData.type];
 
       const params = new URLSearchParams();
-      if (scannerData.searchQuery) {
+      // Schools scanner searchQuery is an AI scoring context, not a name filter
+      if (scannerData.searchQuery && scannerData.type !== "schools") {
         // MongoDB $text: unquoted words are OR'd, quoted phrases are AND'd.
         // Strip OR/AND operators and quotes so all terms become OR'd words —
         // otherwise multiple quoted phrases require ALL to appear in one document.
@@ -255,6 +258,11 @@ export default function ScannerDetailPage({
         if (f.stage) params.set("stage", String(f.stage));
         if (f.status) params.set("status", String(f.status));
         if (f.mechanism) params.set("mechanism", String(f.mechanism));
+        if (f.downgradeWithin) params.set("downgradeWithin", String(f.downgradeWithin));
+        if (f.ofstedRating) params.set("ofstedRating", String(f.ofstedRating));
+        if (f.schoolPhase) params.set("schoolPhase", String(f.schoolPhase));
+        if (f.localAuthority) params.set("localAuthority", String(f.localAuthority));
+        if (f.sortBy) params.set("sortBy", String(f.sortBy));
       }
 
       // Apply row pagination — always send a pageSize to avoid loading all results

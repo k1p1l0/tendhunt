@@ -1,6 +1,6 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
-export type ScannerType = "rfps" | "meetings" | "buyers";
+export type ScannerType = "rfps" | "meetings" | "buyers" | "schools";
 
 const aiColumnSchema = new Schema(
   {
@@ -63,7 +63,7 @@ const scannerSchema = new Schema(
     description: { type: String, default: "" },
     type: {
       type: String,
-      enum: ["rfps", "meetings", "buyers"],
+      enum: ["rfps", "meetings", "buyers", "schools"],
       required: true,
     },
     searchQuery: { type: String, default: "" },
@@ -78,6 +78,10 @@ const scannerSchema = new Schema(
       dateTo: { type: Date },
       stage: { type: String },
       status: { type: String },
+      downgradeWithin: { type: String },
+      ofstedRating: { type: String },
+      schoolPhase: { type: String },
+      localAuthority: { type: String },
     },
     aiColumns: [aiColumnSchema],
     customColumns: [customColumnSchema],

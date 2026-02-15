@@ -528,6 +528,29 @@ export function ScannerDataGrid({
           ctx.stroke();
           break;
         }
+        case "rating-change": {
+          // Up/down arrows icon indicating direction change
+          ctx.lineWidth = 1.3;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          // Down arrow (left side)
+          ctx.beginPath();
+          ctx.moveTo(x - 3, cy - 3);
+          ctx.lineTo(x - 3, cy + 2);
+          ctx.moveTo(x - 5, cy);
+          ctx.lineTo(x - 3, cy + 3);
+          ctx.lineTo(x - 1, cy);
+          ctx.stroke();
+          // Up arrow (right side)
+          ctx.beginPath();
+          ctx.moveTo(x + 3, cy + 3);
+          ctx.lineTo(x + 3, cy - 2);
+          ctx.moveTo(x + 1, cy);
+          ctx.lineTo(x + 3, cy - 3);
+          ctx.lineTo(x + 5, cy);
+          ctx.stroke();
+          break;
+        }
         default:
           break;
       }

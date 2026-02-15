@@ -1,239 +1,114 @@
-# Requirements: TendHunt Hackathon MVP
+# Requirements: Ofsted Timeline Intelligence
 
-**Defined:** 2026-02-10
-**Core Value:** Suppliers can discover relevant UK government contracts and instantly reveal buyer contacts — turning public procurement data into actionable sales intelligence through AI-powered scoring.
+**Defined:** 2026-02-14
+**Core Value:** Suppliers can instantly find schools downgraded by Ofsted in the last N months and assess whether each school's inspection report suggests a need for their services.
 
 ## v1 Requirements
 
-Requirements for hackathon investor demo. Each maps to roadmap phases.
+### Data Ingestion
 
-### Authentication & Onboarding
+- [x] **DATA-01**: System ingests historical "all inspections" CSVs from GOV.UK covering 2015-present, building a per-school inspection timeline
+- [x] **DATA-02**: Each school record stores an inspectionHistory array with date, grades, inspection type, and report URL for every past inspection
+- [x] **DATA-03**: System pre-computes lastDowngradeDate, ratingDirection (improved/downgraded/unchanged), and downgradeType for each school during ingestion
+- [x] **DATA-04**: Ingestion handles CSV column name differences across eras (pre-2019, 2019-2024, post-2024)
+- [x] **DATA-05**: Ingestion deduplicates inspections by inspectionNumber to prevent duplicate timeline entries from overlapping CSV files
 
-- [ ] **AUTH-01**: User can sign up and sign in via Clerk (email/password + social)
-- [x] **AUTH-02**: User can upload company documents during onboarding (past bids, capability statements, certifications, specifications — drag & drop)
-- [x] **AUTH-03**: AI analyzes uploaded documents and generates a company profile (sectors, capabilities, keywords, ideal contract description)
-- [x] **AUTH-04**: User can review and edit the AI-generated company profile
-- [ ] **AUTH-05**: User session persists across browser refresh
-- [x] **AUTH-06**: New user receives 10 free credits on signup (signup bonus)
+### Scanner
 
-### Vibe Scanner (AI Contract Scoring)
+- [x] **SCAN-01**: User can create a scanner of type "schools" that queries the ofstedschools collection
+- [x] **SCAN-02**: Schools scanner displays columns: School name, Overall rating, Quality of Education, Inspection Date, Previous Rating, Rating Change, Region, School Phase, Pupils, Local Authority
+- [x] **SCAN-03**: User can filter schools by "downgraded in last N months" (1m, 3m, 6m, 1y, any) as the primary filter
+- [x] **SCAN-04**: User can filter schools by current rating (Outstanding, Good, Requires Improvement, Inadequate), region, local authority, and school phase
+- [x] **SCAN-05**: User can search schools by name or keyword
+- [x] **SCAN-06**: Schools scanner supports AI columns following the existing scanner AI column pattern (add column, set prompt, run scoring)
 
-- [ ] **VIBE-01**: User can create a Vibe Scanner from their AI-generated company profile
-- [ ] **VIBE-02**: System generates a scoring prompt from the company profile and uploaded documents
-- [ ] **VIBE-03**: User can view and edit the scoring prompt (textarea with AI suggestions)
-- [ ] **VIBE-04**: AI batch-scores all matching contracts against the scoring prompt using Claude Haiku
-- [ ] **VIBE-05**: Each contract displays an AI score (1-10) with reasoning (why it matches / why it doesn't)
-- [ ] **VIBE-06**: User can set minimum score threshold via slider (1-10 scale, 0.1 increments)
-- [ ] **VIBE-07**: Contracts below the threshold appear with reduced opacity or are hidden (toggle)
-- [ ] **VIBE-08**: Score divider visually separates above/below threshold contracts in the feed
-- [ ] **VIBE-09**: User can re-score contracts after editing the prompt ("Apply & Score" button)
-- [ ] **VIBE-10**: Scoring progress is displayed (progress bar while AI scores contracts in batches)
-- [ ] **VIBE-11**: AI also scores buyer organizations for relevance to the company profile
+### Downgrade Detection
 
-### Contract Dashboard
+- [x] **DOWN-01**: System detects downgrades by comparing current sub-judgement grades against the previous inspection's corresponding grades
+- [x] **DOWN-02**: Downgrade detection works for post-September-2024 inspections where overall effectiveness is NULL, using sub-judgement grades instead
+- [x] **DOWN-03**: Scanner results can be sorted by downgrade recency (most recent downgrades first)
 
-- [ ] **DASH-01**: User sees a dashboard feed of scored contracts on login (sorted by AI score)
-- [ ] **DASH-02**: User can search contracts by keyword
-- [ ] **DASH-03**: User can filter contracts by sector, value range, and region
-- [ ] **DASH-04**: User can click a contract to view full details (title, buyer, value, dates, CPV codes, description, source URL)
-- [ ] **DASH-05**: Dashboard shows total contract count and filter result count
-- [ ] **DASH-06**: Contract cards show AI score badge with color coding (green/yellow/red)
+### Detail Page
 
-### Buying Signals
+- [x] **DETL-01**: User can view a school detail page at /schools/[urn] showing full inspection history
+- [x] **DETL-02**: School detail page shows a timeline visualization of rating changes over time, color-coded by direction (red=downgrade, green=improvement, amber=unchanged)
+- [x] **DETL-03**: School detail page links to the Ofsted report PDF for each inspection
+- [x] **DETL-04**: School detail page links to the associated buyer page when the school has a buyerId
+- [x] **DETL-05**: Buyer detail page Ofsted tab shows inspection history for linked schools, not just current ratings
 
-- [ ] **SGNL-01**: User can view pre-tender buying signals extracted from board minutes in the dashboard
-- [ ] **SGNL-02**: Signals are categorized by 6 types (PROCUREMENT, STAFFING, STRATEGY, FINANCIAL, PROJECTS, REGULATORY)
-- [ ] **SGNL-03**: User can filter signals by type
-- [ ] **SGNL-04**: Each signal shows source organization, date, signal type, and extracted insight
-- [ ] **SGNL-05**: Signals display alongside contracts in a unified feed or separate tab
+### AI Report Analysis
 
-### Buyer Intelligence
+- [x] **AI-01**: User can add an AI column to the schools scanner that analyzes Ofsted report PDFs
+- [x] **AI-02**: AI scoring fetches the school's Ofsted report PDF, extracts text, and sends it to Claude for analysis
+- [x] **AI-03**: Default "Tuition Relevance" prompt scores 0-10 how likely a school needs tuition services based on report content (literacy, numeracy, catch-up, pupil premium, attainment gaps)
+- [x] **AI-04**: AI analysis results include reasoning explaining what in the report suggests tuition need
 
-- [ ] **BUYER-01**: User can view buyer organization profiles (name, sector, location, recent contracts)
-- [ ] **BUYER-02**: Buyer profile shows associated buying signals from board minutes
-- [ ] **BUYER-03**: Buyer profile shows AI relevance score from Vibe Scanner
-- [ ] **BUYER-04**: User can see list of contacts associated with a buyer organization (blurred/locked)
-- [ ] **BUYER-05**: User can reveal a contact by spending 1 credit (blur-to-reveal UX)
-- [ ] **BUYER-06**: Revealed contact shows name, job title, email, and public profile link
-- [ ] **BUYER-07**: Previously revealed contacts remain visible without additional credit spend
+### Ofsted Data Sync
 
-### Credit System
-
-- [ ] **CRED-01**: User can see current credit balance in the header/navigation
-- [ ] **CRED-02**: Credit balance decreases by 1 when user reveals a contact
-- [ ] **CRED-03**: User sees upgrade prompt when credit balance reaches 0
-- [ ] **CRED-04**: Credit deduction is atomic (prevents double-spend on rapid clicks)
-- [ ] **CRED-05**: User can view credit transaction history
-
-### Monetization & Pricing
-
-- [ ] **PRICE-01**: Landing/marketing page explains TendHunt value proposition
-- [ ] **PRICE-02**: Pricing page displays 3 tiers with credit allocations (Starter, Growth, Scale)
-- [ ] **PRICE-03**: Each tier shows monthly price, credit allocation, and included features
-- [ ] **PRICE-04**: Upgrade CTA buttons on pricing page (link to contact/waitlist for hackathon)
-
-### Data Pipeline
-
-- [ ] **DATA-01**: System ingests contract notices from Find a Tender OCDS API
-- [ ] **DATA-02**: System ingests contract notices from Contracts Finder API
-- [ ] **DATA-03**: Ingested data is normalized to a unified contract schema in MongoDB Atlas
-- [ ] **DATA-04**: Database is seeded with pre-processed board minutes signals (50-100 documents across multiple sectors)
-- [ ] **DATA-05**: Database is seeded with buyer contact data from public sources (GOV.UK appointments, council committee pages, NHS board member lists)
-- [ ] **DATA-06**: Contracts display source attribution (Find a Tender or Contracts Finder)
-
-### Slack Integration (OpenClaw)
-
-- [ ] **SLACK-01**: System exposes public REST API endpoints wrapping existing tool handlers (buyers, contracts, signals, personnel, spend, board docs) with API key authentication
-- [ ] **SLACK-02**: User can generate and manage API keys from TendHunt settings page (create, revoke, view last used)
-- [ ] **SLACK-03**: API key is scoped to the authenticated user — all queries return data filtered by their account, scanners, and permissions
-- [ ] **SLACK-04**: OpenClaw TendHunt skill (SKILL.md) teaches the agent to curl all public API endpoints with correct parameters and auth
-- [ ] **SLACK-05**: OpenClaw is deployed on Hetzner VPS with Slack channel configured (socket mode, bot token, app token)
-- [ ] **SLACK-06**: User can click "Add to Slack" OAuth button in TendHunt settings to connect their Slack workspace to the OpenClaw bot
-- [ ] **SLACK-07**: Slack bot responds to user queries with procurement data (search buyers, contracts, signals, spending) using the user's API key for scoped access
-- [ ] **SLACK-08**: API endpoints include rate limiting (100 requests/minute per key) and request logging
-
-### CRM Pipeline (Procurement Inbox)
-
-- [ ] **CRM-01**: New "Inbox" sidebar item opens a Kanban board view with 5 procurement-specific columns (New, Qualified, Preparing Bid, Submitted, Won/Lost)
-- [ ] **CRM-02**: CRM cards can reference any entity type (contracts, signals, buyers, scanner results) with source attribution badge
-- [ ] **CRM-03**: Users can drag-and-drop CRM cards between Kanban columns to update deal stage
-- [ ] **CRM-04**: "Send to CRM" button on contract detail, buyer detail, and signal pages creates a new CRM card in "New" column
-- [ ] **CRM-05**: Scanner auto-send rules configurable per AI column (threshold-based, e.g., "send to CRM when score > 7") creating CRM cards automatically
-- [ ] **CRM-06**: Each CRM card displays entity summary (title, org/buyer, value, source type), current stage, and timestamps (created, stage changed)
-- [ ] **CRM-07**: Users can add notes/comments to CRM cards for tracking bid preparation progress
-- [ ] **CRM-08**: CRM cards link back to source entity (contract, buyer, signal) for quick navigation
+- [x] **SYNC-01**: New enrichment stage downloads latest Ofsted CSVs from GOV.UK on a weekly cron schedule, running as part of the existing enrichment worker pipeline
+- [x] **SYNC-02**: Stage diffs downloaded inspections against existing inspectionHistory per school, only processing new inspections not already stored (avoids re-processing)
+- [x] **SYNC-03**: Downgrade detection runs automatically on newly ingested inspections, using the existing `ofsted-downgrade.ts` utility
+- [x] **SYNC-04**: `lastDowngradeDate` and `ratingDirection` are recomputed for any school that received new inspections during sync
+- [x] **SYNC-05**: Sync progress is tracked in enrichment job logs, recording schools updated count and new downgrades found
 
 ## v2 Requirements
 
-Deferred to post-hackathon. Tracked but not in current roadmap.
+### Extended Features
 
-### Advanced Intelligence
-
-- **INTEL-01**: Contract expiry tracking with renewal opportunity alerts
-- **INTEL-02**: Competitor win tracking (who won similar contracts)
-- **INTEL-03**: Custom research agents (1 credit per entity deep-dive)
-- **INTEL-04**: Auto-bidding / auto-apply for high-scoring contracts
-
-### Additional Data Sources
-
-- **DSRC-01**: G-Cloud Digital Marketplace integration
-- **DSRC-02**: CCS Framework call-off tracking
-- **DSRC-03**: Council meeting minutes live scraping pipeline
-- **DSRC-04**: FOI disclosure data integration
-- **DSRC-05**: Companies House API integration for supplier financials
-
-### Notifications & Alerts
-
-- **NOTF-01**: Email digest alerts (daily/weekly) for matching contracts
-- **NOTF-02**: Contract deadline reminders
-- **NOTF-03**: New buyer signal alerts
-- **NOTF-04**: Job change alerts (new procurement head = opportunity)
-
-### Enterprise Features
-
-- **ENT-01**: Team/organization accounts with shared credits
-- **ENT-02**: CRM integration (Salesforce, HubSpot export)
-- **ENT-03**: Custom reporting / analytics dashboards
-- **ENT-04**: Bid intelligence (historical win rates, pricing benchmarks)
+- **EXT-01**: Sculptor can analyze a specific school's Ofsted report on demand via chat
+- **EXT-02**: MAT-level aggregation showing downgrade patterns across a Multi-Academy Trust
+- **EXT-03**: Ofsted downgrade notification alerts (email/push when a school in a user's saved scanner gets downgraded)
+- **EXT-04**: Support for FE colleges and other Ofsted-inspected entity types beyond schools
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
-
 | Feature | Reason |
 |---------|--------|
-| AI bid/proposal writer | Sweetspot and Stotles own this space. Not our differentiator |
-| LinkedIn scraping | Legally fragile (Proxycurl shutdown Jan 2026, UK GDPR). Use public data sources only |
-| CRM integration (Salesforce/HubSpot) | Requires weeks of development. CSV export as placeholder |
-| ~~Spend analytics / invoice data~~ | ~~Tussell has 10+ years of data~~ — **MOVED TO Phase 11**: Local authority transparency CSV data for SME-friendliness scoring |
-| Live board minutes scraping | Multi-week infrastructure project. Use pre-processed seed data |
-| FOI request automation | Full product in itself. Manual FOI is future premium feature |
-| Framework matching (CCS/YPO/ESPO) | Deep domain knowledge needed. Show framework names as metadata only |
-| Mobile app | B2B procurement users work on desktops. Responsive web sufficient |
-| Team collaboration / multi-user | Enterprise feature. Single-user experience for MVP |
-| Real-time push notifications | Email digest is table stakes. Push adds complexity for marginal value |
-| Stripe payment processing | Credits granted via signup bonus. No real billing for hackathon |
-| PostgreSQL / Drizzle ORM | Switched to MongoDB Atlas for flexibility and free tier |
+| Real-time Ofsted data feed | Ofsted publishes monthly; CSV refresh is sufficient |
+| Automated bulk report analysis during enrichment | Burns API credits on 22k+ reports that may never be viewed |
+| Companies House integration for MAT finances | Separate workstream, different data source |
+| Parent-facing school rating display | TendHunt is B2B supplier intelligence, not a parent tool |
+| School comparison tool | Out of scope for sales intelligence use case |
+| Ofsted appeal/response tracking | Different dataset, different audience |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1: Foundation | Pending |
-| AUTH-02 | Phase 3: Onboarding & Company Profile | Done |
-| AUTH-03 | Phase 3: Onboarding & Company Profile | Done |
-| AUTH-04 | Phase 3: Onboarding & Company Profile | Done |
-| AUTH-05 | Phase 1: Foundation | Pending |
-| AUTH-06 | Phase 3: Onboarding & Company Profile | Done |
-| VIBE-01 | Phase 5: Vibe Scanner | Pending |
-| VIBE-02 | Phase 5: Vibe Scanner | Pending |
-| VIBE-03 | Phase 5: Vibe Scanner | Pending |
-| VIBE-04 | Phase 5: Vibe Scanner | Pending |
-| VIBE-05 | Phase 5: Vibe Scanner | Pending |
-| VIBE-06 | Phase 5: Vibe Scanner | Pending |
-| VIBE-07 | Phase 5: Vibe Scanner | Pending |
-| VIBE-08 | Phase 5: Vibe Scanner | Pending |
-| VIBE-09 | Phase 5: Vibe Scanner | Pending |
-| VIBE-10 | Phase 5: Vibe Scanner | Pending |
-| VIBE-11 | Phase 5: Vibe Scanner | Pending |
-| DASH-01 | Phase 4: Contract Dashboard | Pending |
-| DASH-02 | Phase 4: Contract Dashboard | Pending |
-| DASH-03 | Phase 4: Contract Dashboard | Pending |
-| DASH-04 | Phase 4: Contract Dashboard | Pending |
-| DASH-05 | Phase 4: Contract Dashboard | Pending |
-| DASH-06 | Phase 4: Contract Dashboard | Pending |
-| SGNL-01 | Phase 7: Buying Signals | Pending |
-| SGNL-02 | Phase 7: Buying Signals | Pending |
-| SGNL-03 | Phase 7: Buying Signals | Pending |
-| SGNL-04 | Phase 7: Buying Signals | Pending |
-| SGNL-05 | Phase 7: Buying Signals | Pending |
-| BUYER-01 | Phase 6: Buyer Intelligence & Credits | Pending |
-| BUYER-02 | Phase 6: Buyer Intelligence & Credits | Pending |
-| BUYER-03 | Phase 6: Buyer Intelligence & Credits | Pending |
-| BUYER-04 | Phase 6: Buyer Intelligence & Credits | Pending |
-| BUYER-05 | Phase 6: Buyer Intelligence & Credits | Pending |
-| BUYER-06 | Phase 6: Buyer Intelligence & Credits | Pending |
-| BUYER-07 | Phase 6: Buyer Intelligence & Credits | Pending |
-| CRED-01 | Phase 6: Buyer Intelligence & Credits | Pending |
-| CRED-02 | Phase 6: Buyer Intelligence & Credits | Pending |
-| CRED-03 | Phase 6: Buyer Intelligence & Credits | Pending |
-| CRED-04 | Phase 6: Buyer Intelligence & Credits | Pending |
-| CRED-05 | Phase 6: Buyer Intelligence & Credits | Pending |
-| PRICE-01 | Phase 8: Landing & Pricing | Pending |
-| PRICE-02 | Phase 8: Landing & Pricing | Pending |
-| PRICE-03 | Phase 8: Landing & Pricing | Pending |
-| PRICE-04 | Phase 8: Landing & Pricing | Pending |
-| DATA-01 | Phase 2: Data Pipeline | Pending |
-| DATA-02 | Phase 2: Data Pipeline | Pending |
-| DATA-03 | Phase 1: Foundation | Pending |
-| DATA-04 | Phase 2: Data Pipeline | Pending |
-| DATA-05 | Phase 2: Data Pipeline | Pending |
-| DATA-06 | Phase 2: Data Pipeline | Pending |
-
-| SLACK-01 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-02 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-03 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-04 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-05 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-06 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-07 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| SLACK-08 | Phase 21: Slack Integration (OpenClaw) | Pending |
-| CRM-01 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-02 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-03 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-04 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-05 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-06 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-07 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
-| CRM-08 | Phase 22: CRM Pipeline (Procurement Inbox) | Pending |
+| DATA-01 | Phase 1 | Done |
+| DATA-02 | Phase 1 | Done |
+| DATA-03 | Phase 1 | Done |
+| DATA-04 | Phase 1 | Done |
+| DATA-05 | Phase 1 | Done |
+| SCAN-01 | Phase 2 | Done |
+| SCAN-02 | Phase 2 | Done |
+| SCAN-03 | Phase 2 | Done |
+| SCAN-04 | Phase 2 | Done |
+| SCAN-05 | Phase 2 | Done |
+| SCAN-06 | Phase 2 | Done |
+| DOWN-01 | Phase 3 | Done |
+| DOWN-02 | Phase 3 | Done |
+| DOWN-03 | Phase 3 | Done |
+| DETL-01 | Phase 4 | Done |
+| DETL-02 | Phase 4 | Done |
+| DETL-03 | Phase 4 | Done |
+| DETL-04 | Phase 4 | Done |
+| DETL-05 | Phase 4 | Done |
+| AI-01 | Phase 5 | Done |
+| AI-02 | Phase 5 | Done |
+| AI-03 | Phase 5 | Done |
+| AI-04 | Phase 5 | Done |
+| SYNC-01 | Phase 6 | Done |
+| SYNC-02 | Phase 6 | Done |
+| SYNC-03 | Phase 6 | Done |
+| SYNC-04 | Phase 6 | Done |
+| SYNC-05 | Phase 6 | Done |
 
 **Coverage:**
-- v1 requirements: 62 total
-- Mapped to phases: 62
+- v1 requirements: 27 total
+- Mapped to phases: 27
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-02-10*
-*Last updated: 2026-02-13 -- Added SLACK-01 through SLACK-08 for OpenClaw Slack integration (Phase 9)*
+*Requirements defined: 2026-02-14*
+*Last updated: 2026-02-14 — added Phase 6 Ofsted Data Sync requirements*

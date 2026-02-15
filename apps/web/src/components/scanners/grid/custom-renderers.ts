@@ -599,6 +599,157 @@ const entityNameRenderer: CustomRenderer<EntityNameCell> = {
   },
 };
 
+// ── Rating Change Badge (downgrade/improvement/unchanged) ───
+
+interface RatingChangeData {
+  readonly kind: "rating-change";
+  readonly direction: "downgraded" | "improved" | "unchanged" | "";
+}
+
+export type RatingChangeCell = CustomCell<RatingChangeData>;
+
+export function createRatingChangeCell(
+  direction: string | null | undefined
+): RatingChangeCell {
+  const dir = (direction ?? "") as RatingChangeData["direction"];
+  return {
+    kind: GridCellKind.Custom,
+    allowOverlay: false,
+    copyData: dir || "--",
+    data: { kind: "rating-change", direction: dir },
+  };
+}
+
+const DIRECTION_CONFIG: Record<
+  string,
+  { label: string; bgColor: string; textColor: string; icon: "down" | "up" | "equal" }
+> = {
+  downgraded: {
+    label: "Downgraded",
+    bgColor: "rgba(239, 68, 68, 0.12)",
+    textColor: "#ef4444",
+    icon: "down",
+  },
+  improved: {
+    label: "Improved",
+    bgColor: "rgba(34, 197, 94, 0.12)",
+    textColor: "#22c55e",
+    icon: "up",
+  },
+  unchanged: {
+    label: "Unchanged",
+    bgColor: "rgba(156, 163, 175, 0.10)",
+    textColor: "#9ca3af",
+    icon: "equal",
+  },
+};
+
+const ratingChangeRenderer: CustomRenderer<RatingChangeCell> = {
+  kind: GridCellKind.Custom,
+  isMatch: (cell: CustomCell): cell is RatingChangeCell =>
+    (cell.data as RatingChangeData).kind === "rating-change",
+
+  draw: (args, cell) => {
+    const { ctx, rect, theme } = args;
+    const { direction } = cell.data;
+
+    if (!direction) {
+      ctx.fillStyle = theme.textLight;
+      ctx.font = `12px ${theme.fontFamily}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("--", rect.x + 8, rect.y + rect.height / 2);
+      return false;
+    }
+
+    const config = DIRECTION_CONFIG[direction];
+    if (!config) return false;
+
+    const cy = rect.y + rect.height / 2;
+    const padX = 8;
+
+    // Measure text for pill sizing
+    ctx.font = `500 12px ${theme.fontFamily}`;
+    const textWidth = ctx.measureText(config.label).width;
+    const iconW = 14;
+    const gap = 4;
+    const pillPadX = 8;
+    const pillW = pillPadX + iconW + gap + textWidth + pillPadX;
+    const pillH = 22;
+    const x = rect.x + padX;
+    const y = cy - pillH / 2;
+    const r = 4;
+
+    // Rounded pill background
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + pillW - r, y);
+    ctx.arcTo(x + pillW, y, x + pillW, y + r, r);
+    ctx.lineTo(x + pillW, y + pillH - r);
+    ctx.arcTo(x + pillW, y + pillH, x + pillW - r, y + pillH, r);
+    ctx.lineTo(x + r, y + pillH);
+    ctx.arcTo(x, y + pillH, x, y + pillH - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+    ctx.fillStyle = config.bgColor;
+    ctx.fill();
+
+    // Direction icon
+    const iconX = x + pillPadX + iconW / 2;
+    const iconY = cy;
+
+    ctx.save();
+    ctx.strokeStyle = config.textColor;
+    ctx.fillStyle = config.textColor;
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (config.icon === "down") {
+      // Downward arrow
+      ctx.beginPath();
+      ctx.moveTo(iconX, iconY - 4);
+      ctx.lineTo(iconX, iconY + 3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(iconX - 3, iconY);
+      ctx.lineTo(iconX, iconY + 4);
+      ctx.lineTo(iconX + 3, iconY);
+      ctx.stroke();
+    } else if (config.icon === "up") {
+      // Upward arrow
+      ctx.beginPath();
+      ctx.moveTo(iconX, iconY + 4);
+      ctx.lineTo(iconX, iconY - 3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(iconX - 3, iconY);
+      ctx.lineTo(iconX, iconY - 4);
+      ctx.lineTo(iconX + 3, iconY);
+      ctx.stroke();
+    } else {
+      // Equals/horizontal line for unchanged
+      ctx.beginPath();
+      ctx.moveTo(iconX - 4, iconY - 2);
+      ctx.lineTo(iconX + 4, iconY - 2);
+      ctx.moveTo(iconX - 4, iconY + 2);
+      ctx.lineTo(iconX + 4, iconY + 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Label text
+    ctx.fillStyle = config.textColor;
+    ctx.font = `500 12px ${theme.fontFamily}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(config.label, x + pillPadX + iconW + gap, cy);
+
+    return false;
+  },
+};
+
 // ── Exports ──────────────────────────────────────────────────
 
 export const customRenderers: CustomRenderer<CustomCell>[] = [
@@ -606,4 +757,5 @@ export const customRenderers: CustomRenderer<CustomCell>[] = [
   textStatusRenderer as unknown as CustomRenderer<CustomCell>,
   categoryBadgeRenderer as unknown as CustomRenderer<CustomCell>,
   entityNameRenderer as unknown as CustomRenderer<CustomCell>,
+  ratingChangeRenderer as unknown as CustomRenderer<CustomCell>,
 ];

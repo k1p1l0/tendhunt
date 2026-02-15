@@ -1,73 +1,69 @@
-# TendHunt — Hackathon MVP
+# Ofsted Timeline Intelligence
 
 ## What This Is
 
-A sales intelligence platform helping suppliers win UK government contracts. TendHunt provides AI-powered contract alerts, buyer contact intelligence, and opportunity matching across UK public sector procurement. This hackathon MVP is an investor-facing demo proving the core value proposition: find contracts, reveal buyer contacts, and show the credit-based business model working.
+A feature for TendHunt that lets tuition companies (like Tutors Green) discover schools recently downgraded by Ofsted and assess whether those schools need tuition services. It adds Ofsted grading timeline filters to TendHunt's scanner system, shows inspection history on school/buyer detail pages, and provides AI analysis of Ofsted reports to score "tuition relevance" -- turning Ofsted inspection data into actionable sales intelligence for education SMEs.
 
 ## Core Value
 
-Suppliers can discover relevant UK government contracts and instantly reveal the right buyer contacts to pursue them — turning public procurement data into actionable sales intelligence.
+Suppliers can instantly find schools downgraded by Ofsted in the last N months and assess whether each school's inspection report suggests a need for their services -- so they target schools with fresh remediation funding, not ones that already spent it.
 
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- Ofsted school data ingested from GOV.UK monthly CSV (~22,000 schools) -- `apps/web/scripts/ingest-ofsted.ts`
+- Schools matched to buyer organisations by MAT name and Local Authority
+- Basic Ofsted tab on buyer detail pages showing school ratings -- `apps/web/src/components/buyers/ofsted-tab.tsx`
+- Ofsted signals generated for below-Good schools -- `apps/web/scripts/generate-ofsted-signals.ts`
+- OfstedSchool model with current + previous rating fields -- `apps/web/src/models/ofsted-school.ts`
 
 ### Active
 
-- [ ] Real-time contract alerts from Find a Tender, Contracts Finder, and G-Cloud
-- [ ] Dashboard showing latest tenders matching a supplier's profile
-- [ ] Buyer contact reveal via LinkedIn data with credit-based access
-- [ ] Credit system demonstrating the monetization model
-- [ ] User authentication via Clerk
-- [ ] Filter/search contracts by sector, value, region, keywords
-- [ ] Opportunity relevance scoring
+- [ ] Full grading timeline per school (history of inspections, not just latest + previous)
+- [ ] Scanner type "schools" with Ofsted-specific filters (downgrade recency, rating, region, school phase)
+- [ ] "Downgraded in last N months" as the primary filter for the schools scanner
+- [ ] Timeline visualization of inspection history (when downgrades happened)
+- [ ] AI column in scanner grid for "Tuition Relevance" scoring from Ofsted report PDFs
+- [ ] Ofsted history on buyer/school detail pages showing rating changes over time
+- [ ] Automated ingestion of inspection history data (not just latest snapshot)
 
 ### Out of Scope
 
-- Custom research agents — complexity too high for 1-week hackathon
-- Bid intelligence / historical win rates — requires months of data collection
-- Framework call-off tracking (CCS, YPO, ESPO, Everything ICT) — defer to full MVP
-- Council meeting minutes / FOI scraping — NLP pipeline too complex for hackathon
-- Email notifications — dashboard-only for now
-- Mobile responsiveness — desktop-first for investor demo
-- Stripe payments — credit system is functional but no real billing
-- Multi-tenant organization accounts — single user model for now
+- FE colleges, children's homes, early years providers -- schools only for MVP, other Ofsted-inspected entities can follow
+- Fully automated AI analysis during enrichment -- burns API credits for reports never viewed; on-demand via scanner AI column only
+- Sculptor on-demand report analysis -- nice-to-have after scanner AI column ships
+- Companies House integration for school/MAT financial data -- separate workstream
+- Ofsted notification alerts (email/push when a school gets downgraded) -- post-MVP
+- Real-time Ofsted data feed -- monthly CSV refresh is sufficient for sales intelligence use case
 
 ## Context
 
-- **Market:** £434B annual UK public sector procurement. Procurement Act 2023 went live Feb 2025 — new transparency rules create data opportunity
-- **Competitive validation:** Starbridge (US) charges $11-20K/year for similar offering. No UK-native competitor with modern AI-first approach
-- **Audience:** This demo targets investors for pre-seed raise (£750K-1.5M). Must look polished and demonstrate real data flowing through the system
-- **Design partners:** Matt (COO) has 10-15 warm supplier contacts ready to test after hackathon
-- **Team:** Kyrylo (CEO/tech), Matt (COO/sales), Vitalii (likely CTO)
-- **Existing expertise:** Serverless Team (AWS) provides infrastructure knowledge and initial funding
+- **User:** Matt from Tutors Green, a tuition company. His workflow: find recently-downgraded schools -> pitch tuition services -> schools have earmarked funding to address Ofsted concerns
+- **Key insight:** Schools downgraded recently (last 1-3 months) still have remediation funding. Schools downgraded 3 years ago have already spent it. Recency is the critical filter.
+- **Existing data:** ~22,000 schools already ingested from GOV.UK monthly management information CSV. Schools linked to buyers by MAT/LA matching.
+- **Existing model:** `OfstedSchool` has `overallEffectiveness`, `previousOverallEffectiveness`, `inspectionDate`, `previousInspectionDate`, `reportUrl` -- captures current and one-previous rating but not full history.
+- **Ofsted reports:** Published as HTML/PDF at report URLs. Reports contain detailed narrative about what the school is doing well/poorly, specific to curriculum areas.
+- **Scanner system:** TendHunt already has scanner types "rfps", "meetings", "buyers" with AI columns. Need to add "schools" scanner type.
+- **Post-Sep-2024 change:** Ofsted removed single-word overall grades; now uses sub-judgements only. This affects how we display and filter ratings.
 
 ## Constraints
 
-- **Timeline**: 1 week hackathon — must be demoable by end of week
-- **Tech stack**: Next.js (TypeScript) for frontend + backend API, Python for data scrapers
-- **Auth**: Clerk — no custom auth code
-- **Data sources (v1)**: Find a Tender (API), Contracts Finder (API), G-Cloud Digital Marketplace (API/scrape)
-- **Contact data**: LinkedIn API/scraping for real procurement contacts
-- **Database**: PostgreSQL (+ vector DB for search if time allows)
-- **Infrastructure**: Cloudflare (Pages, Workers, R2, D1 as needed)
-- **Domain**: tendhunt.com = landing page, app.tendhunt.com = authenticated app
-- **Demo quality**: Investor-grade — real data, polished UI, working credit system
+- **Tech stack**: Must use existing TendHunt stack (Next.js, MongoDB, Glide Data Grid scanners, Claude AI for scoring)
+- **Data source**: GOV.UK Management Information CSV is the primary source. Ofsted Inspection Data Summary CSV provides historical data.
+- **Scanner pattern**: New "schools" scanner type must follow existing scanner architecture (model, table-columns, grid rendering, AI column scoring)
+- **API credits**: AI report analysis is on-demand only (scanner AI column), not bulk-processed during enrichment
+- **No lint**: Do NOT run `bun run lint` -- memory exhaustion issue on this machine
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Clerk for auth | Zero auth code in 1-week hackathon, polished UX | — Pending |
-| Credits system in MVP | Shows investors the business model working, not just tech | — Pending |
-| Dashboard-first UX | Investors see value immediately on landing — live contract alerts | — Pending |
-| 3 data sources only | Find a Tender + Contracts Finder + G-Cloud cover core use case without scope creep | — Pending |
-| LinkedIn for contacts | Real buyer data makes demo compelling vs mock data | — Pending |
-| Next.js + Python split | TypeScript for product speed, Python for scraper ecosystem (Scrapy, Playwright) | — Pending |
-| Cloudflare infrastructure | Pages for hosting, Workers for scrapers/cron, R2 for storage. Replaces AWS | Confirmed |
-| Domain split | tendhunt.com = marketing/landing, app.tendhunt.com = authenticated app | Confirmed |
+| Schools only for MVP | Core market for tuition companies; FE/early years can follow | -- Pending |
+| Full inspection history | Track all inspections, not just latest + previous, to show downgrade trajectory | -- Pending |
+| Scanner AI column for report analysis | Matches existing TendHunt pattern; user triggers analysis per-school, not bulk | -- Pending |
+| "Downgraded in last N months" as primary filter | This is THE insight: recent downgrades = fresh funding = best targets | -- Pending |
+| On-demand report analysis only | Avoid burning API credits on ~22,000 reports that may never be viewed | -- Pending |
 
 ---
-*Last updated: 2026-02-10 after initialization*
+*Last updated: 2026-02-14 after initialization*
