@@ -3,23 +3,14 @@ import { nanoid } from "nanoid";
 import { dbConnect } from "@/lib/mongodb";
 import { fetchBuyerById } from "@/lib/buyers";
 import { fetchContracts, fetchContractById } from "@/lib/contracts";
-import { searchSuppliers } from "@/lib/competitors";
 import Buyer from "@/models/buyer";
-import Contract from "@/models/contract";
 import Signal from "@/models/signal";
 import KeyPersonnel from "@/models/key-personnel";
 import SpendSummary from "@/models/spend-summary";
 import SpendTransaction from "@/models/spend-transaction";
 import BoardDocument from "@/models/board-document";
 import Scanner from "@/models/scanner";
-import CompanyProfile from "@/models/company-profile";
-import { generateScoringPrompt } from "@/lib/vibe-scanner";
-import { scoreOneEntity, buildScoringSystemPrompt } from "@/lib/scoring-engine";
-
-import { VALID_USE_CASES, VALID_MODELS, isTextUseCase } from "@/lib/ai-column-config";
-
-import type { AIModel } from "@/lib/ai-column-config";
-import type { ScannerType } from "@/models/scanner";
+import OfstedSchool from "@/models/ofsted-school";
 
 interface ToolResult {
   summary: string;
@@ -52,8 +43,8 @@ export async function executeToolHandler(
         return await handleQuerySpendData(input);
       case "query_board_documents":
         return await handleQueryBoardDocuments(input);
-      case "search_competitor":
-        return await handleSearchCompetitor(input);
+      case "query_ofsted_schools":
+        return await handleQueryOfstedSchools(input);
       case "web_search":
         return handleWebSearch();
       case "create_scanner":
@@ -62,8 +53,6 @@ export async function executeToolHandler(
         return await handleApplyScannerFilter(input, userId);
       case "add_scanner_column":
         return await handleAddScannerColumn(input, userId);
-      case "test_score_column":
-        return await handleTestScoreColumn(input, userId);
       case "enrich_buyer":
         return await handleEnrichBuyer(input);
       default:
@@ -108,14 +97,66 @@ async function handleQueryBuyers(
     Buyer.find(query)
       .sort({ enrichmentScore: -1 })
       .limit(limit)
-      .select("name sector region orgType enrichmentScore contractCount")
+      .select("name sector region orgType enrichmentScore contractCount isParent childBuyerIds")
       .lean(),
     Buyer.countDocuments(query),
   ]);
 
+  // Batch-aggregate Ofsted stats for returned buyers
+  const buyerIds = buyers.map((b) => b._id);
+  const ofstedStats = await OfstedSchool.aggregate([
+    { $match: { buyerId: { $in: buyerIds } } },
+    {
+      $addFields: {
+        worstRating: {
+          $max: [
+            "$overallEffectiveness",
+            "$qualityOfEducation",
+            "$behaviourAndAttitudes",
+            "$personalDevelopment",
+            "$leadershipAndManagement",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$buyerId",
+        worstRating: { $max: "$worstRating" },
+        belowGoodCount: {
+          $sum: { $cond: [{ $gte: ["$worstRating", 3] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const ofstedMap = new Map<string, { worstRating: number | null; belowGoodCount: number }>();
+  for (const stat of ofstedStats) {
+    ofstedMap.set(String(stat._id), {
+      worstRating: stat.worstRating ?? null,
+      belowGoodCount: stat.belowGoodCount ?? 0,
+    });
+  }
+
+  let results = buyers.map((b) => {
+    const ofsted = ofstedMap.get(String(b._id));
+    return {
+      ...b,
+      childBuyerCount: b.childBuyerIds?.length ?? 0,
+      childBuyerIds: undefined,
+      ofstedWorstRating: ofsted?.worstRating ?? null,
+      schoolsBelowGood: ofsted?.belowGoodCount ?? null,
+    };
+  });
+
+  // Post-filter for hasSchoolsBelowGood (requires aggregation results)
+  if (input.hasSchoolsBelowGood === true) {
+    results = results.filter((b) => (b.schoolsBelowGood ?? 0) > 0);
+  }
+
   return {
-    summary: `Found ${filteredCount} buyers matching criteria (showing ${buyers.length})`,
-    data: buyers,
+    summary: `Found ${filteredCount} buyers matching criteria (showing ${results.length})`,
+    data: results,
   };
 }
 
@@ -130,6 +171,9 @@ async function handleQueryContracts(
     region: input.region as string | undefined,
     minValue: input.minValue as number | undefined,
     maxValue: input.maxValue as number | undefined,
+    contractType: input.contractType as string | undefined,
+    smeOnly: input.smeOnly === true ? true : undefined,
+    vcoOnly: input.vcoOnly === true ? true : undefined,
     page: 1,
     pageSize: limit,
   });
@@ -145,6 +189,11 @@ async function handleQueryContracts(
     status: c.status,
     deadlineDate: c.deadlineDate,
     buyerRegion: c.buyerRegion,
+    contractType: c.contractType ?? null,
+    suitableForSme: c.suitableForSme ?? null,
+    suitableForVco: c.suitableForVco ?? null,
+    canRenew: c.canRenew ?? null,
+    awardedSuppliers: c.awardedSuppliers ?? [],
   }));
 
   return {
@@ -203,7 +252,7 @@ async function handleGetBuyerDetail(
     if (buyer) {
       return {
         summary: `Retrieved details for ${buyer.name}`,
-        data: buyer,
+        data: buildBuyerDetailResponse(buyer),
       };
     }
   }
@@ -219,13 +268,50 @@ async function handleGetBuyerDetail(
       if (buyer) {
         return {
           summary: `Retrieved details for ${buyer.name}`,
-          data: buyer,
+          data: buildBuyerDetailResponse(buyer),
         };
       }
     }
   }
 
   return { summary: "Buyer not found", data: null };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildBuyerDetailResponse(buyer: Record<string, any>) {
+  const schools = Array.isArray(buyer.ofstedSchools) ? buyer.ofstedSchools : [];
+
+  if (schools.length === 0) {
+    return buyer;
+  }
+
+  const belowGood = schools.filter((s: Record<string, unknown>) => {
+    const ratings = [
+      s.overallEffectiveness,
+      s.qualityOfEducation,
+      s.behaviourAndAttitudes,
+      s.personalDevelopment,
+      s.leadershipAndManagement,
+    ].filter((r): r is number => typeof r === "number");
+    return ratings.some((r) => r >= 3);
+  });
+
+  return {
+    ...buyer,
+    ofstedSummary: {
+      totalSchools: schools.length,
+      belowGoodCount: belowGood.length,
+      schools: belowGood
+        .map((s: Record<string, unknown>) => ({
+          name: s.name,
+          overallEffectiveness: s.overallEffectiveness,
+          qualityOfEducation: s.qualityOfEducation,
+          phase: s.phase,
+          totalPupils: s.totalPupils,
+        }))
+        .slice(0, 10),
+    },
+  };
 }
 
 async function handleGetContractDetail(
@@ -363,48 +449,69 @@ async function handleQueryBoardDocuments(
   };
 }
 
-async function handleSearchCompetitor(
+async function handleQueryOfstedSchools(
   input: Record<string, unknown>
 ): Promise<ToolResult> {
-  const companyName = String(input.companyName || "");
-  const limit = Math.min(Number(input.limit) || 5, 10);
+  const limit = Math.min(Number(input.limit) || 10, 30);
 
-  if (!companyName || companyName.trim().length < 2) {
-    return { summary: "Company name must be at least 2 characters", data: null };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Record<string, any> = {};
+
+  if (input.buyerId) {
+    if (!mongoose.isValidObjectId(String(input.buyerId))) {
+      return { summary: "Invalid buyer ID", data: null };
+    }
+    query.buyerId = new mongoose.Types.ObjectId(String(input.buyerId));
   }
-
-  const results = await searchSuppliers(companyName.trim(), limit);
-
-  if (results.length === 0) {
-    return {
-      summary: `No suppliers found matching "${companyName}"`,
-      data: { query: companyName, results: [] },
+  if (input.localAuthority) {
+    query.localAuthority = {
+      $regex: String(input.localAuthority),
+      $options: "i",
     };
   }
+  if (input.name) {
+    query.name = { $regex: String(input.name), $options: "i" };
+  }
+  if (input.maxRating) {
+    query.overallEffectiveness = { $gte: Number(input.maxRating) };
+  }
+  if (input.phase) {
+    query.phase = { $regex: String(input.phase), $options: "i" };
+  }
 
-  const formatted = results.map((r) => ({
-    name: r.name,
-    contractCount: r.contractCount,
-    totalValue: r.totalValue,
-    activeBuyerCount: r.activeBuyerCount,
-    latestAwardDate: r.latestAwardDate,
-    sectors: r.sectors,
-    profileUrl: `/competitors/${encodeURIComponent(r.name)}`,
+  const schools = await OfstedSchool.find(query)
+    .sort({ overallEffectiveness: -1 })
+    .limit(limit)
+    .select(
+      "name phase overallEffectiveness qualityOfEducation behaviourAndAttitudes personalDevelopment leadershipAndManagement inspectionDate totalPupils localAuthority buyerId"
+    )
+    .lean();
+
+  const ratingLabel = (r: number | null | undefined) => {
+    if (r == null) return null;
+    return (
+      { 1: "Outstanding", 2: "Good", 3: "Requires Improvement", 4: "Inadequate" }[r] ?? String(r)
+    );
+  };
+
+  const formatted = schools.map((s) => ({
+    _id: s._id,
+    name: s.name,
+    phase: s.phase,
+    localAuthority: s.localAuthority,
+    overallEffectiveness: ratingLabel(s.overallEffectiveness as number | null),
+    qualityOfEducation: ratingLabel(s.qualityOfEducation as number | null),
+    behaviourAndAttitudes: ratingLabel(s.behaviourAndAttitudes as number | null),
+    personalDevelopment: ratingLabel(s.personalDevelopment as number | null),
+    leadershipAndManagement: ratingLabel(s.leadershipAndManagement as number | null),
+    inspectionDate: s.inspectionDate,
+    totalPupils: s.totalPupils,
+    buyerId: s.buyerId ?? null,
   }));
 
-  const topResult = formatted[0];
-  const summaryText =
-    results.length === 1
-      ? `Found **${topResult.name}**: ${topResult.contractCount} contracts, GBP ${topResult.totalValue.toLocaleString()}, ${topResult.activeBuyerCount} buyers`
-      : `Found ${results.length} suppliers matching "${companyName}". Top match: **${topResult.name}** (${topResult.contractCount} contracts, GBP ${topResult.totalValue.toLocaleString()})`;
-
   return {
-    summary: summaryText,
-    data: { query: companyName, results: formatted },
-    action:
-      results.length === 1
-        ? { type: "navigate", url: topResult.profileUrl }
-        : undefined,
+    summary: `Found ${formatted.length} Ofsted school records`,
+    data: formatted,
   };
 }
 
@@ -421,9 +528,9 @@ async function handleCreateScanner(
   userId: string
 ): Promise<ToolResult> {
   const name = String(input.name);
-  const type = String(input.type) as "rfps" | "meetings" | "buyers" | "schools";
+  const type = String(input.type) as "rfps" | "meetings" | "buyers";
 
-  if (!["rfps", "meetings", "buyers", "schools"].includes(type)) {
+  if (!["rfps", "meetings", "buyers"].includes(type)) {
     return { summary: `Invalid scanner type: ${type}`, data: null };
   }
 
@@ -480,12 +587,6 @@ async function handleAddScannerColumn(
   const scannerId = String(input.scannerId);
   const name = String(input.name);
   const prompt = String(input.prompt);
-  const useCase = input.useCase && VALID_USE_CASES.has(String(input.useCase))
-    ? String(input.useCase)
-    : "score";
-  const model = input.model && VALID_MODELS.has(String(input.model))
-    ? String(input.model)
-    : "haiku";
 
   if (!mongoose.isValidObjectId(scannerId)) {
     return { summary: "Invalid scanner ID", data: null };
@@ -495,7 +596,7 @@ async function handleAddScannerColumn(
 
   const scanner = await Scanner.findOneAndUpdate(
     { _id: scannerId, userId },
-    { $push: { aiColumns: { columnId, name, prompt, useCase, model } } },
+    { $push: { aiColumns: { columnId, name, prompt } } },
     { new: true }
   );
 
@@ -504,151 +605,8 @@ async function handleAddScannerColumn(
   }
 
   return {
-    summary: `Added AI column "${name}" (${useCase}) to scanner "${scanner.name}"`,
-    data: { columnId, name, prompt, useCase, model },
-    action: { type: "column_added", scannerId, columnId, name, prompt, useCase, model },
-  };
-}
-
-async function handleTestScoreColumn(
-  input: Record<string, unknown>,
-  userId: string
-): Promise<ToolResult> {
-  const scannerId = String(input.scannerId);
-  const columnId = String(input.columnId);
-
-  if (!mongoose.isValidObjectId(scannerId)) {
-    return { summary: "Invalid scanner ID", data: null };
-  }
-
-  const scanner = await Scanner.findOne({ _id: scannerId, userId });
-  if (!scanner) {
-    return { summary: "Scanner not found or access denied", data: null };
-  }
-
-  const aiColumns = scanner.aiColumns as Array<{
-    columnId: string;
-    name: string;
-    prompt: string;
-    model?: string;
-    useCase?: string;
-  }>;
-
-  // Try exact ID match first, then fall back to fuzzy name match
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const column = aiColumns.find((c) => c.columnId === columnId)
-    || aiColumns.find((c) => c.name.toLowerCase() === columnId.toLowerCase())
-    || aiColumns.find((c) => normalize(c.name) === normalize(columnId))
-    || aiColumns.find((c) => normalize(c.name).includes(normalize(columnId))
-        || normalize(columnId).includes(normalize(c.name)));
-
-  if (!column) {
-    const availableColumns = aiColumns.map((c) => `"${c.name}" (${c.columnId})`).join(", ");
-    return { summary: `Column not found in scanner. Available columns: ${availableColumns}`, data: null };
-  }
-
-  const profile = await CompanyProfile.findOne({ userId });
-  if (!profile) {
-    return { summary: "No company profile found. Complete onboarding first.", data: null };
-  }
-
-  // Load first entity based on scanner type
-  const scannerType = scanner.type as ScannerType;
-  let entity: Record<string, unknown> | null = null;
-
-  switch (scannerType) {
-    case "rfps":
-      entity = await Contract.findOne()
-        .select("title description buyerName sector valueMin valueMax buyerRegion cpvCodes deadlineDate")
-        .lean() as unknown as Record<string, unknown> | null;
-      break;
-    case "meetings":
-      entity = await Signal.findOne()
-        .select("organizationName signalType title insight sector sourceDate")
-        .lean() as unknown as Record<string, unknown> | null;
-      break;
-    case "buyers":
-      entity = await Buyer.findOne()
-        .select("name sector region description contractCount website")
-        .lean() as unknown as Record<string, unknown> | null;
-      break;
-  }
-
-  if (!entity) {
-    return { summary: "No entities found to score", data: null };
-  }
-
-  const entityId = String(entity._id);
-  const entityTitle = String(
-    entity.title || entity.name || entity.organizationName || "Unknown"
-  );
-
-  const baseScoringPrompt = generateScoringPrompt(profile);
-  const systemPrompt = buildScoringSystemPrompt(
-    baseScoringPrompt,
-    column.prompt,
-    column.useCase
-  );
-
-  const result = await scoreOneEntity(
-    entity,
-    scannerType,
-    systemPrompt,
-    (scanner.searchQuery as string) || "",
-    (column.model as AIModel) || "haiku",
-    column.useCase
-  );
-
-  // Use the resolved column ID (input may have been a name)
-  const resolvedColumnId = column.columnId;
-
-  // Save the score to scanner.scores so it appears in the grid
-  await Scanner.updateOne(
-    { _id: scanner._id },
-    {
-      $pull: { scores: { columnId: resolvedColumnId, entityId } },
-    }
-  );
-  await Scanner.updateOne(
-    { _id: scanner._id },
-    {
-      $push: {
-        scores: {
-          columnId: resolvedColumnId,
-          entityId: new mongoose.Types.ObjectId(entityId),
-          score: result.score,
-          value: result.response,
-          reasoning: result.reasoning,
-        },
-      },
-    }
-  );
-
-  const textMode = isTextUseCase(column.useCase);
-  const summaryText = textMode
-    ? `Test result for "${entityTitle}" (${column.name}): ${result.response.slice(0, 200)}`
-    : `Test score for "${entityTitle}" (${column.name}): ${result.score != null ? `${result.score}/10` : "N/A"} — ${result.reasoning}`;
-
-  return {
-    summary: summaryText,
-    data: {
-      entityId,
-      entityTitle,
-      columnName: column.name,
-      useCase: column.useCase,
-      score: result.score,
-      reasoning: result.reasoning,
-      response: result.response,
-    },
-    action: {
-      type: "score_updated",
-      scannerId,
-      columnId: resolvedColumnId,
-      entityId,
-      score: result.score,
-      value: result.response,
-      reasoning: result.reasoning,
-    },
+    summary: `Added AI column "${name}" to scanner "${scanner.name}"`,
+    data: { columnId, name, prompt },
   };
 }
 

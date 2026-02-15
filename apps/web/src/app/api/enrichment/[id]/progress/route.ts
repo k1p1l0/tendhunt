@@ -78,7 +78,13 @@ export async function GET(
       // Fire enrichment worker (non-blocking)
       const enrichmentPromise = fetch(
         `${ENRICHMENT_WORKER_URL}/run-buyer?id=${encodeURIComponent(buyerId)}`
-      ).then((r) => r.json()).catch(() => null);
+      ).then(async (r) => {
+        if (!r.ok) throw new Error(`Worker returned ${r.status}`);
+        return r.json();
+      }).catch((err) => {
+        console.error("Enrichment worker error:", err);
+        return null;
+      });
 
       // Phase 1: Enrichment stages — simulate progress while worker runs
       for (let i = 0; i < ENRICHMENT_STAGES.length; i++) {
@@ -92,8 +98,13 @@ export async function GET(
       }
 
       // Wait for enrichment worker to actually finish before proceeding
-      await enrichmentPromise;
+      const enrichmentResult = await enrichmentPromise;
       if (cancelled) { controller.close(); return; }
+      if (!enrichmentResult) {
+        send({ type: "error", message: "Enrichment worker failed — data may not have been updated" });
+        controller.close();
+        return;
+      }
 
       // Tell client to refresh — enrichment data is now in DB
       send({ type: "refresh" });
@@ -101,7 +112,13 @@ export async function GET(
       // Phase 2: Spend stages — fire worker and simulate progress
       const spendPromise = fetch(
         `${SPEND_INGEST_WORKER_URL}/run-buyer?id=${encodeURIComponent(buyerId)}`
-      ).then((r) => r.json()).catch(() => null);
+      ).then(async (r) => {
+        if (!r.ok) throw new Error(`Worker returned ${r.status}`);
+        return r.json();
+      }).catch((err) => {
+        console.error("Spend worker error:", err);
+        return null;
+      });
 
       for (let i = 0; i < SPEND_STAGES.length; i++) {
         if (cancelled) break;
@@ -114,8 +131,13 @@ export async function GET(
       }
 
       // Wait for spend worker to actually finish
-      await spendPromise;
+      const spendResult = await spendPromise;
       if (cancelled) { controller.close(); return; }
+      if (!spendResult) {
+        send({ type: "error", message: "Spend data worker failed — spend data may not have been updated" });
+        controller.close();
+        return;
+      }
 
       // Final refresh + done — all data is now in DB
       send({ type: "refresh" });

@@ -13,6 +13,88 @@ import { isValidObjectId } from "mongoose";
 import { ArrowLeft, Share2 } from "lucide-react";
 import { SendToInboxButton } from "@/components/inbox/send-to-inbox-button";
 
+interface LeanContract {
+  _id: unknown;
+  title?: string;
+  valueMin?: number;
+  valueMax?: number;
+  publishedDate?: Date;
+  status?: string;
+  sector?: string;
+  source?: string;
+  contractMechanism?: string;
+  contractEndDate?: Date;
+}
+
+interface LeanSignal {
+  _id?: unknown;
+  signalType?: string;
+  title?: string;
+  insight?: string;
+  sourceDate?: Date;
+  organizationName?: string;
+  source?: string;
+}
+
+interface LeanContact {
+  name?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  linkedIn?: string;
+}
+
+interface LeanBoardDocument {
+  _id: unknown;
+  title?: string;
+  meetingDate?: Date;
+  committeeName?: string;
+  documentType?: string;
+  sourceUrl?: string;
+  extractionStatus?: string;
+}
+
+interface LeanKeyPersonnel {
+  _id: unknown;
+  name?: string;
+  title?: string;
+  role?: string;
+  department?: string;
+  email?: string;
+  confidence?: number;
+  extractionMethod?: string;
+}
+
+interface LeanChildBuyer {
+  _id: unknown;
+  name?: string;
+  enrichmentScore?: number;
+  logoUrl?: string;
+  orgType?: string;
+  contractCount?: number;
+}
+
+interface LeanOfstedSchool {
+  _id: unknown;
+  urn?: number;
+  name?: string;
+  phase?: string;
+  schoolType?: string;
+  overallEffectiveness?: number | null;
+  qualityOfEducation?: number | null;
+  behaviourAndAttitudes?: number | null;
+  personalDevelopment?: number | null;
+  leadershipAndManagement?: number | null;
+  inspectionDate?: Date;
+  totalPupils?: number | null;
+  idaciQuintile?: number | null;
+  reportUrl?: string;
+  postcode?: string;
+  ratingDirection?: string;
+  lastDowngradeDate?: Date;
+  inspectionHistory?: unknown[];
+}
+
 export default async function BuyerDetailPage({
   params,
 }: {
@@ -31,8 +113,7 @@ export default async function BuyerDetailPage({
   const buyerId = String(buyer._id);
   const buyerName = buyer.name ?? "";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const contracts = (buyer.contracts ?? []).map((c: any) => ({
+  const contracts = ((buyer.contracts ?? []) as LeanContract[]).map((c) => ({
     _id: String(c._id),
     title: c.title ?? "",
     valueMin: c.valueMin ?? null,
@@ -45,8 +126,7 @@ export default async function BuyerDetailPage({
     contractEndDate: c.contractEndDate ? String(c.contractEndDate) : null,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const signals = (buyer.signals ?? []).map((s: any) => ({
+  const signals = ((buyer.signals ?? []) as LeanSignal[]).map((s) => ({
     _id: s._id ? String(s._id) : undefined,
     signalType: s.signalType ?? "PROCUREMENT",
     title: s.title ?? "",
@@ -56,8 +136,7 @@ export default async function BuyerDetailPage({
     source: s.source ?? undefined,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const contacts = (buyer.contacts ?? []).map((c: any) => ({
+  const contacts = ((buyer.contacts ?? []) as LeanContact[]).map((c) => ({
     name: c.name ?? undefined,
     title: c.title ?? undefined,
     email: c.email ?? undefined,
@@ -65,8 +144,7 @@ export default async function BuyerDetailPage({
     linkedIn: c.linkedIn ?? undefined,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const boardDocuments = (buyer.boardDocuments ?? []).map((d: any) => ({
+  const boardDocuments = ((buyer.boardDocuments ?? []) as LeanBoardDocument[]).map((d) => ({
     _id: String(d._id),
     title: d.title ?? "",
     meetingDate: d.meetingDate ? String(d.meetingDate) : null,
@@ -76,8 +154,7 @@ export default async function BuyerDetailPage({
     extractionStatus: d.extractionStatus ?? undefined,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const keyPersonnel = (buyer.keyPersonnel ?? []).map((p: any) => ({
+  const keyPersonnel = ((buyer.keyPersonnel ?? []) as LeanKeyPersonnel[]).map((p) => ({
     _id: String(p._id),
     name: p.name ?? "",
     title: p.title ?? undefined,
@@ -88,8 +165,7 @@ export default async function BuyerDetailPage({
     extractionMethod: p.extractionMethod ?? undefined,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const children = (buyer.children ?? []).map((c: any) => ({
+  const children = ((buyer.children ?? []) as LeanChildBuyer[]).map((c) => ({
     _id: String(c._id),
     name: c.name ?? "",
     enrichmentScore: c.enrichmentScore ?? undefined,
@@ -98,8 +174,7 @@ export default async function BuyerDetailPage({
     contractCount: c.contractCount ?? 0,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ofstedSchools = (buyer.ofstedSchools ?? []).map((s: any) => ({
+  const ofstedSchools = ((buyer.ofstedSchools ?? []) as LeanOfstedSchool[]).map((s) => ({
     _id: String(s._id),
     urn: s.urn ?? 0,
     name: s.name ?? "",

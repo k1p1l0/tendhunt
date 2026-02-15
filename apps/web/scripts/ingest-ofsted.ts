@@ -72,13 +72,23 @@ async function downloadCsv(): Promise<string> {
   return await downloadFile(csvMatch[1]);
 }
 
+const MAX_CSV_SIZE = 100 * 1024 * 1024; // 100 MB safety limit
+
 async function downloadFile(url: string): Promise<string> {
   console.log(`Downloading CSV from: ${url}`);
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download CSV: ${res.status}`);
 
+  const contentLength = res.headers.get("content-length");
+  if (contentLength && parseInt(contentLength) > MAX_CSV_SIZE) {
+    throw new Error(`Ofsted CSV too large: ${contentLength} bytes (max ${MAX_CSV_SIZE})`);
+  }
+
   const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.byteLength > MAX_CSV_SIZE) {
+    throw new Error(`Downloaded CSV too large: ${buffer.byteLength} bytes (max ${MAX_CSV_SIZE})`);
+  }
 
   if (!fs.existsSync(CACHE_DIR)) {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -148,6 +158,14 @@ function mapCsvRow(row: CsvRow) {
   };
 }
 
+function sanitizeNameForLookup(name: string): string {
+  return name
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .toLowerCase();
+}
+
 async function matchBuyers() {
   console.log("\nMatching schools to buyer organisations...");
 
@@ -177,13 +195,13 @@ async function matchBuyers() {
 
     // Try MAT name match (skip literal "NULL" from CSV)
     if (school.matName && school.matName !== "NULL") {
-      const matLower = school.matName.toLowerCase().trim();
+      const matLower = sanitizeNameForLookup(school.matName);
       buyerId = buyerByNameLower.get(matLower);
     }
 
     // Try Local Authority match with common UK council name patterns
     if (!buyerId && school.localAuthority) {
-      const laLower = school.localAuthority.toLowerCase().trim();
+      const laLower = sanitizeNameForLookup(school.localAuthority);
       buyerId =
         buyerByNameLower.get(laLower) ??
         buyerByNameLower.get(`london borough of ${laLower}`) ??
